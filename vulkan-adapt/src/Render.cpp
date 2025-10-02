@@ -70,6 +70,8 @@ VkCommandBuffer engine::Render::beginFrame() {
 
   auto commandBuffer = getCurrCommandBuffer();
 
+  vkResetCommandBuffer(commandBuffer, 0);
+
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 

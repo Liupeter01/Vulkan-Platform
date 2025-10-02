@@ -82,19 +82,6 @@ void MyEngineDevice::createInstance() {
 
   auto extensions = getRequiredExtensions();
 
-#ifdef __APPLE__
-  extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-  extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-
-#if defined(VK_EXT_METAL_SURFACE_EXTENSION_NAME)
-  extensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
-#else
-  extensions.push_back("VK_MVK_macos_surface");
-#endif
-
-  createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif
-
   createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
   createInfo.ppEnabledExtensionNames = extensions.data();
 
@@ -292,6 +279,19 @@ std::vector<const char *> MyEngineDevice::getRequiredExtensions() {
   if (enableValidationLayers) {
     extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
+
+#ifdef __APPLE__
+  extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+  extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+
+#if defined(VK_EXT_METAL_SURFACE_EXTENSION_NAME)
+  extensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+#else
+  extensions.push_back("VK_MVK_macos_surface");
+#endif
+
+  createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 
   return extensions;
 }
