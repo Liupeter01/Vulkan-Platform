@@ -105,5 +105,6 @@ FetchContent_MakeAvailable(glm)
 FetchContent_MakeAvailable(glfw)
 
 add_subdirectory(external/tinyobjloader)
+add_subdirectory(external/VulkanMemoryAllocator)
 add_subdirectory(vulkan-1.3)
 add_subdirectory(vulkan-adapt)
