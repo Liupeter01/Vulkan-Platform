@@ -18,7 +18,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(fetch_vk_bootstrap)
 
-add_executable(${PROJECT_NAME} ${sources} ${headers} ${SHADER_OUTPUTS})
+add_executable(${PROJECT_NAME} ${sources} ${header})
+add_dependencies(${PROJECT_NAME} Compile_Shader)
+
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_link_libraries(
   ${PROJECT_NAME} PRIVATE glfw glm Vulkan::Vulkan tinyobjloader

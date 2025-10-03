@@ -9,7 +9,9 @@ endif()
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS src/*.cpp)
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS include/*.h include/*.hpp)
 
-add_executable(${PROJECT_NAME} ${sources} ${headers} ${SHADER_OUTPUTS})
+add_executable(${PROJECT_NAME} ${sources} ${headers})
+add_dependencies(${PROJECT_NAME} Compile_Shader)
+
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm Vulkan::Vulkan
                                               tinyobjloader)
