@@ -82,6 +82,10 @@ void MyEngineDevice::createInstance() {
 
   auto extensions = getRequiredExtensions();
 
+#ifdef __APPLE__
+  createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
+
   createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
   createInfo.ppEnabledExtensionNames = extensions.data();
 
@@ -290,7 +294,6 @@ std::vector<const char *> MyEngineDevice::getRequiredExtensions() {
   extensions.push_back("VK_MVK_macos_surface");
 #endif
 
-  createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 
   return extensions;
