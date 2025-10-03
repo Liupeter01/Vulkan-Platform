@@ -45,6 +45,12 @@ if(NOT MSVC)
   endif()
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_definitions(ENABLE_VALIDATION_LAYERS=1)
+else()
+  add_compile_definitions(ENABLE_VALIDATION_LAYERS=0)
+endif()
+
 set(SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 find_program(GLSLC_EXECUTABLE glslc REQUIRED)
 
@@ -71,6 +77,8 @@ foreach(SHADER ${SHADER_SOURCES})
 
   list(APPEND SHADER_OUTPUTS ${SPIRV})
 endforeach()
+
+add_custom_target(Compile_Shader ALL DEPENDS ${SHADER_OUTPUTS})
 
 message(STATUS "Shader sources = ${SHADER_SOURCES}")
 message(STATUS "Generated SPIR-V = ${SHADER_OUTPUTS}")
