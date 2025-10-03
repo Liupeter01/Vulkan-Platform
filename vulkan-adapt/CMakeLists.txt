@@ -15,5 +15,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm Vulkan::Vulkan
                                               tinyobjloader)
 
 target_compile_definitions(${PROJECT_NAME}
-    PUBLIC CONFIG_HOME="${CMAKE_SOURCE_DIR}/"
-)
+                           PUBLIC CONFIG_HOME="${CMAKE_SOURCE_DIR}/")
