@@ -1,4 +1,5 @@
 #pragma once
+#include <vulkan/vulkan_core.h>
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
 #include <GlobalDef.hpp>
@@ -40,11 +41,18 @@ private:
 
 private:
   bool isInit = false;
+
+#if ENABLE_VALIDATION_LAYERS
   bool enableValidationLayers_ = true;
+#else
+  bool enableValidationLayers_ = false;
+#endif
+
   Window &window_;
 
-  VkInstance instance_;                     // Vulkan library handle
-  VkDebugUtilsMessengerEXT debugMessenger_; // Vulkan debug output handle
+  VkInstance instance_; // Vulkan library handle
+  VkDebugUtilsMessengerEXT debugMessenger_ =
+      VK_NULL_HANDLE; // Vulkan debug output handle
   VkPhysicalDevice physicalDevice_ =
       VK_NULL_HANDLE; // GPU chosen as the default device
 

@@ -136,19 +136,25 @@ void VulkanEngine::draw() {
 
 std::vector<const char *> VulkanEngine::getRequiredExtensions() {
   uint32_t glfwExtensionCount = 0;
-  const char **glfwExtensions;
-  glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+  const char **glfwExtensions =
+      glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-  std::vector<const char *> extensions(glfwExtensions,
-                                       glfwExtensions + glfwExtensionCount);
-
-  if (enableValidationLayers_) {
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  std::vector<const char *> extensions;
+  if (glfwExtensions) {
+    extensions.insert(extensions.end(), glfwExtensions,
+                      glfwExtensions + glfwExtensionCount);
   }
+#if ENABLE_VALIDATION_LAYERS
+  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
 
 #ifdef __APPLE__
   extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-  extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+
+  if (std::find(extensions.begin(), extensions.end(),
+                VK_KHR_SURFACE_EXTENSION_NAME) == extensions.end()) {
+    extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+  }
 
 #if defined(VK_EXT_METAL_SURFACE_EXTENSION_NAME)
   extensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
@@ -156,7 +162,12 @@ std::vector<const char *> VulkanEngine::getRequiredExtensions() {
   extensions.push_back("VK_MVK_macos_surface");
 #endif
 
-  createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
+
+#if ENABLE_VALIDATION_LAYERS
+  for (auto ext : extensions) {
+    std::cout << "Requesting instance extension: " << ext << std::endl;
+  }
 #endif
 
   return extensions;
@@ -165,12 +176,30 @@ std::vector<const char *> VulkanEngine::getRequiredExtensions() {
 void VulkanEngine::init_vulkan() {
 
   vkb::InstanceBuilder builder;
-  auto ins_ret = builder.set_app_name("Vulkan_Application")
-                     .request_validation_layers(enableValidationLayers_)
+
+  auto ins_ret = builder
+                     .set_app_name("Vulkan_Application")
+#if ENABLE_VALIDATION_LAYERS
+                     .request_validation_layers(true)
                      .use_default_debug_messenger()
+#endif
                      .require_api_version(1, 3, 0)
                      .enable_extensions(getRequiredExtensions())
                      .build();
+
+  if (!ins_ret) {
+    auto err = ins_ret.error();
+    std::cerr << "Failed to create Vulkan instance: " << err.message() << " ("
+              << err.message() << ")" << std::endl;
+    std::abort();
+  }
+
+  if (!ins_ret.has_value()) {
+    std::cerr << "Failed to create Vulkan instance: "
+              << ins_ret.error().message() << " (" << ins_ret.error().message()
+              << ")" << std::endl;
+    std::abort();
+  }
 
   vkb::Instance vkb_inst = ins_ret.value();
 
@@ -195,13 +224,20 @@ void VulkanEngine::init_vulkan() {
   features.dynamicRendering = true;
   features.synchronization2 = true;
 
-  vkb::PhysicalDevice _physicalDevice =
-      selector.set_minimum_version(1, 3)
-          .set_required_features_13(features)
-          .set_required_features_12(features12)
-          .set_surface(surface_)
-          .select()
-          .value();
+  auto select_ret = selector.set_minimum_version(1, 3)
+                        .set_required_features_13(features)
+                        .set_required_features_12(features12)
+                        .set_surface(surface_)
+                        .select();
+
+  if (!select_ret.has_value()) {
+    std::cerr << "Failed to select physical device: "
+              << select_ret.error().message() << " ("
+              << select_ret.error().message() << ")" << std::endl;
+    std::abort();
+  }
+
+  vkb::PhysicalDevice _physicalDevice = select_ret.value();
 
   vkb::DeviceBuilder deviceBuilder{_physicalDevice};
   vkb::Device vkbDevice = deviceBuilder.build().value();
