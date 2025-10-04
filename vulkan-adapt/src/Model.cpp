@@ -51,7 +51,7 @@ void engine::Builder::loadObjModel(const std::string &path) {
       }
 
       auto [_, status] = uniqueVertices.try_emplace(vertex, vertices.size());
-      indices.push_back(uniqueVertices[vertex]);
+      indices.push_back(static_cast<uint32_t>(uniqueVertices[vertex]));
       if (status) {
         vertices.push_back(std::move(vertex));
       }
