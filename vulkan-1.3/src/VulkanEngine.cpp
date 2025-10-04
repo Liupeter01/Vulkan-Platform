@@ -13,29 +13,27 @@ VulkanEngine::VulkanEngine(Window &win, bool enableValidationLayer)
     : isInit(false), window_(win), frameNumber_(0), frames_(FRAMES_IN_FLIGHT),
       enableValidationLayers_(enableValidationLayer) {
 
-          init();
+  init();
 }
 
-VulkanEngine::~VulkanEngine() {
-          destroy();
-}
+VulkanEngine::~VulkanEngine() { destroy(); }
 
 void VulkanEngine::init() {
-          init_vulkan();
-          init_swapchain();
-          init_sync();
-          init_commands();
-          init_vma_allocator();
-          init_custom_image();
+  init_vulkan();
+  init_swapchain();
+  init_sync();
+  init_commands();
+  init_vma_allocator();
+  init_custom_image();
 }
 
 void VulkanEngine::destroy() {
-          destroy_custom_image();
-          destroy_vma_allocator();
-          destroy_commands();
-          destroy_sync();
-          destroy_swapchain();
-          destroy_vulkan();
+  destroy_custom_image();
+  destroy_vma_allocator();
+  destroy_commands();
+  destroy_sync();
+  destroy_swapchain();
+  destroy_vulkan();
 }
 
 void VulkanEngine::run() {
@@ -57,19 +55,19 @@ void VulkanEngine::run() {
   vkDeviceWaitIdle(device_);
 }
 
-void VulkanEngine::draw_background(VkCommandBuffer& cmd, VkImage& image) {
-          // make a clear-color from frame number. This will flash with a 120 frame
+void VulkanEngine::draw_background(VkCommandBuffer &cmd, VkImage &image) {
+  // make a clear-color from frame number. This will flash with a 120 frame
   // period.
-          VkClearColorValue clearValue;
-          float flash = std::abs(std::sin(frameNumber_ / 120.f));
-          clearValue = { {0.0f, 0.0f, flash, 1.0f} };
+  VkClearColorValue clearValue;
+  float flash = std::abs(std::sin(frameNumber_ / 120.f));
+  clearValue = {{0.0f, 0.0f, flash, 1.0f}};
 
-          VkImageSubresourceRange clearRange =
-                    tools::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
+  VkImageSubresourceRange clearRange =
+      tools::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
 
-          // clear image
-          vkCmdClearColorImage(cmd, image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1,
-                    &clearRange);
+  // clear image
+  vkCmdClearColorImage(cmd, image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1,
+                       &clearRange);
 }
 
 void VulkanEngine::draw() {
@@ -82,9 +80,9 @@ void VulkanEngine::draw() {
 
   // request image from the swapchain
   uint32_t swapchainImageIndex{};
-  vkAcquireNextImageKHR(device_, swapchain_, std::numeric_limits<uint64_t>::max(),
-                        currentFrame._swapChainWait, nullptr,
-                        &swapchainImageIndex);
+  vkAcquireNextImageKHR(
+      device_, swapchain_, std::numeric_limits<uint64_t>::max(),
+      currentFrame._swapChainWait, nullptr, &swapchainImageIndex);
 
   // now that we are sure that the commands finished executing, we can safely
   VkCommandBuffer cmd = currentFrame._mainCommandBuffer;
@@ -273,8 +271,6 @@ void VulkanEngine::init_vulkan() {
 
 void VulkanEngine::init_swapchain() {
   create_swapchain(window_.getExtent().width, window_.getExtent().height);
-
-
 }
 
 void VulkanEngine::init_commands() {
@@ -309,59 +305,53 @@ void VulkanEngine::init_sync() {
 }
 
 void VulkanEngine::init_vma_allocator() {
-          // initialize the memory allocator
-          VmaAllocatorCreateInfo allocatorInfo = {};
-          allocatorInfo.physicalDevice = physicalDevice_;
-          allocatorInfo.device = device_;
-          allocatorInfo.instance = instance_;
-          allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
-          vmaCreateAllocator(&allocatorInfo, &allocator_);
+  // initialize the memory allocator
+  VmaAllocatorCreateInfo allocatorInfo = {};
+  allocatorInfo.physicalDevice = physicalDevice_;
+  allocatorInfo.device = device_;
+  allocatorInfo.instance = instance_;
+  allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+  vmaCreateAllocator(&allocatorInfo, &allocator_);
 }
 
 void VulkanEngine::init_custom_image() {
 
-          VkExtent3D drawImageExtent = {
-                    window_.getExtent().width,
-                     window_.getExtent().height,
-                     1
-          };
+  VkExtent3D drawImageExtent = {window_.getExtent().width,
+                                window_.getExtent().height, 1};
 
-          //hardcoding the draw format to 32 bit float
-          drawImage_.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-          drawImage_.imageExtent = drawImageExtent;
-          
-          VkImageUsageFlags drawImageUsages= VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-                                                                          | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-                                                                          | VK_IMAGE_USAGE_STORAGE_BIT
-                                                                          | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  // hardcoding the draw format to 32 bit float
+  drawImage_.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+  drawImage_.imageExtent = drawImageExtent;
 
-          VkImageCreateInfo rimg_info = 
-                    tools::image_create_info(drawImage_.imageFormat, drawImageUsages, drawImageExtent);
+  VkImageUsageFlags drawImageUsages =
+      VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-          VmaAllocationCreateInfo rimg_allocinfo = {};
-          rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-          rimg_allocinfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  VkImageCreateInfo rimg_info = tools::image_create_info(
+      drawImage_.imageFormat, drawImageUsages, drawImageExtent);
 
-          //allocate and create the image
-          vmaCreateImage(allocator_, &rimg_info, &rimg_allocinfo, &drawImage_.image, &drawImage_.allocation, nullptr);
+  VmaAllocationCreateInfo rimg_allocinfo = {};
+  rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+  rimg_allocinfo.requiredFlags =
+      VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-          //build a image-view for the draw image to use for rendering
-          VkImageViewCreateInfo rview_info =
-                    tools::imageview_create_info(drawImage_.imageFormat, 
-                                                                      drawImage_.image, 
-                                                                      VK_IMAGE_ASPECT_COLOR_BIT);
+  // allocate and create the image
+  vmaCreateImage(allocator_, &rimg_info, &rimg_allocinfo, &drawImage_.image,
+                 &drawImage_.allocation, nullptr);
 
-          vkCreateImageView(device_, &rview_info, nullptr, &drawImage_.imageView);
+  // build a image-view for the draw image to use for rendering
+  VkImageViewCreateInfo rview_info = tools::imageview_create_info(
+      drawImage_.imageFormat, drawImage_.image, VK_IMAGE_ASPECT_COLOR_BIT);
+
+  vkCreateImageView(device_, &rview_info, nullptr, &drawImage_.imageView);
 }
 
 void VulkanEngine::destroy_custom_image() {
-          vkDestroyImageView(device_, drawImage_.imageView, nullptr);
-          vmaDestroyImage(allocator_, drawImage_.image, drawImage_.allocation);
+  vkDestroyImageView(device_, drawImage_.imageView, nullptr);
+  vmaDestroyImage(allocator_, drawImage_.image, drawImage_.allocation);
 }
 
-void VulkanEngine::destroy_vma_allocator() {
-          vmaDestroyAllocator(allocator_);
-}
+void VulkanEngine::destroy_vma_allocator() { vmaDestroyAllocator(allocator_); }
 
 void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
   vkb::SwapchainBuilder swapchainBuilder{physicalDevice_, device_, surface_};
