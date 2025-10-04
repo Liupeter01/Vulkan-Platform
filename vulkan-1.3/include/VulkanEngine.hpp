@@ -1,7 +1,8 @@
 #pragma once
-#include <vulkan/vulkan_core.h>
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
+#include <vma/vk_mem_alloc.h>
+#include <vulkan/vulkan_core.h>
 #include <GlobalDef.hpp>
 #include <Window.hpp>
 #include <iostream>
@@ -22,21 +23,28 @@ public:
 protected:
   // draw loop
   void draw();
+  void init();
+  void destroy();
 
-  void init_vulkan();
-  void init_swapchain();
-  void init_commands();
-  void init_sync();
-
-  void destroy_sync();
-  void destroy_commands();
-  void destroy_swapchain();
-  void destroy_vulkan();
+  void draw_background(VkCommandBuffer& cmd, VkImage& image);
 
   FrameData &get_current_frame();
   void switch_to_next_frame();
 
 private:
+          void init_vulkan();
+          void init_swapchain();
+          void init_commands();
+          void init_sync();
+          void init_vma_allocator();
+          void init_custom_image();
+
+          void destroy_custom_image();
+          void destroy_vma_allocator();
+          void destroy_sync();
+          void destroy_commands();
+          void destroy_swapchain();
+          void destroy_vulkan();
   void create_swapchain(uint32_t width, uint32_t height);
 
 private:
@@ -73,6 +81,19 @@ private:
 
   VkQueue graphicsQueue_;
   uint32_t graphicsQueueFamily_;
+
+  struct AllocatedImage {
+            VkImage image;
+            VkImageView imageView;
+            VmaAllocation allocation;
+            VkExtent3D imageExtent;
+            VkFormat imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+  };
+
+  AllocatedImage drawImage_;
+  VkExtent2D drawExtent_;
+
+  VmaAllocator allocator_;
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_
