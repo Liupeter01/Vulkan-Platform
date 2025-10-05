@@ -28,6 +28,7 @@ protected:
   void destroy();
 
   void draw_background(VkCommandBuffer &cmd, VkImage &image);
+  void draw_compute(VkCommandBuffer& cmd);
 
   FrameData &get_current_frame();
   void switch_to_next_frame();
@@ -40,7 +41,9 @@ private:
   void init_vma_allocator();
   void init_custom_image();
   void init_descriptors();
+  void init_compute_pipeline();
 
+  void destroy_compute_pipeline();
   void destroy_descriptors();
   void destroy_custom_image();
   void destroy_vma_allocator();
@@ -102,6 +105,13 @@ private:
   DescriptorAllocator descriptorAllocator_;
   VkDescriptorSet drawCompDescriptor_;
   VkDescriptorSetLayout drawCompDescriptorLayout_;
+
+  //Compute Pipeline
+  VkPipeline gradientComputePipeline_;
+  VkPipelineLayout gradientComputePipelineLayout_;
+
+  //Graphic Pipeline
+
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_
