@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _UTIL_HPP_
 #define _UTIL_HPP_
+#include <fstream>
 #include <Tools.hpp>
 
 namespace engine {
@@ -70,6 +71,35 @@ static inline void copy_image_to_image(VkCommandBuffer cmd,
 
 		  vkCmdBlitImage2(cmd, &blitInfo);
 }
+
+[[nodiscard]]
+static inline std::vector<uint32_t> read_spv(const std::string& path) {
+		  std::ifstream f(path, std::ios::binary | std::ios::ate);
+		  if (!f) throw std::runtime_error("open failed: " + path);
+
+		  size_t sz = static_cast<size_t>(f.tellg());
+		  f.seekg(0);
+
+		  size_t wordCount = (sz + 3) / 4;
+		  std::vector<uint32_t> buf(wordCount, 0);
+
+		  f.read(reinterpret_cast<char*>(buf.data()), sz);
+		  if (!f) throw std::runtime_error("read failed: " + path);
+
+		  return buf;
+}
+
+static inline void load_shader(const std::string& shaderPath, VkDevice& device, VkShaderModule* shaderModule) {
+		  auto vec = std::move(read_spv(shaderPath));
+		  if (!vec.size())
+					throw std::runtime_error("Create Shader Failed!");
+
+		  auto shaderCreateInfo = tools::shader_module_create_info(vec);
+
+		  if (vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule))
+					throw std::runtime_error("vkCreateShaderModule Failed!");
+}
+
 } // namespace util
 } // namespace engine
 
