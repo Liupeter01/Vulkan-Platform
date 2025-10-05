@@ -4,8 +4,8 @@
 namespace engine {
 void DescriptorLayoutBuilder::clear() { bindings.clear(); }
 
-DescriptorLayoutBuilder& DescriptorLayoutBuilder::add_binding(uint32_t binding,
-                                          VkDescriptorType type) {
+DescriptorLayoutBuilder &
+DescriptorLayoutBuilder::add_binding(uint32_t binding, VkDescriptorType type) {
   bindings.emplace_back(tools::descriptor_set_layout_binding(binding, type));
   return *this;
 }
@@ -33,45 +33,45 @@ DescriptorLayoutBuilder::build(VkDevice device, VkShaderStageFlags shaderStages,
 DescriptorAllocator::DescriptorAllocator(
     VkDevice device, uint32_t maxSets,
     const std::vector<PoolSizeRatio> &poolRatios)
-          : isInit_(false)
-          , device_(device) {
+    : isInit_(false), device_(device) {
   init_pool(device_, maxSets, poolRatios);
 }
 
 DescriptorAllocator::~DescriptorAllocator() { destroy_pool(); }
 
-DescriptorAllocator::DescriptorAllocator(DescriptorAllocator&& other) noexcept {
-          destroy_pool();
+DescriptorAllocator::DescriptorAllocator(DescriptorAllocator &&other) noexcept {
+  destroy_pool();
 
-          pool_ = other.pool_;
-          device_ = other.device_;
-          isInit_ = other.isInit_;
+  pool_ = other.pool_;
+  device_ = other.device_;
+  isInit_ = other.isInit_;
 
-          other.pool_ = VK_NULL_HANDLE;
-          other.device_ = VK_NULL_HANDLE;
-          other.isInit_ = false;
+  other.pool_ = VK_NULL_HANDLE;
+  other.device_ = VK_NULL_HANDLE;
+  other.isInit_ = false;
 }
 
-DescriptorAllocator& DescriptorAllocator::operator=(DescriptorAllocator&& other) noexcept {
-          if (this != &other) {
-                    destroy_pool();
+DescriptorAllocator &
+DescriptorAllocator::operator=(DescriptorAllocator &&other) noexcept {
+  if (this != &other) {
+    destroy_pool();
 
-                    pool_ = other.pool_;
-                    device_ = other.device_;
-                    isInit_ = other.isInit_;
+    pool_ = other.pool_;
+    device_ = other.device_;
+    isInit_ = other.isInit_;
 
-                    other.pool_ = VK_NULL_HANDLE;
-                    other.device_ = VK_NULL_HANDLE;
-                    other.isInit_ = false;
-          }
-          return *this;
+    other.pool_ = VK_NULL_HANDLE;
+    other.device_ = VK_NULL_HANDLE;
+    other.isInit_ = false;
+  }
+  return *this;
 }
 
 void DescriptorAllocator::init_pool(
-          VkDevice device,
-    uint32_t maxSets, const std::vector<PoolSizeRatio> &poolRatios) {
+    VkDevice device, uint32_t maxSets,
+    const std::vector<PoolSizeRatio> &poolRatios) {
 
-          device_ = device;
+  device_ = device;
   destroy_pool();
 
   std::vector<VkDescriptorPoolSize> poolSizeArray;
