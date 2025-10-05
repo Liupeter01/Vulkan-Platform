@@ -94,18 +94,39 @@ void VulkanEngine::draw() {
   VkCommandBufferBeginInfo cmdBeginInfo = tools::command_buffer_begin_info(
       VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
+  drawExtent_.width = drawImage_.imageExtent.width;
+  drawExtent_.height = drawImage_.imageExtent.height;
+
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-  // SwapChain Image
-  VkImage &image = swapchainImages_[swapchainImageIndex];
-  util::transition_image(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED,
+  VkImage& src_image = drawImage_.image;                                                  //Draw Image
+  VkImage &target_image = swapchainImages_[swapchainImageIndex];     // SwapChain Image
+
+  // transition our main draw image into general layout so we can write into it
+  // we will overwrite it all so we dont care about what was the older layout
+  util::transition_image(cmd, src_image, 
+            VK_IMAGE_LAYOUT_UNDEFINED,
                          VK_IMAGE_LAYOUT_GENERAL);
 
-  draw_background(cmd, image);
+  //Draw Background
+  draw_background(cmd, src_image);
 
-  // make the swapchain image into presentable mode
-  util::transition_image(cmd, image, VK_IMAGE_LAYOUT_GENERAL,
-                         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+  //transition the draw image and the swapchain image into their correct transfer layouts
+  util::transition_image(cmd, src_image, 
+            VK_IMAGE_LAYOUT_GENERAL, 
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+  util::transition_image(cmd, target_image, 
+            VK_IMAGE_LAYOUT_UNDEFINED, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+  // execute a copy from the draw image into the swapchain
+  util::copy_image_to_image(cmd, src_image, target_image, drawExtent_, swapchainExtent_);
+
+  // set swapchain image layout to Present so we can show it on the screen
+  util::transition_image(cmd, target_image, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
   vkEndCommandBuffer(cmd);
 
@@ -247,13 +268,6 @@ void VulkanEngine::init_vulkan() {
                         .set_surface(surface_)
                         .select();
 
-  if (!select_ret.has_value()) {
-    std::cerr << "Failed to select physical device: "
-              << select_ret.error().message() << " ("
-              << select_ret.error().message() << ")" << std::endl;
-    std::abort();
-  }
-
   vkb::PhysicalDevice _physicalDevice = select_ret.value();
 
   vkb::DeviceBuilder deviceBuilder{_physicalDevice};
@@ -344,6 +358,14 @@ void VulkanEngine::init_custom_image() {
       drawImage_.imageFormat, drawImage_.image, VK_IMAGE_ASPECT_COLOR_BIT);
 
   vkCreateImageView(device_, &rview_info, nullptr, &drawImage_.imageView);
+}
+
+void VulkanEngine::init_descriptors() {
+
+}
+
+void VulkanEngine::destroy_descriptors() {
+
 }
 
 void VulkanEngine::destroy_custom_image() {

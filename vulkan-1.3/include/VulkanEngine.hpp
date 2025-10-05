@@ -7,6 +7,7 @@
 #include <vector>
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
+#include <Descriptors.hpp>
 
 namespace engine {
 class VulkanEngine {
@@ -38,7 +39,9 @@ private:
   void init_sync();
   void init_vma_allocator();
   void init_custom_image();
+  void init_descriptors();
 
+  void destroy_descriptors();
   void destroy_custom_image();
   void destroy_vma_allocator();
   void destroy_sync();
@@ -94,6 +97,11 @@ private:
   VkExtent2D drawExtent_;
 
   VmaAllocator allocator_;
+
+  //Initializing the layout and descriptors
+  DescriptorAllocator descriptorAllocator_;
+  VkDescriptorSet drawCompDescriptor_;
+  VkDescriptorSetLayout drawCompDescriptorLayout_;
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_
