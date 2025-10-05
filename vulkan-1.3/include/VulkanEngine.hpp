@@ -1,13 +1,13 @@
 #pragma once
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
+#include <Descriptors.hpp>
 #include <GlobalDef.hpp>
 #include <Window.hpp>
 #include <iostream>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
-#include <Descriptors.hpp>
 
 namespace engine {
 class VulkanEngine {
@@ -28,7 +28,7 @@ protected:
   void destroy();
 
   void draw_background(VkCommandBuffer &cmd, VkImage &image);
-  void draw_compute(VkCommandBuffer& cmd);
+  void draw_compute(VkCommandBuffer &cmd);
 
   FrameData &get_current_frame();
   void switch_to_next_frame();
@@ -101,17 +101,16 @@ private:
 
   VmaAllocator allocator_;
 
-  //Initializing the layout and descriptors
+  // Initializing the layout and descriptors
   DescriptorAllocator descriptorAllocator_;
   VkDescriptorSet drawCompDescriptor_;
   VkDescriptorSetLayout drawCompDescriptorLayout_;
 
-  //Compute Pipeline
+  // Compute Pipeline
   VkPipeline gradientComputePipeline_;
   VkPipelineLayout gradientComputePipelineLayout_;
 
-  //Graphic Pipeline
-
+  // Graphic Pipeline
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_

@@ -30,8 +30,8 @@ void VulkanEngine::init() {
 }
 
 void VulkanEngine::destroy() {
-          destroy_compute_pipeline();
-          destroy_descriptors();
+  destroy_compute_pipeline();
+  destroy_descriptors();
   destroy_custom_image();
   destroy_vma_allocator();
   destroy_commands();
@@ -74,15 +74,21 @@ void VulkanEngine::draw_background(VkCommandBuffer &cmd, VkImage &image) {
                        &clearRange);
 }
 
-void VulkanEngine::draw_compute(VkCommandBuffer& cmd) {
+void VulkanEngine::draw_compute(VkCommandBuffer &cmd) {
 
-          vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE, gradientComputePipeline_);
+  vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
+                    gradientComputePipeline_);
 
-          // bind the descriptor set containing the draw image for the compute pipeline
-          vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, gradientComputePipelineLayout_, 0, 1, &drawCompDescriptor_, 0, nullptr);
+  // bind the descriptor set containing the draw image for the compute pipeline
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                          gradientComputePipelineLayout_, 0, 1,
+                          &drawCompDescriptor_, 0, nullptr);
 
-          // execute the compute pipeline dispatch. We are using 16x16 workgroup size so we need to divide by it
-          vkCmdDispatch(cmd, static_cast<uint32_t>(std::ceil(drawExtent_.width / 16.0f)), static_cast<uint32_t>(std::ceil(drawExtent_.height / 16.0f)), 1);
+  // execute the compute pipeline dispatch. We are using 16x16 workgroup size so
+  // we need to divide by it
+  vkCmdDispatch(
+      cmd, static_cast<uint32_t>(std::ceil(drawExtent_.width / 16.0f)),
+      static_cast<uint32_t>(std::ceil(drawExtent_.height / 16.0f)), 1);
 }
 
 void VulkanEngine::draw() {
@@ -114,37 +120,37 @@ void VulkanEngine::draw() {
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-  VkImage& src_image = drawImage_.image;                                                  //Draw Image
-  VkImage &target_image = swapchainImages_[swapchainImageIndex];     // SwapChain Image
+  VkImage &src_image = drawImage_.image; // Draw Image
+  VkImage &target_image =
+      swapchainImages_[swapchainImageIndex]; // SwapChain Image
 
   // transition our main draw image into general layout so we can write into it
   // we will overwrite it all so we dont care about what was the older layout
-  util::transition_image(cmd, src_image, 
-            VK_IMAGE_LAYOUT_UNDEFINED,
+  util::transition_image(cmd, src_image, VK_IMAGE_LAYOUT_UNDEFINED,
                          VK_IMAGE_LAYOUT_GENERAL);
 
-  //Draw Background
-  //draw_background(cmd, src_image);
+  // Draw Background
+  // draw_background(cmd, src_image);
 
-  //compute
+  // compute
   draw_compute(cmd);
 
-  //transition the draw image and the swapchain image into their correct transfer layouts
-  util::transition_image(cmd, src_image, 
-            VK_IMAGE_LAYOUT_GENERAL, 
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+  // transition the draw image and the swapchain image into their correct
+  // transfer layouts
+  util::transition_image(cmd, src_image, VK_IMAGE_LAYOUT_GENERAL,
+                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
-  util::transition_image(cmd, target_image, 
-            VK_IMAGE_LAYOUT_UNDEFINED, 
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  util::transition_image(cmd, target_image, VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
   // execute a copy from the draw image into the swapchain
-  util::copy_image_to_image(cmd, src_image, target_image, drawExtent_, swapchainExtent_);
+  util::copy_image_to_image(cmd, src_image, target_image, drawExtent_,
+                            swapchainExtent_);
 
   // set swapchain image layout to Present so we can show it on the screen
-  util::transition_image(cmd, target_image, 
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+  util::transition_image(cmd, target_image,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
   vkEndCommandBuffer(cmd);
 
@@ -379,78 +385,83 @@ void VulkanEngine::init_custom_image() {
 }
 
 void VulkanEngine::init_descriptors() {
-          std::vector<DescriptorAllocator::PoolSizeRatio> sizes {
-                    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 }
-          };
+  std::vector<DescriptorAllocator::PoolSizeRatio> sizes{
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
 
-          //init
-          descriptorAllocator_ = DescriptorAllocator{ device_, 10, sizes };
+  // init
+  descriptorAllocator_ = DescriptorAllocator{device_, 10, sizes};
 
-          {
-                    drawCompDescriptorLayout_ =
-                              DescriptorLayoutBuilder{}
-                              .add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
-                              .build(device_, VK_SHADER_STAGE_COMPUTE_BIT);     //add bindings
-          }
-                   
-          //allocate a descriptor set for our draw image
-         drawCompDescriptor_ =  descriptorAllocator_.allocate(drawCompDescriptorLayout_);
+  {
+    drawCompDescriptorLayout_ =
+        DescriptorLayoutBuilder{}
+            .add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+            .build(device_, VK_SHADER_STAGE_COMPUTE_BIT); // add bindings
+  }
 
-         VkDescriptorImageInfo imgInfo{};
-         imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-         imgInfo.imageView = drawImage_.imageView;
+  // allocate a descriptor set for our draw image
+  drawCompDescriptor_ =
+      descriptorAllocator_.allocate(drawCompDescriptorLayout_);
 
-         VkWriteDescriptorSet drawImageWrite = {};
-         drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  VkDescriptorImageInfo imgInfo{};
+  imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+  imgInfo.imageView = drawImage_.imageView;
 
-         drawImageWrite.dstBinding = 0;
-         drawImageWrite.dstSet = drawCompDescriptor_;
-         drawImageWrite.descriptorCount = 1;
-         drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-         drawImageWrite.pImageInfo = &imgInfo;
+  VkWriteDescriptorSet drawImageWrite = {};
+  drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 
-         vkUpdateDescriptorSets(device_, 1, &drawImageWrite, 0, nullptr);
+  drawImageWrite.dstBinding = 0;
+  drawImageWrite.dstSet = drawCompDescriptor_;
+  drawImageWrite.descriptorCount = 1;
+  drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+  drawImageWrite.pImageInfo = &imgInfo;
+
+  vkUpdateDescriptorSets(device_, 1, &drawImageWrite, 0, nullptr);
 }
 
 void VulkanEngine::init_compute_pipeline() {
 
-          VkPipelineLayoutCreateInfo computeLayout{};
-          computeLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-          computeLayout.pNext = nullptr;
-          computeLayout.pSetLayouts = &drawCompDescriptorLayout_;
-          computeLayout.setLayoutCount = 1;
+  VkPipelineLayoutCreateInfo computeLayout{};
+  computeLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  computeLayout.pNext = nullptr;
+  computeLayout.pSetLayouts = &drawCompDescriptorLayout_;
+  computeLayout.setLayoutCount = 1;
 
-         vkCreatePipelineLayout(device_, &computeLayout, nullptr, &gradientComputePipelineLayout_);
+  vkCreatePipelineLayout(device_, &computeLayout, nullptr,
+                         &gradientComputePipelineLayout_);
 
-         //load shader 
-         VkShaderModule computeDrawShader;
-         util::load_shader(CONFIG_HOME"shaders/gradient.comp.spv", device_, &computeDrawShader);
+  // load shader
+  VkShaderModule computeDrawShader;
+  util::load_shader(CONFIG_HOME "shaders/gradient.comp.spv", device_,
+                    &computeDrawShader);
 
-         VkPipelineShaderStageCreateInfo stageinfo{};
-         stageinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-         stageinfo.pNext = nullptr;
-         stageinfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-         stageinfo.module = computeDrawShader;
-         stageinfo.pName = "main";
+  VkPipelineShaderStageCreateInfo stageinfo{};
+  stageinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  stageinfo.pNext = nullptr;
+  stageinfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  stageinfo.module = computeDrawShader;
+  stageinfo.pName = "main";
 
-         VkComputePipelineCreateInfo computePipelineCreateInfo{};
-         computePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-         computePipelineCreateInfo.layout = gradientComputePipelineLayout_;
-         computePipelineCreateInfo.stage = stageinfo;
+  VkComputePipelineCreateInfo computePipelineCreateInfo{};
+  computePipelineCreateInfo.sType =
+      VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+  computePipelineCreateInfo.layout = gradientComputePipelineLayout_;
+  computePipelineCreateInfo.stage = stageinfo;
 
-         vkCreateComputePipelines(device_, VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr, &gradientComputePipeline_);
+  vkCreateComputePipelines(device_, VK_NULL_HANDLE, 1,
+                           &computePipelineCreateInfo, nullptr,
+                           &gradientComputePipeline_);
 
-         vkDestroyShaderModule(device_, computeDrawShader, nullptr);
+  vkDestroyShaderModule(device_, computeDrawShader, nullptr);
 }
 
 void VulkanEngine::destroy_compute_pipeline() {
-          vkDestroyPipelineLayout(device_, gradientComputePipelineLayout_, nullptr);
-          vkDestroyPipeline(device_, gradientComputePipeline_, nullptr);
+  vkDestroyPipelineLayout(device_, gradientComputePipelineLayout_, nullptr);
+  vkDestroyPipeline(device_, gradientComputePipeline_, nullptr);
 }
 
 void VulkanEngine::destroy_descriptors() {
-          descriptorAllocator_.destroy_pool();
-          vkDestroyDescriptorSetLayout(device_, drawCompDescriptorLayout_, nullptr);
+  descriptorAllocator_.destroy_pool();
+  vkDestroyDescriptorSetLayout(device_, drawCompDescriptorLayout_, nullptr);
 }
 
 void VulkanEngine::destroy_custom_image() {
