@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _TOOLS_HPP_
 #define _TOOLS_HPP_
+#include <vector>
 #include <vulkan/vulkan.hpp>
 
 namespace engine {
@@ -175,6 +176,37 @@ imageview_create_info(VkFormat format, VkImage image,
   info.subresourceRange.aspectMask = aspectFlags;
 
   return info;
+}
+
+[[nodiscard]]
+inline static VkShaderModuleCreateInfo 
+shader_module_create_info(const std::vector<uint32_t>& vec) {
+          VkShaderModuleCreateInfo createInfo {};
+          createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+          createInfo.codeSize = vec.size() * sizeof(vec[0]);
+          createInfo.pCode = vec.data();
+          return createInfo;
+}
+
+[[nodiscard]]
+inline static VkDescriptorSetLayoutBinding
+descriptor_set_layout_binding(uint32_t binding, VkDescriptorType type) {
+          VkDescriptorSetLayoutBinding newbind{};
+          newbind.binding = binding;
+          newbind.descriptorCount = 1;
+          newbind.descriptorType = type;
+          return newbind;
+}
+
+[[nodiscard]]
+inline static VkDescriptorPoolCreateInfo descriptor_pool_create_info(const uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes) {
+          VkDescriptorPoolCreateInfo pool_info{};
+          pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+          pool_info.flags = 0;
+          pool_info.maxSets = maxSets;
+          pool_info.poolSizeCount = (uint32_t)poolSizes.size();
+          pool_info.pPoolSizes = poolSizes.data();
+          return pool_info;
 }
 
 } // namespace tools
