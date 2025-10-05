@@ -9,7 +9,7 @@ namespace engine {
 struct DescriptorLayoutBuilder {
   DescriptorLayoutBuilder() = default;
 
-  void add_binding(uint32_t binding, VkDescriptorType type);
+  DescriptorLayoutBuilder& add_binding(uint32_t binding, VkDescriptorType type);
   void clear();
 
   [[nodiscard]] VkDescriptorSetLayout
@@ -25,12 +25,20 @@ struct DescriptorAllocator {
     float ratio;
   };
 
+  DescriptorAllocator(const DescriptorAllocator&) = delete;
+  DescriptorAllocator& operator=(const DescriptorAllocator&) = delete;
+
+
   DescriptorAllocator() = default;
-  DescriptorAllocator(VkDevice &device, uint32_t maxSets,
+  DescriptorAllocator(VkDevice device, uint32_t maxSets,
                       const std::vector<PoolSizeRatio> &poolRatios);
+
+  DescriptorAllocator(DescriptorAllocator&& other) noexcept;
+  DescriptorAllocator& operator=(DescriptorAllocator&& other) noexcept;
+
   virtual ~DescriptorAllocator();
 
-  void init_pool(uint32_t maxSets,
+  void init_pool(VkDevice device, uint32_t maxSets,
                  const std::vector<PoolSizeRatio> &poolRatios);
 
   void reset_pool();
@@ -38,11 +46,11 @@ struct DescriptorAllocator {
 
   [[nodiscard]] VkDescriptorSet allocate(VkDescriptorSetLayout layout);
 
-  VkDevice &device_;
-  VkDescriptorPool pool_;
+  VkDescriptorPool pool_ =  VK_NULL_HANDLE;
 
 private:
-  bool isInit_ = false;
+          VkDevice device_ = VK_NULL_HANDLE;
+          bool isInit_ = false;
 };
 } // namespace engine
 
