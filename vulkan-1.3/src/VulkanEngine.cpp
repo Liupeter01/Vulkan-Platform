@@ -269,13 +269,13 @@ void VulkanEngine::init_vulkan() {
   vkb::PhysicalDeviceSelector selector{vkb_inst};
 
   // vulkan 1.2 features
-  VkPhysicalDeviceVulkan12Features features12;
+  VkPhysicalDeviceVulkan12Features features12{};
   features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
   features12.bufferDeviceAddress = true;
   features12.descriptorIndexing = true;
 
   // vulkan 1.3 features
-  VkPhysicalDeviceVulkan13Features features;
+  VkPhysicalDeviceVulkan13Features features{};
   features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
   features.dynamicRendering = true;
   features.synchronization2 = true;
