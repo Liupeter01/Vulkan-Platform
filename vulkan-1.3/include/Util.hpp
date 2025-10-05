@@ -1,13 +1,14 @@
 #pragma once
 #ifndef _UTIL_HPP_
 #define _UTIL_HPP_
-#include <fstream>
 #include <Tools.hpp>
+#include <fstream>
 
 namespace engine {
 namespace util {
 static inline void transition_image(VkCommandBuffer cmd, VkImage image,
-                      VkImageLayout currentLayout, VkImageLayout newLayout) {
+                                    VkImageLayout currentLayout,
+                                    VkImageLayout newLayout) {
   VkImageMemoryBarrier2 imageBarrier{};
   imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
   imageBarrier.pNext = nullptr;
@@ -40,64 +41,70 @@ static inline void transition_image(VkCommandBuffer cmd, VkImage image,
   vkCmdPipelineBarrier2(cmd, &depInfo);
 }
 
-static inline void copy_image_to_image(VkCommandBuffer cmd, 
-          VkImage source, VkImage destination, 
-          VkExtent2D srcSize, VkExtent2D dstSize) {
+static inline void copy_image_to_image(VkCommandBuffer cmd, VkImage source,
+                                       VkImage destination, VkExtent2D srcSize,
+                                       VkExtent2D dstSize) {
 
-		  VkImageBlit2 blitRegion{};
-		  blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
+  VkImageBlit2 blitRegion{};
+  blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
 
-		  blitRegion.srcOffsets[1].x = srcSize.width;
-		  blitRegion.srcOffsets[1].y = srcSize.height;
+  blitRegion.srcOffsets[1].x = srcSize.width;
+  blitRegion.srcOffsets[1].y = srcSize.height;
 
-		  blitRegion.dstOffsets[1].x = dstSize.width;
-		  blitRegion.dstOffsets[1].y = dstSize.height;
-		  blitRegion.dstOffsets[1].z = blitRegion.srcOffsets[1].z = 1;
+  blitRegion.dstOffsets[1].x = dstSize.width;
+  blitRegion.dstOffsets[1].y = dstSize.height;
+  blitRegion.dstOffsets[1].z = blitRegion.srcOffsets[1].z = 1;
 
-		  blitRegion.srcSubresource.aspectMask = blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		  blitRegion.srcSubresource.baseArrayLayer = blitRegion.dstSubresource.baseArrayLayer = 0;
-		  blitRegion.srcSubresource.layerCount = blitRegion.dstSubresource.layerCount = 1;
-		  blitRegion.srcSubresource.mipLevel = blitRegion.dstSubresource.mipLevel = 0;
+  blitRegion.srcSubresource.aspectMask = blitRegion.dstSubresource.aspectMask =
+      VK_IMAGE_ASPECT_COLOR_BIT;
+  blitRegion.srcSubresource.baseArrayLayer =
+      blitRegion.dstSubresource.baseArrayLayer = 0;
+  blitRegion.srcSubresource.layerCount = blitRegion.dstSubresource.layerCount =
+      1;
+  blitRegion.srcSubresource.mipLevel = blitRegion.dstSubresource.mipLevel = 0;
 
-		  VkBlitImageInfo2 blitInfo{};
-		  blitInfo.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2;
-		  blitInfo.dstImage = destination;
-		  blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		  blitInfo.srcImage = source;
-		  blitInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		  blitInfo.filter = VK_FILTER_LINEAR;
-		  blitInfo.regionCount = 1;
-		  blitInfo.pRegions = &blitRegion;
+  VkBlitImageInfo2 blitInfo{};
+  blitInfo.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2;
+  blitInfo.dstImage = destination;
+  blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  blitInfo.srcImage = source;
+  blitInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+  blitInfo.filter = VK_FILTER_LINEAR;
+  blitInfo.regionCount = 1;
+  blitInfo.pRegions = &blitRegion;
 
-		  vkCmdBlitImage2(cmd, &blitInfo);
+  vkCmdBlitImage2(cmd, &blitInfo);
 }
 
 [[nodiscard]]
-static inline std::vector<uint32_t> read_spv(const std::string& path) {
-		  std::ifstream f(path, std::ios::binary | std::ios::ate);
-		  if (!f) throw std::runtime_error("open failed: " + path);
+static inline std::vector<uint32_t> read_spv(const std::string &path) {
+  std::ifstream f(path, std::ios::binary | std::ios::ate);
+  if (!f)
+    throw std::runtime_error("open failed: " + path);
 
-		  size_t sz = static_cast<size_t>(f.tellg());
-		  f.seekg(0);
+  size_t sz = static_cast<size_t>(f.tellg());
+  f.seekg(0);
 
-		  size_t wordCount = (sz + 3) / 4;
-		  std::vector<uint32_t> buf(wordCount, 0);
+  size_t wordCount = (sz + 3) / 4;
+  std::vector<uint32_t> buf(wordCount, 0);
 
-		  f.read(reinterpret_cast<char*>(buf.data()), sz);
-		  if (!f) throw std::runtime_error("read failed: " + path);
+  f.read(reinterpret_cast<char *>(buf.data()), sz);
+  if (!f)
+    throw std::runtime_error("read failed: " + path);
 
-		  return buf;
+  return buf;
 }
 
-static inline void load_shader(const std::string& shaderPath, VkDevice& device, VkShaderModule* shaderModule) {
-		  auto vec = std::move(read_spv(shaderPath));
-		  if (!vec.size())
-					throw std::runtime_error("Create Shader Failed!");
+static inline void load_shader(const std::string &shaderPath, VkDevice &device,
+                               VkShaderModule *shaderModule) {
+  auto vec = std::move(read_spv(shaderPath));
+  if (!vec.size())
+    throw std::runtime_error("Create Shader Failed!");
 
-		  auto shaderCreateInfo = tools::shader_module_create_info(vec);
+  auto shaderCreateInfo = tools::shader_module_create_info(vec);
 
-		  if (vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule))
-					throw std::runtime_error("vkCreateShaderModule Failed!");
+  if (vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule))
+    throw std::runtime_error("vkCreateShaderModule Failed!");
 }
 
 } // namespace util
