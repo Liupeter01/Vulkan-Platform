@@ -2,6 +2,7 @@
 #ifndef _TOOLS_HPP_
 #define _TOOLS_HPP_
 #include <vector>
+#include <optional>
 #include <vulkan/vulkan.hpp>
 
 namespace engine {
@@ -209,6 +210,45 @@ inline static VkDescriptorPoolCreateInfo descriptor_pool_create_info(
   pool_info.poolSizeCount = (uint32_t)poolSizes.size();
   pool_info.pPoolSizes = poolSizes.data();
   return pool_info;
+}
+
+[[nodiscard]]
+inline static VkRenderingAttachmentInfo attachment_info(
+          VkImageView view, 
+          std::optional<VkClearValue> clear = std::nullopt,
+          VkImageLayout layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+{
+          VkRenderingAttachmentInfo colorAttachment{};
+          colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+
+          colorAttachment.imageView = view;
+          colorAttachment.imageLayout = layout;
+          colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+          if (!clear.has_value()) {
+                    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+                    return colorAttachment;
+          }
+
+          colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+          colorAttachment.clearValue = *clear;
+          return colorAttachment;
+}
+
+[[nodiscard]]
+inline static  VkRenderingInfo rendering_info(VkExtent2D rect, VkRenderingAttachmentInfo* pColorAttachments,
+          VkRenderingAttachmentInfo* pDepthAttachment = nullptr,
+          VkRenderingAttachmentInfo* pStencilAttachment = nullptr) {
+
+          VkRenderingInfo renderingInfo{};
+          renderingInfo.layerCount = 1;
+          renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+          renderingInfo.renderArea.extent = rect;
+          renderingInfo.colorAttachmentCount = 1;
+          renderingInfo.pColorAttachments = pColorAttachments;
+          renderingInfo.pDepthAttachment = pDepthAttachment;
+          renderingInfo.pStencilAttachment = pStencilAttachment;
+          return renderingInfo;
 }
 
 } // namespace tools
