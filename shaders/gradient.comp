@@ -7,11 +7,11 @@ layout(local_size_x = 16, local_size_y = 16) in;
 //descriptor bindings for the pipeline
 layout(rgba16f, set = 0, binding = 0) uniform image2D image;
 
-layout( push_constant ) uniform constants{
-           vec4 topLeft;
-           vec4 topRight;
-           vec4 bottomLeft;
-           vec4 bottomRight;
+layout(push_constant) uniform constants {
+    vec4 topLeft;
+    vec4 topRight;
+    vec4 bottomLeft;
+    vec4 bottomRight;
 } color_settings;
 
 void draw_example(ivec2 texelCoord, ivec2 size)
@@ -38,16 +38,17 @@ void bilinear(ivec2 texelCoord, ivec2 size)
         const float vertical_blend = float(texelCoord.y) / (size.y);
 
         vec4 topMixedColor = mix(color_settings.topLeft, color_settings.topRight, horizental_blend);
-        vec4 bottomMixedColor  = mix(color_settings.bottomLeft, color_settings.bottomRight, horizental_blend);
+        vec4 bottomMixedColor = mix(color_settings.bottomLeft, color_settings.bottomRight, horizental_blend);
 
-        imageStore(image, texelCoord, mix(topMixedColor , bottomMixedColor ,vertical_blend));
+        imageStore(image, texelCoord, mix(topMixedColor, bottomMixedColor, vertical_blend));
     }
 }
 
-void main(){
-              ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+void main() {
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
     ivec2 size = imageSize(image);
 
-     //draw_example(texelCoord, size);
+    //draw_example(texelCoord, size);
     bilinear(texelCoord, size);
 }
+

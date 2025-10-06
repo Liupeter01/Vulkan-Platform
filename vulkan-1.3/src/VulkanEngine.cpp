@@ -127,13 +127,14 @@ void VulkanEngine::draw_compute(VkCommandBuffer &cmd) {
                     gradientComputePipeline_);
 
   ComputeShaderPushConstants constants{};
-  constants.topLeft = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Red
-  constants.topRight = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
-  constants.bottomLeft = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f); // Blue
+  constants.topLeft = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);     // Red
+  constants.topRight = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);    // Yellow
+  constants.bottomLeft = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);  // Blue
   constants.bottomRight = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
 
-  vkCmdPushConstants(cmd, gradientComputePipelineLayout_, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-            sizeof(ComputeShaderPushConstants), &constants);
+  vkCmdPushConstants(cmd, gradientComputePipelineLayout_,
+                     VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                     sizeof(ComputeShaderPushConstants), &constants);
 
   // bind the descriptor set containing the draw image for the compute pipeline
   vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -527,10 +528,10 @@ void VulkanEngine::init_descriptors() {
 
 void VulkanEngine::init_compute_pipeline() {
 
-          VkPushConstantRange pushConstant{};
-          pushConstant.offset = 0;
-          pushConstant.size = sizeof(ComputeShaderPushConstants);
-          pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+  VkPushConstantRange pushConstant{};
+  pushConstant.offset = 0;
+  pushConstant.size = sizeof(ComputeShaderPushConstants);
+  pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
   VkPipelineLayoutCreateInfo computeLayout{};
   computeLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

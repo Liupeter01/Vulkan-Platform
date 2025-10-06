@@ -20,10 +20,10 @@ struct FrameData {
 };
 
 struct ComputeShaderPushConstants {
-          glm::vec4 topLeft;
-          glm::vec4 topRight;
-          glm::vec4 bottomLeft;
-          glm::vec4 bottomRight;
+  glm::vec4 topLeft;
+  glm::vec4 topRight;
+  glm::vec4 bottomLeft;
+  glm::vec4 bottomRight;
 };
 } // namespace engine
 
