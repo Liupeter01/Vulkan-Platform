@@ -4,25 +4,25 @@
 #include <Descriptors.hpp>
 #include <GlobalDef.hpp>
 #include <Window.hpp>
+#include <functional>
 #include <iostream>
 #include <vector>
-#include <functional>
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 
-//IMGUI Support
+// IMGUI Support
 #if ENABLE_VALIDATION_LAYERS
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
+#include <imgui.h>
 #endif
 
 namespace engine {
 class VulkanEngine {
 public:
-          using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
+  using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
   VulkanEngine(Window &win, bool enableValidationLayer = true);
   virtual ~VulkanEngine();
   VulkanEngine(VulkanEngine &&) = delete;
@@ -38,7 +38,7 @@ protected:
   void init();
   void destroy();
 
-  void imm_command_submit(CommandSubmitFunc&& function);
+  void imm_command_submit(CommandSubmitFunc &&function);
 
   FrameData &get_current_frame();
   void switch_to_next_frame();
@@ -73,11 +73,11 @@ private:
   void create_swapchain(uint32_t width, uint32_t height);
 
 private:
-          void draw_background(VkCommandBuffer& cmd, VkImage& image);
-          void draw_compute(VkCommandBuffer& cmd);
+  void draw_background(VkCommandBuffer &cmd, VkImage &image);
+  void draw_compute(VkCommandBuffer &cmd);
 
 #if ENABLE_VALIDATION_LAYERS
-          void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
+  void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
 #endif
 
 private:
@@ -108,7 +108,7 @@ private:
   std::vector<VkImageView> swapchainImageViews_; //
   VkExtent2D swapchainExtent_;
 
-  //Support IMGUI
+  // Support IMGUI
 #if ENABLE_VALIDATION_LAYERS
   VkDescriptorPool imguiPool_ = VK_NULL_HANDLE;
 #endif
