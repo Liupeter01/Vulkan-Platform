@@ -6,12 +6,23 @@
 #include <Window.hpp>
 #include <iostream>
 #include <vector>
+#include <functional>
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
+
+//IMGUI Support
+#if ENABLE_VALIDATION_LAYERS
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_vulkan.h>
+#endif
 
 namespace engine {
 class VulkanEngine {
 public:
+          using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
   VulkanEngine(Window &win, bool enableValidationLayer = true);
   virtual ~VulkanEngine();
   VulkanEngine(VulkanEngine &&) = delete;
@@ -27,8 +38,7 @@ protected:
   void init();
   void destroy();
 
-  void draw_background(VkCommandBuffer &cmd, VkImage &image);
-  void draw_compute(VkCommandBuffer &cmd);
+  void imm_command_submit(CommandSubmitFunc&& function);
 
   FrameData &get_current_frame();
   void switch_to_next_frame();
@@ -37,21 +47,38 @@ private:
   void init_vulkan();
   void init_swapchain();
   void init_commands();
+  void init_immediate_commands();
+  void init_immediate_sync();
   void init_sync();
   void init_vma_allocator();
   void init_custom_image();
   void init_descriptors();
   void init_compute_pipeline();
 
+#if ENABLE_VALIDATION_LAYERS
+  void init_imgui();
+  void destroy_imgui();
+#endif
+
   void destroy_compute_pipeline();
   void destroy_descriptors();
   void destroy_custom_image();
   void destroy_vma_allocator();
   void destroy_sync();
+  void destroy_immediate_sync();
+  void destroy_immediate_commands();
   void destroy_commands();
   void destroy_swapchain();
   void destroy_vulkan();
   void create_swapchain(uint32_t width, uint32_t height);
+
+private:
+          void draw_background(VkCommandBuffer& cmd, VkImage& image);
+          void draw_compute(VkCommandBuffer& cmd);
+
+#if ENABLE_VALIDATION_LAYERS
+          void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
+#endif
 
 private:
   bool isInit = false;
@@ -81,6 +108,11 @@ private:
   std::vector<VkImageView> swapchainImageViews_; //
   VkExtent2D swapchainExtent_;
 
+  //Support IMGUI
+#if ENABLE_VALIDATION_LAYERS
+  VkDescriptorPool imguiPool_ = VK_NULL_HANDLE;
+#endif
+
   // CommandBuffer Part
   unsigned int frameNumber_ = 0;
   std::vector<FrameData> frames_;
@@ -100,6 +132,11 @@ private:
   VkExtent2D drawExtent_;
 
   VmaAllocator allocator_;
+
+  // immediate submit structures
+  VkFence immFence_;
+  VkCommandBuffer immCommandBuffer_;
+  VkCommandPool immCommandPool_;
 
   // Initializing the layout and descriptors
   DescriptorAllocator descriptorAllocator_;
