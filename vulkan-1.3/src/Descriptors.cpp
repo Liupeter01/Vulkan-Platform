@@ -40,47 +40,15 @@ DescriptorLayoutBuilder::build(VkShaderStageFlags shaderStages, void *pNext,
   return set;
 }
 
-DescriptorAllocator::DescriptorAllocator(
-    VkDevice device, uint32_t maxSets,
-    const std::vector<PoolSizeRatio> &poolRatios)
-    : isInit_(false), device_(device) {
-  init_pool(maxSets, poolRatios);
+DescriptorAllocator::DescriptorAllocator(VkDevice device)
+    : device_(device), isInit_(false) {
 }
 
 DescriptorAllocator::~DescriptorAllocator() { destroy_pool(); }
 
-DescriptorAllocator::DescriptorAllocator(DescriptorAllocator &&other) noexcept {
-  destroy_pool();
-
-  pool_ = other.pool_;
-  device_ = other.device_;
-  isInit_ = other.isInit_;
-
-  other.pool_ = VK_NULL_HANDLE;
-  other.device_ = VK_NULL_HANDLE;
-  other.isInit_ = false;
-}
-
-DescriptorAllocator &
-DescriptorAllocator::operator=(DescriptorAllocator &&other) noexcept {
-  if (this != &other) {
-    destroy_pool();
-
-    pool_ = other.pool_;
-    device_ = other.device_;
-    isInit_ = other.isInit_;
-
-    other.pool_ = VK_NULL_HANDLE;
-    other.device_ = VK_NULL_HANDLE;
-    other.isInit_ = false;
-  }
-  return *this;
-}
 
 void DescriptorAllocator::init_pool(
-    uint32_t maxSets, const std::vector<PoolSizeRatio> &poolRatios) {
-
-  destroy_pool();
+         uint32_t maxSets, const std::vector<PoolSizeRatio> &poolRatios) {
 
   std::vector<VkDescriptorPoolSize> poolSizeArray;
   for (const auto &ratio : poolRatios) {
@@ -103,9 +71,9 @@ void DescriptorAllocator::init_pool(
   isInit_ = true;
 }
 
-void DescriptorAllocator::reset_pool() {
+void DescriptorAllocator::reset_pool(VkDevice device) {
   if (isInit_) {
-    vkResetDescriptorPool(device_, pool_, 0);
+    vkResetDescriptorPool(device, pool_, 0);
   }
 }
 

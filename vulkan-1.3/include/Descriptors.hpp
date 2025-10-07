@@ -29,27 +29,22 @@ struct DescriptorAllocator {
   DescriptorAllocator(const DescriptorAllocator &) = delete;
   DescriptorAllocator &operator=(const DescriptorAllocator &) = delete;
 
-  DescriptorAllocator(VkDevice device, uint32_t maxSets,
-                      const std::vector<PoolSizeRatio> &poolRatios);
-
-  DescriptorAllocator(DescriptorAllocator &&other) noexcept;
-  DescriptorAllocator &operator=(DescriptorAllocator &&other) noexcept;
+  DescriptorAllocator(VkDevice device);
 
   virtual ~DescriptorAllocator();
 
   void init_pool(uint32_t maxSets,
                  const std::vector<PoolSizeRatio> &poolRatios);
 
-  void reset_pool();
+  void reset_pool(VkDevice device);
   void destroy_pool();
 
   [[nodiscard]] VkDescriptorSet allocate(VkDescriptorSetLayout layout);
 
-  VkDescriptorPool pool_;
-
 private:
-  VkDevice device_;
   bool isInit_ = false;
+  VkDevice device_ = VK_NULL_HANDLE;
+  VkDescriptorPool pool_ = VK_NULL_HANDLE;
 };
 } // namespace engine
 
