@@ -18,12 +18,16 @@ namespace engine {
                     };
 
                     PipelineBasic(VkDevice device, PipelineType type)
-                              :device_(device), type_(type)
+                              :device_(device), type_(type),isInit_(false)
                     {
                     }
 
                     virtual ~PipelineBasic() {
-                              destroy();
+                              if (isInit_) {
+                                        vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
+                                        vkDestroyPipeline(device_, pipeline_, nullptr);
+                                        reset_init();
+                              }
                     }
 
                     PipelineBasic(const PipelineBasic&) = delete;
@@ -33,13 +37,7 @@ namespace engine {
                     bool isCompute() const { return type_ == PipelineType::COMPUTE; }
                     bool isGraphics() const { return type_ == PipelineType::GRAPHIC; }
                     virtual void init() = 0;
-                    virtual void destroy() {
-                              if (isInit_) {
-                                        vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
-                                        vkDestroyPipeline(device_, pipeline_, nullptr);
-                                        reset_init();
-                              }
-                    }
+                    virtual void destroy() = 0;
 
           protected:
                     void reset_init() { isInit_ = false; }

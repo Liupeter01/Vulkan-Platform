@@ -44,8 +44,6 @@ private:
 
 private:
   void init_pipeline();
-  void destroy_descriptors();
-  void destroy_pipeline();
 };
 } // namespace compute
 } // namespace engine

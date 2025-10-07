@@ -191,12 +191,14 @@ namespace graphic {
 
           void GraphicPipelinePacked::init() {
                     init_pipeline();
-                    init_finished();    //set isinit flag = true
           }
 
           void GraphicPipelinePacked::destroy() {
-                    destroy_pipeline();
-                    reset_init();
+                    if (isInit_) {
+                              vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
+                              vkDestroyPipeline(device_, pipeline_, nullptr);
+                              reset_init();
+                    }
           }
 
           void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView imageView) {
@@ -230,6 +232,7 @@ namespace graphic {
           }
 
           void GraphicPipelinePacked::init_pipeline() {
+                    if (isInit_) return;
 
                     VkPipelineLayoutCreateInfo computeLayout{};
                     computeLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -254,13 +257,8 @@ namespace graphic {
                               
                     vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
                     vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
-          }
 
-          void GraphicPipelinePacked::destroy_pipeline() {
-                    if (isInit_) {
-                              vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
-                              vkDestroyPipeline(device_, pipeline_, nullptr);
-                    }
+                    init_finished();    //set isinit flag = true
           }
 }
 

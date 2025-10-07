@@ -15,23 +15,16 @@ void ComputePipelinePacked::init() {
 }
 
 void ComputePipelinePacked::destroy() {
-          destroy_descriptors();
-          destroy_pipeline();
-  reset_init();
-}
+          if (isInit_) {
+                    descriptorAllocator_.reset_pool();
+                    descriptorAllocator_.destroy_pool();
+                    vkDestroyDescriptorSetLayout(device_, descriptorLayout_, nullptr);
 
-void ComputePipelinePacked::destroy_descriptors() {
-  if (isInit_) {
-    descriptorAllocator_.destroy_pool();
-    vkDestroyDescriptorSetLayout(device_, descriptorLayout_, nullptr);
-  }
-}
+                    vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
+                    vkDestroyPipeline(device_, pipeline_, nullptr);
 
-void ComputePipelinePacked::destroy_pipeline() {
-  if (isInit_) {
-    vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
-    vkDestroyPipeline(device_, pipeline_, nullptr);
-  }
+                    reset_init();
+          }
 }
 
 void ComputePipelinePacked::set_descriptors(VkImageView imageView) {
@@ -66,6 +59,7 @@ void ComputePipelinePacked::set_descriptors(VkImageView imageView) {
 }
 
 void ComputePipelinePacked::init_pipeline() {
+          if (isInit_) return;
 
   VkPushConstantRange pushConstant{};
   pushConstant.offset = 0;
@@ -107,6 +101,8 @@ void ComputePipelinePacked::init_pipeline() {
                            &pipeline_);
 
   vkDestroyShaderModule(device_, computeDrawShader, nullptr);
+
+  init_finished();    //set isinit flag = true
 }
 
 void ComputePipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView imageView) {
