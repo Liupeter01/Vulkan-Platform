@@ -1,7 +1,12 @@
 #include <Descriptors.hpp>
 #include <Tools.hpp>
+#include <iostream>
 
 namespace engine {
+          
+          DescriptorLayoutBuilder::DescriptorLayoutBuilder(VkDevice device)
+                    :device_(device){}
+
 void DescriptorLayoutBuilder::clear() { bindings.clear(); }
 
 DescriptorLayoutBuilder &
@@ -11,7 +16,7 @@ DescriptorLayoutBuilder::add_binding(uint32_t binding, VkDescriptorType type) {
 }
 
 VkDescriptorSetLayout
-DescriptorLayoutBuilder::build(VkDevice device, VkShaderStageFlags shaderStages,
+DescriptorLayoutBuilder::build(VkShaderStageFlags shaderStages,
                                void *pNext,
                                VkDescriptorSetLayoutCreateFlags flags) {
   for (auto &item : bindings) {
@@ -25,8 +30,13 @@ DescriptorLayoutBuilder::build(VkDevice device, VkShaderStageFlags shaderStages,
   info.bindingCount = (uint32_t)bindings.size();
   info.flags = flags;
 
-  VkDescriptorSetLayout set;
-  vkCreateDescriptorSetLayout(device, &info, nullptr, &set);
+  VkDescriptorSetLayout set{};
+  VkResult result = vkCreateDescriptorSetLayout(device_, &info, nullptr, &set);
+  if (result != VK_SUCCESS) {
+            std::cerr << "Failed to create DescriptorSetLayout! VkResult = " << result << std::endl;
+            throw std::runtime_error("vkCreateDescriptorSetLayout failed.");
+  }
+
   return set;
 }
 
@@ -34,7 +44,7 @@ DescriptorAllocator::DescriptorAllocator(
     VkDevice device, uint32_t maxSets,
     const std::vector<PoolSizeRatio> &poolRatios)
     : isInit_(false), device_(device) {
-  init_pool(device_, maxSets, poolRatios);
+  init_pool(maxSets, poolRatios);
 }
 
 DescriptorAllocator::~DescriptorAllocator() { destroy_pool(); }
@@ -67,11 +77,9 @@ DescriptorAllocator::operator=(DescriptorAllocator &&other) noexcept {
   return *this;
 }
 
-void DescriptorAllocator::init_pool(
-    VkDevice device, uint32_t maxSets,
+void DescriptorAllocator::init_pool(uint32_t maxSets,
     const std::vector<PoolSizeRatio> &poolRatios) {
 
-  device_ = device;
   destroy_pool();
 
   std::vector<VkDescriptorPoolSize> poolSizeArray;
@@ -83,10 +91,14 @@ void DescriptorAllocator::init_pool(
   }
 
   auto pool_info = tools::descriptor_pool_create_info(maxSets, poolSizeArray);
-  vkCreateDescriptorPool(device, &pool_info, nullptr, &pool_);
+
+  VkResult result = vkCreateDescriptorPool(device_, &pool_info, nullptr, &pool_);
+  if (result != VK_SUCCESS) {
+            std::cerr << "Failed to create descriptor pool! VkResult = " << result << std::endl;
+            throw std::runtime_error("vkCreateDescriptorPool failed.");
+  }
 
   isInit_ = true;
-  device_ = device;
 }
 
 void DescriptorAllocator::reset_pool() {

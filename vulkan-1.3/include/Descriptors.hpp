@@ -7,15 +7,16 @@
 namespace engine {
 
 struct DescriptorLayoutBuilder {
-  DescriptorLayoutBuilder() = default;
 
+  DescriptorLayoutBuilder(VkDevice device);
   DescriptorLayoutBuilder &add_binding(uint32_t binding, VkDescriptorType type);
   void clear();
 
   [[nodiscard]] VkDescriptorSetLayout
-  build(VkDevice device, VkShaderStageFlags shaderStages, void *pNext = nullptr,
+  build(VkShaderStageFlags shaderStages, void *pNext = nullptr,
         VkDescriptorSetLayoutCreateFlags flags = 0);
 
+  VkDevice device_;
   std::vector<VkDescriptorSetLayoutBinding> bindings;
 };
 
@@ -28,7 +29,6 @@ struct DescriptorAllocator {
   DescriptorAllocator(const DescriptorAllocator &) = delete;
   DescriptorAllocator &operator=(const DescriptorAllocator &) = delete;
 
-  DescriptorAllocator() = default;
   DescriptorAllocator(VkDevice device, uint32_t maxSets,
                       const std::vector<PoolSizeRatio> &poolRatios);
 
@@ -37,7 +37,7 @@ struct DescriptorAllocator {
 
   virtual ~DescriptorAllocator();
 
-  void init_pool(VkDevice device, uint32_t maxSets,
+  void init_pool(uint32_t maxSets,
                  const std::vector<PoolSizeRatio> &poolRatios);
 
   void reset_pool();
@@ -45,10 +45,10 @@ struct DescriptorAllocator {
 
   [[nodiscard]] VkDescriptorSet allocate(VkDescriptorSetLayout layout);
 
-  VkDescriptorPool pool_ = VK_NULL_HANDLE;
+  VkDescriptorPool pool_;
 
 private:
-  VkDevice device_ = VK_NULL_HANDLE;
+  VkDevice device_;
   bool isInit_ = false;
 };
 } // namespace engine
