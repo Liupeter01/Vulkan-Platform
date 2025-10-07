@@ -7,6 +7,7 @@
 #include <functional>
 #include <iostream>
 #include <vector>
+#include <string>
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 
@@ -138,16 +139,27 @@ private:
   VkCommandBuffer immCommandBuffer_;
   VkCommandPool immCommandPool_;
 
-  // Initializing the layout and descriptors
-  DescriptorAllocator descriptorAllocator_;
-  VkDescriptorSet drawCompDescriptor_;
-  VkDescriptorSetLayout drawCompDescriptorLayout_;
-
   // Compute Pipeline
-  VkPipeline gradientComputePipeline_;
-  VkPipelineLayout gradientComputePipelineLayout_;
+  struct ComputeEffect {
+            std::string name = "Background Compute Effect";
 
-  // Graphic Pipeline
+            // Initializing the layout and descriptors; store image, or vertex indicies
+            DescriptorAllocator descriptorAllocator_;
+            VkDescriptorSet drawCompDescriptor_;
+            VkDescriptorSetLayout drawCompDescriptorLayout_;
+
+            VkPipeline gradientComputePipeline_;
+            VkPipelineLayout gradientComputePipelineLayout_;
+            ComputeShaderPushConstants data;
+  } computeEffect;
+
+  // Rendering Pipeline
+  struct Rendering {
+            std::string name = "Rendering";
+
+
+  } render;
+
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_
