@@ -23,4 +23,3 @@ void main()
     gl_Position = vec4(positions[gl_VertexIndex], 1.0f);
     outColor = colors[gl_VertexIndex];
 }
-

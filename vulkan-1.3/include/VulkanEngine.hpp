@@ -68,7 +68,7 @@ private:
   void create_swapchain(uint32_t width, uint32_t height);
 
 private:
-          void resize_swapchain();
+  void resize_swapchain();
   void draw_background(VkCommandBuffer cmd, VkImage image);
   void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
                   VkImageView imageView = VK_NULL_HANDLE);

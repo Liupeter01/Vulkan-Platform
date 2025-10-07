@@ -132,12 +132,16 @@ void VulkanEngine::run() {
 
       ImGui::Text("Selected effect: ", selected.name.c_str());
 
-      ImGui::InputFloat4("topLeft", (float *)&selected.getData().topLeft, "%.3f", ImGuiInputTextFlags_ElideLeft);
-      ImGui::InputFloat4("topRight", (float *)&selected.getData().topRight, "%.3f", ImGuiInputTextFlags_ElideLeft);
-      ImGui::InputFloat4("bottomLeft", (float *)&selected.getData().bottomLeft, "%.3f", ImGuiInputTextFlags_ElideLeft);
+      ImGui::InputFloat4("topLeft", (float *)&selected.getData().topLeft,
+                         "%.3f", ImGuiInputTextFlags_ElideLeft);
+      ImGui::InputFloat4("topRight", (float *)&selected.getData().topRight,
+                         "%.3f", ImGuiInputTextFlags_ElideLeft);
+      ImGui::InputFloat4("bottomLeft", (float *)&selected.getData().bottomLeft,
+                         "%.3f", ImGuiInputTextFlags_ElideLeft);
       ImGui::InputFloat4("bottomRight",
                          (float *)&selected.getData().bottomRight);
-      ImGui::SliderFloat("Render Scale", &renderScale, 0.3f, 1.f, "%.3f", ImGuiInputTextFlags_ElideLeft);
+      ImGui::SliderFloat("Render Scale", &renderScale, 0.3f, 1.f, "%.3f",
+                         ImGuiInputTextFlags_ElideLeft);
     }
     ImGui::End();
 
@@ -147,7 +151,7 @@ void VulkanEngine::run() {
     draw();
 
     if (resize_requested) {
-              resize_swapchain();
+      resize_swapchain();
     }
   }
 
@@ -156,10 +160,10 @@ void VulkanEngine::run() {
 
 void VulkanEngine::resize_swapchain() {
 
-          vkDeviceWaitIdle(device_);
-          destroy_swapchain();
-          create_swapchain(window_.getExtent().width, window_.getExtent().height);
-          resize_requested = false;
+  vkDeviceWaitIdle(device_);
+  destroy_swapchain();
+  create_swapchain(window_.getExtent().width, window_.getExtent().height);
+  resize_requested = false;
 }
 
 void VulkanEngine::draw_background(VkCommandBuffer cmd, VkImage image) {
@@ -204,8 +208,8 @@ void VulkanEngine::draw() {
       device_, swapchain_, std::numeric_limits<uint64_t>::max(),
       currentFrame._swapChainWait, nullptr, &swapchainImageIndex);
   if (e == VK_ERROR_OUT_OF_DATE_KHR) {
-            resize_requested = true;
-            return;
+    resize_requested = true;
+    return;
   }
 
   // now that we are sure that the commands finished executing, we can safely
@@ -218,8 +222,12 @@ void VulkanEngine::draw() {
   VkCommandBufferBeginInfo cmdBeginInfo = tools::command_buffer_begin_info(
       VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-  drawExtent_.height = std::min(swapchainExtent_.height, drawImage_.imageExtent.height) * renderScale;
-  drawExtent_.width = std::min(swapchainExtent_.width, drawImage_.imageExtent.width) * renderScale;
+  drawExtent_.height =
+      std::min(swapchainExtent_.height, drawImage_.imageExtent.height) *
+      renderScale;
+  drawExtent_.width =
+      std::min(swapchainExtent_.width, drawImage_.imageExtent.width) *
+      renderScale;
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
@@ -312,8 +320,8 @@ void VulkanEngine::draw() {
 
   e = vkQueuePresentKHR(graphicsQueue_, &presentInfo);
   if (e == VK_ERROR_OUT_OF_DATE_KHR) {
-            resize_requested = true;
-            return;
+    resize_requested = true;
+    return;
   }
 
   switch_to_next_frame();
