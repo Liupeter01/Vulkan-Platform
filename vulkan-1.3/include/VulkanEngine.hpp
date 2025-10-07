@@ -68,12 +68,14 @@ private:
   void create_swapchain(uint32_t width, uint32_t height);
 
 private:
+          void resize_swapchain();
   void draw_background(VkCommandBuffer cmd, VkImage image);
   void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
                   VkImageView imageView = VK_NULL_HANDLE);
 
 private:
   bool isInit = false;
+  bool resize_requested = false;
 
 #if ENABLE_VALIDATION_LAYERS
   bool enableValidationLayers_ = true;
@@ -120,6 +122,7 @@ private:
 
   AllocatedImage drawImage_;
   VkExtent2D drawExtent_;
+  float renderScale = 1.f;
 
   VmaAllocator allocator_;
 
