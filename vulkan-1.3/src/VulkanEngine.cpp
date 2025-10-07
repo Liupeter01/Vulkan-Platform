@@ -1,4 +1,5 @@
 #include <Util.hpp>
+#include <Tools.hpp>
 #include <VkBootstrap.h>
 #include <VulkanEngine.hpp>
 #include <chrono>
@@ -11,7 +12,7 @@ namespace engine {
 
 VulkanEngine::VulkanEngine(Window &win, bool enableValidationLayer)
     : isInit(false), window_(win), frameNumber_(0), frames_(FRAMES_IN_FLIGHT),
-      enableValidationLayers_(enableValidationLayer) {
+          enableValidationLayers_(enableValidationLayer) {
 
   init();
 }
@@ -27,8 +28,9 @@ void VulkanEngine::init() {
   init_immediate_commands();
   init_vma_allocator();
   init_custom_image();
-  init_descriptors();
-  init_compute_pipeline();
+
+  computeEffect->init(drawImage_.imageView);
+
 #if ENABLE_VALIDATION_LAYERS
   init_imgui();
 #endif
@@ -38,8 +40,8 @@ void VulkanEngine::destroy() {
 #if ENABLE_VALIDATION_LAYERS
   destroy_imgui();
 #endif
-  destroy_compute_pipeline();
-  destroy_descriptors();
+  computeEffect->destroy();
+
   destroy_custom_image();
   destroy_vma_allocator();
   destroy_immediate_commands();
@@ -95,7 +97,7 @@ void VulkanEngine::run() {
 
     if (ImGui::Begin("background")) {
 
-              ComputeEffect& selected = computeEffect;
+              ComputePipelinePacked& selected = *computeEffect;
 
               ImGui::Text("Selected effect: ", selected.name);
 
@@ -129,27 +131,6 @@ void VulkanEngine::draw_background(VkCommandBuffer &cmd, VkImage &image) {
   // clear image
   vkCmdClearColorImage(cmd, image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1,
                        &clearRange);
-}
-
-void VulkanEngine::draw_compute(VkCommandBuffer &cmd) {
-
-  vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
-                    computeEffect.gradientComputePipeline_);
-
-  vkCmdPushConstants(cmd, computeEffect.gradientComputePipelineLayout_,
-                     VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                     sizeof(ComputeShaderPushConstants), &computeEffect.data);
-
-  // bind the descriptor set containing the draw image for the compute pipeline
-  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-            computeEffect.gradientComputePipelineLayout_, 0, 1,
-                          &computeEffect.drawCompDescriptor_, 0, nullptr);
-
-  // execute the compute pipeline dispatch. We are using 16x16 workgroup size so
-  // we need to divide by it
-  vkCmdDispatch(
-      cmd, static_cast<uint32_t>(std::ceil(drawExtent_.width / 16.0f)),
-      static_cast<uint32_t>(std::ceil(drawExtent_.height / 16.0f)), 1);
 }
 
 #if ENABLE_VALIDATION_LAYERS
@@ -209,7 +190,7 @@ void VulkanEngine::draw() {
   // draw_background(cmd, src_image);
 
   // compute
-  draw_compute(cmd);
+  computeEffect->draw_compute(cmd, drawExtent_);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
@@ -396,6 +377,11 @@ void VulkanEngine::init_vulkan() {
   graphicsQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
+
+  //Load Compute Shader
+  computeEffect.reset();
+  computeEffect = std::make_unique<compute::ComputePipelinePacked>(device_);
+
   isInit = true;
 }
 
@@ -496,84 +482,6 @@ void VulkanEngine::init_custom_image() {
   vkCreateImageView(device_, &rview_info, nullptr, &drawImage_.imageView);
 }
 
-void VulkanEngine::init_descriptors() {
-  std::vector<DescriptorAllocator::PoolSizeRatio> sizes{
-      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
-
-  // init
-  computeEffect.descriptorAllocator_ = DescriptorAllocator{device_, 10, sizes};
-
-  {
-            computeEffect.drawCompDescriptorLayout_ =
-        DescriptorLayoutBuilder{}
-            .add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
-            .build(device_, VK_SHADER_STAGE_COMPUTE_BIT); // add bindings
-  }
-
-  // allocate a descriptor set for our draw image
-  computeEffect.drawCompDescriptor_ =
-            computeEffect.descriptorAllocator_.allocate(computeEffect.drawCompDescriptorLayout_);
-
-  VkDescriptorImageInfo imgInfo{};
-  imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-  imgInfo.imageView = drawImage_.imageView;
-
-  VkWriteDescriptorSet drawImageWrite = {};
-  drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-
-  drawImageWrite.dstBinding = 0;
-  drawImageWrite.dstSet = computeEffect.drawCompDescriptor_;
-  drawImageWrite.descriptorCount = 1;
-  drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-  drawImageWrite.pImageInfo = &imgInfo;
-
-  vkUpdateDescriptorSets(device_, 1, &drawImageWrite, 0, nullptr);
-}
-
-void VulkanEngine::init_compute_pipeline() {
-
-  VkPushConstantRange pushConstant{};
-  pushConstant.offset = 0;
-  pushConstant.size = sizeof(ComputeShaderPushConstants);
-  pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-  VkPipelineLayoutCreateInfo computeLayout{};
-  computeLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  computeLayout.pNext = nullptr;
-  computeLayout.pSetLayouts = &computeEffect.drawCompDescriptorLayout_;
-  computeLayout.setLayoutCount = 1;
-
-  computeLayout.pushConstantRangeCount = 1;
-  computeLayout.pPushConstantRanges = &pushConstant;
-
-  vkCreatePipelineLayout(device_, &computeLayout, nullptr,
-                         &computeEffect.gradientComputePipelineLayout_);
-
-  // load shader
-  VkShaderModule computeDrawShader;
-  util::load_shader(CONFIG_HOME "shaders/gradient.comp.spv", device_,
-                    &computeDrawShader);
-
-  VkPipelineShaderStageCreateInfo stageinfo{};
-  stageinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  stageinfo.pNext = nullptr;
-  stageinfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-  stageinfo.module = computeDrawShader;
-  stageinfo.pName = "main";
-
-  VkComputePipelineCreateInfo computePipelineCreateInfo{};
-  computePipelineCreateInfo.sType =
-      VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-  computePipelineCreateInfo.layout = computeEffect.gradientComputePipelineLayout_;
-  computePipelineCreateInfo.stage = stageinfo;
-
-  vkCreateComputePipelines(device_, VK_NULL_HANDLE, 1,
-                           &computePipelineCreateInfo, nullptr,
-                           &computeEffect.gradientComputePipeline_);
-
-  vkDestroyShaderModule(device_, computeDrawShader, nullptr);
-}
-
 #if ENABLE_VALIDATION_LAYERS
 void VulkanEngine::init_imgui() {
   // this initializes the core structures of imgui
@@ -630,16 +538,6 @@ void VulkanEngine::destroy_imgui() {
   vkDestroyDescriptorPool(device_, imguiPool_, nullptr);
 }
 #endif
-
-void VulkanEngine::destroy_compute_pipeline() {
-  vkDestroyPipelineLayout(device_, computeEffect.gradientComputePipelineLayout_, nullptr);
-  vkDestroyPipeline(device_, computeEffect.gradientComputePipeline_, nullptr);
-}
-
-void VulkanEngine::destroy_descriptors() {
-          computeEffect.descriptorAllocator_.destroy_pool();
-  vkDestroyDescriptorSetLayout(device_, computeEffect.drawCompDescriptorLayout_, nullptr);
-}
 
 void VulkanEngine::destroy_custom_image() {
   vkDestroyImageView(device_, drawImage_.imageView, nullptr);

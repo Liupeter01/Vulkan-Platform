@@ -2,7 +2,6 @@
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
 #include <Descriptors.hpp>
-#include <GlobalDef.hpp>
 #include <Window.hpp>
 #include <functional>
 #include <iostream>
@@ -10,6 +9,9 @@
 #include <string>
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
+#include <memory>
+#include <pipeline/ComputePipeline.hpp>
+#include <pipeline/GraphicPipeline.hpp>
 
 // IMGUI Support
 #if ENABLE_VALIDATION_LAYERS
@@ -53,16 +55,12 @@ private:
   void init_sync();
   void init_vma_allocator();
   void init_custom_image();
-  void init_descriptors();
-  void init_compute_pipeline();
 
 #if ENABLE_VALIDATION_LAYERS
   void init_imgui();
   void destroy_imgui();
 #endif
 
-  void destroy_compute_pipeline();
-  void destroy_descriptors();
   void destroy_custom_image();
   void destroy_vma_allocator();
   void destroy_sync();
@@ -75,7 +73,6 @@ private:
 
 private:
   void draw_background(VkCommandBuffer &cmd, VkImage &image);
-  void draw_compute(VkCommandBuffer &cmd);
 
 #if ENABLE_VALIDATION_LAYERS
   void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
@@ -140,26 +137,8 @@ private:
   VkCommandPool immCommandPool_;
 
   // Compute Pipeline
-  struct ComputeEffect {
-            std::string name = "Background Compute Effect";
-
-            // Initializing the layout and descriptors; store image, or vertex indicies
-            DescriptorAllocator descriptorAllocator_;
-            VkDescriptorSet drawCompDescriptor_;
-            VkDescriptorSetLayout drawCompDescriptorLayout_;
-
-            VkPipeline gradientComputePipeline_;
-            VkPipelineLayout gradientComputePipelineLayout_;
-            ComputeShaderPushConstants data;
-  } computeEffect;
-
-  // Rendering Pipeline
-  struct Rendering {
-            std::string name = "Rendering";
-
-
-  } render;
-
+  std::unique_ptr<compute::ComputePipelinePacked> computeEffect = nullptr;     // Compute Pipeline
+  graphic::GraphicPipelinePacked graphicEffect;             //Graphic Pipeline
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_
