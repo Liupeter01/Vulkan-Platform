@@ -181,4 +181,87 @@ VkPipeline GraphicPipelineBuilder::build() {
 
   return graphicPipeline;
 }
+
+namespace graphic {
+
+          GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device)
+                    :PipelineBasic(device, PipelineType::GRAPHIC) {}
+
+          GraphicPipelinePacked::~GraphicPipelinePacked() { destroy(); }
+
+          void GraphicPipelinePacked::init() {
+                    init_pipeline();
+                    init_finished();    //set isinit flag = true
+          }
+
+          void GraphicPipelinePacked::destroy() {
+                    destroy_pipeline();
+                    reset_init();
+          }
+
+          void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView imageView) {
+
+                    auto colorAttachmentInfo = tools::attachment_info(imageView);
+                    auto renderInfo =
+                              tools::rendering_info(drawExtent, &colorAttachmentInfo);
+
+                    vkCmdBeginRendering(cmd, &renderInfo);
+
+                    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
+
+                    //set dynamic viewport and scissor
+                    VkViewport viewport = {};
+                    viewport.width = static_cast<float>(drawExtent.width);
+                    viewport.height = static_cast<float>(drawExtent.height);
+                    viewport.minDepth = 0.f;
+                    viewport.maxDepth = 1.f;
+
+                    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+                    VkRect2D scissor = {};
+                    scissor.extent.width = drawExtent.width;
+                    scissor.extent.height = drawExtent.height;
+
+                    vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+                    vkCmdDraw(cmd, /*vertex count*/3, 1, 0, 0);
+
+                    vkCmdEndRendering(cmd);
+          }
+
+          void GraphicPipelinePacked::init_pipeline() {
+
+                    VkPipelineLayoutCreateInfo computeLayout{};
+                    computeLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+                    vkCreatePipelineLayout(device_, &computeLayout, nullptr,
+                              &pipelineLayout_);
+
+                    GraphicPipelineBuilder builder{ device_ } ;
+                    builder.pipelineLayout_ = pipelineLayout_;
+
+                    pipeline_ = builder.set_shaders(CONFIG_HOME"shaders/triangle.vert.spv",
+                              CONFIG_HOME"shaders/triangle.frag.spv")
+                              .set_blending(false)
+                              .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+                              .set_polygon_mode(VK_POLYGON_MODE_FILL)
+                              .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
+                              .set_multisampling()
+                              .set_depthtest(false)
+                              .set_depth_format(VK_FORMAT_UNDEFINED)
+                              .set_color_attachment_format(VK_FORMAT_R16G16B16A16_SFLOAT)
+                              .build();
+                              
+                    vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
+                    vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
+          }
+
+          void GraphicPipelinePacked::destroy_pipeline() {
+                    if (isInit_) {
+                              vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
+                              vkDestroyPipeline(device_, pipeline_, nullptr);
+                    }
+          }
+}
+
 } // namespace engine
