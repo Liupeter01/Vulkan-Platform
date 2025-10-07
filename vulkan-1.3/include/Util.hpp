@@ -1,8 +1,9 @@
 #pragma once
 #ifndef _UTIL_HPP_
 #define _UTIL_HPP_
-#include <Tools.hpp>
 #include <fstream>
+#include <vector>
+#include <vulkan/vulkan_core.h>
 
 namespace engine {
 namespace util {
@@ -28,7 +29,14 @@ static inline void transition_image(VkCommandBuffer cmd, VkImage image,
           ? VK_IMAGE_ASPECT_DEPTH_BIT
           : VK_IMAGE_ASPECT_COLOR_BIT;
 
-  imageBarrier.subresourceRange = tools::image_subresource_range(aspectMask);
+  VkImageSubresourceRange subImage{};
+  subImage.aspectMask = aspectMask;
+  subImage.baseMipLevel = 0;
+  subImage.levelCount = VK_REMAINING_MIP_LEVELS;
+  subImage.baseArrayLayer = 0;
+  subImage.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+  imageBarrier.subresourceRange = subImage;
   imageBarrier.image = image;
 
   VkDependencyInfo depInfo{};
@@ -97,11 +105,16 @@ static inline std::vector<uint32_t> read_spv(const std::string &path) {
 
 static inline void load_shader(const std::string &shaderPath, VkDevice &device,
                                VkShaderModule *shaderModule) {
-  auto vec = std::move(read_spv(shaderPath));
+
+          auto vec = read_spv(shaderPath);
+
   if (!vec.size())
     throw std::runtime_error("Create Shader Failed!");
 
-  auto shaderCreateInfo = tools::shader_module_create_info(vec);
+  VkShaderModuleCreateInfo shaderCreateInfo{};
+  shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+  shaderCreateInfo.codeSize = vec.size() * sizeof(vec[0]);
+  shaderCreateInfo.pCode = vec.data();
 
   if (vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule))
     throw std::runtime_error("vkCreateShaderModule Failed!");
