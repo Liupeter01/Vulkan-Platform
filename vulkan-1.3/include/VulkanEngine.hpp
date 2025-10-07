@@ -5,13 +5,13 @@
 #include <Window.hpp>
 #include <functional>
 #include <iostream>
-#include <vector>
-#include <string>
-#include <vma/vk_mem_alloc.h>
-#include <vulkan/vulkan_core.h>
 #include <memory>
 #include <pipeline/ComputePipeline.hpp>
 #include <pipeline/GraphicPipeline.hpp>
+#include <string>
+#include <vector>
+#include <vma/vk_mem_alloc.h>
+#include <vulkan/vulkan_core.h>
 
 // IMGUI Support
 #if ENABLE_VALIDATION_LAYERS
@@ -137,8 +137,9 @@ private:
   VkCommandPool immCommandPool_;
 
   // Compute Pipeline
-  std::unique_ptr<compute::ComputePipelinePacked> computeEffect = nullptr;     // Compute Pipeline
-  graphic::GraphicPipelinePacked graphicEffect;             //Graphic Pipeline
+  std::unique_ptr<compute::ComputePipelinePacked> computeEffect =
+      nullptr;                                  // Compute Pipeline
+  graphic::GraphicPipelinePacked graphicEffect; // Graphic Pipeline
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_

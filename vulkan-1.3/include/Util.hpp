@@ -106,7 +106,7 @@ static inline std::vector<uint32_t> read_spv(const std::string &path) {
 static inline void load_shader(const std::string &shaderPath, VkDevice &device,
                                VkShaderModule *shaderModule) {
 
-          auto vec = read_spv(shaderPath);
+  auto vec = read_spv(shaderPath);
 
   if (!vec.size())
     throw std::runtime_error("Create Shader Failed!");

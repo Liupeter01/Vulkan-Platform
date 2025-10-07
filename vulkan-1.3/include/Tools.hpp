@@ -1,8 +1,8 @@
 #pragma once
 #ifndef _TOOLS_HPP_
 #define _TOOLS_HPP_
-#include <optional>
 #include <Util.hpp>
+#include <optional>
 #include <vector>
 
 namespace engine {
@@ -251,23 +251,22 @@ rendering_info(VkExtent2D rect, VkRenderingAttachmentInfo *pColorAttachments,
 }
 
 [[nodiscard]]
-inline static 
-VkPipelineShaderStageCreateInfo shader_stage_create_info(VkDevice& device,
-          const std::string&shaderPath, 
-          VkShaderStageFlagBits stage) {
+inline static VkPipelineShaderStageCreateInfo
+shader_stage_create_info(VkDevice &device, const std::string &shaderPath,
+                         VkShaderStageFlagBits stage) {
 
-          VkShaderModule shaderModule;
+  VkShaderModule shaderModule;
 
-          util::load_shader(shaderPath, device, &shaderModule);
+  util::load_shader(shaderPath, device, &shaderModule);
 
-          VkPipelineShaderStageCreateInfo shaderStage{};
-          shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-          shaderStage.stage = stage;
-          shaderStage.module = shaderModule;
-          shaderStage.pName = "main";
-          shaderStage.flags = 0;
-          shaderStage.pSpecializationInfo = nullptr;
-          return shaderStage;
+  VkPipelineShaderStageCreateInfo shaderStage{};
+  shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  shaderStage.stage = stage;
+  shaderStage.module = shaderModule;
+  shaderStage.pName = "main";
+  shaderStage.flags = 0;
+  shaderStage.pSpecializationInfo = nullptr;
+  return shaderStage;
 }
 
 } // namespace tools

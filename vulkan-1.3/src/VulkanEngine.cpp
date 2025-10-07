@@ -1,5 +1,5 @@
-#include <Util.hpp>
 #include <Tools.hpp>
+#include <Util.hpp>
 #include <VkBootstrap.h>
 #include <VulkanEngine.hpp>
 #include <chrono>
@@ -12,7 +12,7 @@ namespace engine {
 
 VulkanEngine::VulkanEngine(Window &win, bool enableValidationLayer)
     : isInit(false), window_(win), frameNumber_(0), frames_(FRAMES_IN_FLIGHT),
-          enableValidationLayers_(enableValidationLayer) {
+      enableValidationLayers_(enableValidationLayer) {
 
   init();
 }
@@ -97,14 +97,14 @@ void VulkanEngine::run() {
 
     if (ImGui::Begin("background")) {
 
-              ComputePipelinePacked& selected = *computeEffect;
+      ComputePipelinePacked &selected = *computeEffect;
 
-              ImGui::Text("Selected effect: ", selected.name);
+      ImGui::Text("Selected effect: ", selected.name);
 
-              ImGui::InputFloat4("topLeft", (float*)&selected.data.topLeft);
-              ImGui::InputFloat4("topRight", (float*)&selected.data.topRight);
-              ImGui::InputFloat4("bottomLeft", (float*)&selected.data.bottomLeft);
-              ImGui::InputFloat4("bottomRight", (float*)&selected.data.bottomRight);
+      ImGui::InputFloat4("topLeft", (float *)&selected.data.topLeft);
+      ImGui::InputFloat4("topRight", (float *)&selected.data.topRight);
+      ImGui::InputFloat4("bottomLeft", (float *)&selected.data.bottomLeft);
+      ImGui::InputFloat4("bottomRight", (float *)&selected.data.bottomRight);
     }
     ImGui::End();
 
@@ -377,8 +377,7 @@ void VulkanEngine::init_vulkan() {
   graphicsQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
-
-  //Load Compute Shader
+  // Load Compute Shader
   computeEffect.reset();
   computeEffect = std::make_unique<compute::ComputePipelinePacked>(device_);
 

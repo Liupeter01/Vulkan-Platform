@@ -3,9 +3,9 @@
 #include <iostream>
 
 namespace engine {
-          
-          DescriptorLayoutBuilder::DescriptorLayoutBuilder(VkDevice device)
-                    :device_(device){}
+
+DescriptorLayoutBuilder::DescriptorLayoutBuilder(VkDevice device)
+    : device_(device) {}
 
 void DescriptorLayoutBuilder::clear() { bindings.clear(); }
 
@@ -16,8 +16,7 @@ DescriptorLayoutBuilder::add_binding(uint32_t binding, VkDescriptorType type) {
 }
 
 VkDescriptorSetLayout
-DescriptorLayoutBuilder::build(VkShaderStageFlags shaderStages,
-                               void *pNext,
+DescriptorLayoutBuilder::build(VkShaderStageFlags shaderStages, void *pNext,
                                VkDescriptorSetLayoutCreateFlags flags) {
   for (auto &item : bindings) {
     item.stageFlags |= shaderStages;
@@ -33,8 +32,9 @@ DescriptorLayoutBuilder::build(VkShaderStageFlags shaderStages,
   VkDescriptorSetLayout set{};
   VkResult result = vkCreateDescriptorSetLayout(device_, &info, nullptr, &set);
   if (result != VK_SUCCESS) {
-            std::cerr << "Failed to create DescriptorSetLayout! VkResult = " << result << std::endl;
-            throw std::runtime_error("vkCreateDescriptorSetLayout failed.");
+    std::cerr << "Failed to create DescriptorSetLayout! VkResult = " << result
+              << std::endl;
+    throw std::runtime_error("vkCreateDescriptorSetLayout failed.");
   }
 
   return set;
@@ -77,8 +77,8 @@ DescriptorAllocator::operator=(DescriptorAllocator &&other) noexcept {
   return *this;
 }
 
-void DescriptorAllocator::init_pool(uint32_t maxSets,
-    const std::vector<PoolSizeRatio> &poolRatios) {
+void DescriptorAllocator::init_pool(
+    uint32_t maxSets, const std::vector<PoolSizeRatio> &poolRatios) {
 
   destroy_pool();
 
@@ -92,10 +92,12 @@ void DescriptorAllocator::init_pool(uint32_t maxSets,
 
   auto pool_info = tools::descriptor_pool_create_info(maxSets, poolSizeArray);
 
-  VkResult result = vkCreateDescriptorPool(device_, &pool_info, nullptr, &pool_);
+  VkResult result =
+      vkCreateDescriptorPool(device_, &pool_info, nullptr, &pool_);
   if (result != VK_SUCCESS) {
-            std::cerr << "Failed to create descriptor pool! VkResult = " << result << std::endl;
-            throw std::runtime_error("vkCreateDescriptorPool failed.");
+    std::cerr << "Failed to create descriptor pool! VkResult = " << result
+              << std::endl;
+    throw std::runtime_error("vkCreateDescriptorPool failed.");
   }
 
   isInit_ = true;
