@@ -71,9 +71,9 @@ void DescriptorAllocator::init_pool(
   isInit_ = true;
 }
 
-void DescriptorAllocator::reset_pool(VkDevice device) {
+void DescriptorAllocator::reset_pool() {
   if (isInit_) {
-    vkResetDescriptorPool(device, pool_, 0);
+    vkResetDescriptorPool(device_, pool_, 0);
   }
 }
 

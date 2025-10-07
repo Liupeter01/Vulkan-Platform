@@ -36,7 +36,7 @@ struct DescriptorAllocator {
   void init_pool(uint32_t maxSets,
                  const std::vector<PoolSizeRatio> &poolRatios);
 
-  void reset_pool(VkDevice device);
+  void reset_pool();
   void destroy_pool();
 
   [[nodiscard]] VkDescriptorSet allocate(VkDescriptorSetLayout layout);
