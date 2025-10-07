@@ -1,10 +1,10 @@
 #pragma once
 #ifndef _COMPUTE_PIPELINE_HPP_
 #define _COMPUTE_PIPELINE_HPP_
-#include <string>
 #include <Descriptors.hpp>
 #include <GlobalDef.hpp>
 #include <pipeline/PipelineBasic.hpp>
+#include <string>
 
 namespace engine {
 
@@ -17,23 +17,22 @@ struct ComputeShaderPushConstants {
 
 inline namespace compute {
 
-class ComputePipelinePacked: public PipelineBasic{
+class ComputePipelinePacked : public PipelineBasic {
 public:
-          std::string name = " ComputePipelinePacked";
+  std::string name = " ComputePipelinePacked";
   ComputePipelinePacked(VkDevice device);
   virtual ~ComputePipelinePacked();
   void set_descriptors(VkImageView imageView);
   void init() override;
   void destroy() override;
-  void draw(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView imageView) override;
-  ComputeShaderPushConstants& getData() { return data; }
+  void draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
+            VkImageView imageView) override;
+  ComputeShaderPushConstants &getData() { return data; }
 
 protected:
-  
   ComputeShaderPushConstants data{};
 
 private:
-  
   const std::vector<DescriptorAllocator::PoolSizeRatio> sizes{
       {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
 

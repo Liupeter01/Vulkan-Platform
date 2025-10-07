@@ -1,10 +1,10 @@
 #pragma once
 #ifndef _GRAPHIC_PIPELINE_HPP_
 #define _GRAPHIC_PIPELINE_HPP_
-#include <string>
-#include <vector>
 #include <GlobalDef.hpp>
 #include <pipeline/PipelineBasic.hpp>
+#include <string>
+#include <vector>
 
 namespace engine {
 
@@ -33,10 +33,8 @@ struct GraphicPipelineBuilder {
   GraphicPipelineBuilder &set_cull_mode(const VkCullModeFlags cullMode,
                                         const VkFrontFace frontFace);
 
-  const std::vector<VkDynamicState> dynamicStates_ = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-  };
+  const std::vector<VkDynamicState> dynamicStates_ = {VK_DYNAMIC_STATE_VIEWPORT,
+                                                      VK_DYNAMIC_STATE_SCISSOR};
 
   std::vector<VkPipelineShaderStageCreateInfo> shaderStages_;
   VkPipelineInputAssemblyStateCreateInfo inputAssembly_{};
@@ -53,9 +51,9 @@ struct GraphicPipelineBuilder {
   VkPipelineVertexInputStateCreateInfo vertexInputInfo_{};
 
 protected:
-          void init_dynamic_state();
-          void init_viewport_state();
-          void init_colorBlend_state();
+  void init_dynamic_state();
+  void init_viewport_state();
+  void init_colorBlend_state();
 
 private:
   VkDevice device_;
@@ -63,17 +61,18 @@ private:
 
 inline namespace graphic {
 // Graphic Pipeline
-class GraphicPipelinePacked:public PipelineBasic {
+class GraphicPipelinePacked : public PipelineBasic {
 public:
-          std::string name = " GraphicPipelinePacked";
+  std::string name = " GraphicPipelinePacked";
   GraphicPipelinePacked(VkDevice device);
   virtual ~GraphicPipelinePacked();
 
-  GraphicPipelinePacked(const GraphicPipelinePacked&) = delete;
-  GraphicPipelinePacked&operator=(const GraphicPipelinePacked&) = delete;
+  GraphicPipelinePacked(const GraphicPipelinePacked &) = delete;
+  GraphicPipelinePacked &operator=(const GraphicPipelinePacked &) = delete;
   void init() override;
-  void destroy()override;
-  void draw(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView imageView)override;
+  void destroy() override;
+  void draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
+            VkImageView imageView) override;
 
 protected:
   void init_pipeline();

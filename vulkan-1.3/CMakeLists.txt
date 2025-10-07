@@ -16,32 +16,32 @@ FetchContent_Declare(
                    # new commits are pushed to a branch
 )
 
-  FetchContent_Declare(
-    imgui
-    GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG v1.92.3)
+FetchContent_Declare(
+  imgui
+  GIT_REPOSITORY https://github.com/ocornut/imgui.git
+  GIT_TAG v1.92.3)
 
-  FetchContent_MakeAvailable(imgui)
+FetchContent_MakeAvailable(imgui)
 FetchContent_MakeAvailable(fetch_vk_bootstrap)
 
-  file(GLOB IMGUI_SOURCES CONFIGURE_DEPENDS ${imgui_SOURCE_DIR}/imgui*.cpp)
+file(GLOB IMGUI_SOURCES CONFIGURE_DEPENDS ${imgui_SOURCE_DIR}/imgui*.cpp)
 
-  list(APPEND IMGUI_SOURCES ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-       ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp)
+list(APPEND IMGUI_SOURCES ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+     ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp)
 
-  add_library(imgui STATIC ${IMGUI_SOURCES})
-  target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR}
-                                          ${imgui_SOURCE_DIR}/backends)
+add_library(imgui STATIC ${IMGUI_SOURCES})
+target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR}
+                                        ${imgui_SOURCE_DIR}/backends)
 
-  target_link_libraries(imgui PUBLIC glfw Vulkan::Vulkan)
+target_link_libraries(imgui PUBLIC glfw Vulkan::Vulkan)
 
 add_executable(${PROJECT_NAME} ${sources} ${header})
 add_dependencies(${PROJECT_NAME} Compile_Shader)
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_link_libraries(
-  ${PROJECT_NAME} PUBLIC  glm  tinyobjloader
-                         vk-bootstrap::vk-bootstrap VulkanMemoryAllocator imgui)
+  ${PROJECT_NAME} PUBLIC glm tinyobjloader vk-bootstrap::vk-bootstrap
+                         VulkanMemoryAllocator imgui)
 
 target_compile_definitions(${PROJECT_NAME}
                            PUBLIC CONFIG_HOME="${CMAKE_SOURCE_DIR}/")

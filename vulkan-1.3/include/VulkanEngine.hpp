@@ -69,7 +69,8 @@ private:
 
 private:
   void draw_background(VkCommandBuffer cmd, VkImage image);
-  void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView imageView = VK_NULL_HANDLE);
+  void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
+                  VkImageView imageView = VK_NULL_HANDLE);
 
 private:
   bool isInit = false;
@@ -128,9 +129,8 @@ private:
   VkCommandPool immCommandPool_;
 
   // Compute Pipeline
-  std::shared_ptr<PipelineBasic > computeEffect =
-      nullptr;                                  // Compute Pipeline
-  std::shared_ptr <PipelineBasic > graphicEffect = nullptr; // Graphic Pipeline
+  std::shared_ptr<PipelineBasic> computeEffect = nullptr; // Compute Pipeline
+  std::shared_ptr<PipelineBasic> graphicEffect = nullptr; // Graphic Pipeline
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_

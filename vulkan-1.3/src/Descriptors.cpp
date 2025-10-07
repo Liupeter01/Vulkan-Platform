@@ -41,14 +41,12 @@ DescriptorLayoutBuilder::build(VkShaderStageFlags shaderStages, void *pNext,
 }
 
 DescriptorAllocator::DescriptorAllocator(VkDevice device)
-    : device_(device), isInit_(false) {
-}
+    : device_(device), isInit_(false) {}
 
 DescriptorAllocator::~DescriptorAllocator() { destroy_pool(); }
 
-
 void DescriptorAllocator::init_pool(
-         uint32_t maxSets, const std::vector<PoolSizeRatio> &poolRatios) {
+    uint32_t maxSets, const std::vector<PoolSizeRatio> &poolRatios) {
 
   std::vector<VkDescriptorPoolSize> poolSizeArray;
   for (const auto &ratio : poolRatios) {

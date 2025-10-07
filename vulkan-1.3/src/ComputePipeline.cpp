@@ -5,42 +5,38 @@ namespace engine {
 namespace compute {
 
 ComputePipelinePacked::ComputePipelinePacked(VkDevice device)
-    : descriptorAllocator_{device}, PipelineBasic{device, PipelineType::COMPUTE}
-{}
+    : descriptorAllocator_{device},
+      PipelineBasic{device, PipelineType::COMPUTE} {}
 
 ComputePipelinePacked::~ComputePipelinePacked() { destroy(); }
 
-void ComputePipelinePacked::init() {
-          init_pipeline();
-}
+void ComputePipelinePacked::init() { init_pipeline(); }
 
 void ComputePipelinePacked::destroy() {
-          if (isInit_) {
-                    descriptorAllocator_.reset_pool();
-                    descriptorAllocator_.destroy_pool();
-                    vkDestroyDescriptorSetLayout(device_, descriptorLayout_, nullptr);
+  if (isInit_) {
+    descriptorAllocator_.reset_pool();
+    descriptorAllocator_.destroy_pool();
+    vkDestroyDescriptorSetLayout(device_, descriptorLayout_, nullptr);
 
-                    vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
-                    vkDestroyPipeline(device_, pipeline_, nullptr);
+    vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
+    vkDestroyPipeline(device_, pipeline_, nullptr);
 
-                    reset_init();
-          }
+    reset_init();
+  }
 }
 
 void ComputePipelinePacked::set_descriptors(VkImageView imageView) {
 
-          {
-                    DescriptorLayoutBuilder builder{ device_ };
-                    descriptorLayout_ =
-                              builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
-                              .build(VK_SHADER_STAGE_COMPUTE_BIT); // add bindings
-          }
+  {
+    DescriptorLayoutBuilder builder{device_};
+    descriptorLayout_ = builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+                            .build(VK_SHADER_STAGE_COMPUTE_BIT); // add bindings
+  }
 
   // allocate a descriptor set for our draw image
- descriptorAllocator_.init_pool(10, sizes);
+  descriptorAllocator_.init_pool(10, sizes);
 
-  descriptor_ =
-      descriptorAllocator_.allocate(descriptorLayout_);
+  descriptor_ = descriptorAllocator_.allocate(descriptorLayout_);
 
   VkDescriptorImageInfo imgInfo{};
   imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -59,7 +55,8 @@ void ComputePipelinePacked::set_descriptors(VkImageView imageView) {
 }
 
 void ComputePipelinePacked::init_pipeline() {
-          if (isInit_) return;
+  if (isInit_)
+    return;
 
   VkPushConstantRange pushConstant{};
   pushConstant.offset = 0;
@@ -75,8 +72,7 @@ void ComputePipelinePacked::init_pipeline() {
   computeLayout.pushConstantRangeCount = 1;
   computeLayout.pPushConstantRanges = &pushConstant;
 
-  vkCreatePipelineLayout(device_, &computeLayout, nullptr,
-                         &pipelineLayout_);
+  vkCreatePipelineLayout(device_, &computeLayout, nullptr, &pipelineLayout_);
 
   // load shader
   VkShaderModule computeDrawShader;
@@ -97,27 +93,25 @@ void ComputePipelinePacked::init_pipeline() {
   computePipelineCreateInfo.stage = stageinfo;
 
   vkCreateComputePipelines(device_, VK_NULL_HANDLE, 1,
-                           &computePipelineCreateInfo, nullptr,
-                           &pipeline_);
+                           &computePipelineCreateInfo, nullptr, &pipeline_);
 
   vkDestroyShaderModule(device_, computeDrawShader, nullptr);
 
-  init_finished();    //set isinit flag = true
+  init_finished(); // set isinit flag = true
 }
 
-void ComputePipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView imageView) {
+void ComputePipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
+                                 VkImageView imageView) {
 
   vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
                     pipeline_);
 
-  vkCmdPushConstants(cmd, pipelineLayout_,
-                     VK_SHADER_STAGE_COMPUTE_BIT, 0,
+  vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                      sizeof(ComputeShaderPushConstants), &data);
 
   // bind the descriptor set containing the draw image for the compute pipeline
-  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-                          pipelineLayout_, 0, 1,
-                          &descriptor_, 0, nullptr);
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout_,
+                          0, 1, &descriptor_, 0, nullptr);
 
   // execute the compute pipeline dispatch. We are using 16x16 workgroup size so
   // we need to divide by it

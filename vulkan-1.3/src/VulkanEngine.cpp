@@ -3,8 +3,8 @@
 #include <VkBootstrap.h>
 #include <VulkanEngine.hpp>
 #include <chrono>
-#include <numeric>
 #include <exception>
+#include <numeric>
 #include <stdexcept>
 
 #define VMA_IMPLEMENTATION
@@ -31,9 +31,9 @@ void VulkanEngine::init() {
   init_vma_allocator();
   init_custom_image();
 
-  //Must be done first!!!
-  
-    // Load Compute Shader
+  // Must be done first!!!
+
+  // Load Compute Shader
   computeEffect.reset();
   computeEffect = std::make_shared<compute::ComputePipelinePacked>(device_);
 
@@ -42,11 +42,13 @@ void VulkanEngine::init() {
   graphicEffect = std::make_shared<graphic::GraphicPipelinePacked>(device_);
 
   if (!computeEffect)
-            throw std::runtime_error("ComputePipelinePacked Allocated Error!");
+    throw std::runtime_error("ComputePipelinePacked Allocated Error!");
 
-  auto computeHandle = std::dynamic_pointer_cast<compute::ComputePipelinePacked>(computeEffect);
+  auto computeHandle =
+      std::dynamic_pointer_cast<compute::ComputePipelinePacked>(computeEffect);
   if (!computeHandle)
-            throw std::runtime_error("computeEffect is not of type ComputePipelinePacked!");
+    throw std::runtime_error(
+        "computeEffect is not of type ComputePipelinePacked!");
 
   computeHandle->set_descriptors(drawImage_.imageView);
 
@@ -59,7 +61,7 @@ void VulkanEngine::destroy() {
 
   destroy_imgui();
 
-  //Do it before vkdevice being removed!
+  // Do it before vkdevice being removed!
   computeEffect->destroy();
   graphicEffect->destroy();
   graphicEffect.reset();
@@ -119,9 +121,12 @@ void VulkanEngine::run() {
 
     if (ImGui::Begin("background")) {
 
-              auto computeHandle = std::dynamic_pointer_cast<compute::ComputePipelinePacked>(computeEffect);
-              if (!computeHandle)
-                        throw std::runtime_error("computeEffect is not of type ComputePipelinePacked!");
+      auto computeHandle =
+          std::dynamic_pointer_cast<compute::ComputePipelinePacked>(
+              computeEffect);
+      if (!computeHandle)
+        throw std::runtime_error(
+            "computeEffect is not of type ComputePipelinePacked!");
 
       ComputePipelinePacked &selected = *computeHandle;
 
@@ -130,7 +135,8 @@ void VulkanEngine::run() {
       ImGui::InputFloat4("topLeft", (float *)&selected.getData().topLeft);
       ImGui::InputFloat4("topRight", (float *)&selected.getData().topRight);
       ImGui::InputFloat4("bottomLeft", (float *)&selected.getData().bottomLeft);
-      ImGui::InputFloat4("bottomRight", (float *)&selected.getData().bottomRight);
+      ImGui::InputFloat4("bottomRight",
+                         (float *)&selected.getData().bottomRight);
     }
     ImGui::End();
 
@@ -158,7 +164,8 @@ void VulkanEngine::draw_background(VkCommandBuffer cmd, VkImage image) {
                        &clearRange);
 }
 
-void VulkanEngine::draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView imageView ) {
+void VulkanEngine::draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
+                              VkImageView imageView) {
   auto colorAttachmentInfo = tools::attachment_info(imageView);
   auto renderInfo =
       tools::rendering_info(swapchainExtent_, &colorAttachmentInfo);
@@ -203,7 +210,7 @@ void VulkanEngine::draw() {
   VkImage &target_image =
       swapchainImages_[swapchainImageIndex]; // SwapChain Image
 
-  VkImageView& image_view =  swapchainImageViews_[swapchainImageIndex];
+  VkImageView &image_view = swapchainImageViews_[swapchainImageIndex];
 
   // transition our main draw image into general layout so we can write into it
   // we will overwrite it all so we dont care about what was the older layout
@@ -217,15 +224,16 @@ void VulkanEngine::draw() {
   computeEffect->draw(cmd, drawExtent_, drawImage_.imageView);
 
   // transition the draw image and the swapchain image into their correct
-// transfer layouts
+  // transfer layouts
   util::transition_image(cmd, src_image, VK_IMAGE_LAYOUT_GENERAL,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
   graphicEffect->draw(cmd, drawExtent_, drawImage_.imageView);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
-  util::transition_image(cmd, src_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+  util::transition_image(cmd, src_image,
+                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                          VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
   util::transition_image(cmd, target_image, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -584,13 +592,13 @@ void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
 
 void VulkanEngine::destroy_vulkan() {
 
-  if (isInit){
-            vkDestroySurfaceKHR(instance_, surface_, nullptr);
-            vkDestroyDevice(device_, nullptr);
+  if (isInit) {
+    vkDestroySurfaceKHR(instance_, surface_, nullptr);
+    vkDestroyDevice(device_, nullptr);
 
-            vkb::destroy_debug_utils_messenger(instance_, debugMessenger_);
-            vkDestroyInstance(instance_, nullptr);
-            isInit = false;
+    vkb::destroy_debug_utils_messenger(instance_, debugMessenger_);
+    vkDestroyInstance(instance_, nullptr);
+    isInit = false;
   }
 }
 
