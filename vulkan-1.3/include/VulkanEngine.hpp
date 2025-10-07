@@ -14,13 +14,11 @@
 #include <vulkan/vulkan_core.h>
 
 // IMGUI Support
-#if ENABLE_VALIDATION_LAYERS
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
 #include <imgui.h>
-#endif
 
 namespace engine {
 class VulkanEngine {
@@ -56,10 +54,8 @@ private:
   void init_vma_allocator();
   void init_custom_image();
 
-#if ENABLE_VALIDATION_LAYERS
   void init_imgui();
   void destroy_imgui();
-#endif
 
   void destroy_custom_image();
   void destroy_vma_allocator();
@@ -72,11 +68,8 @@ private:
   void create_swapchain(uint32_t width, uint32_t height);
 
 private:
-  void draw_background(VkCommandBuffer &cmd, VkImage &image);
-
-#if ENABLE_VALIDATION_LAYERS
-  void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
-#endif
+  void draw_background(VkCommandBuffer cmd, VkImage image);
+  void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView imageView = VK_NULL_HANDLE);
 
 private:
   bool isInit = false;
@@ -107,9 +100,7 @@ private:
   VkExtent2D swapchainExtent_;
 
   // Support IMGUI
-#if ENABLE_VALIDATION_LAYERS
   VkDescriptorPool imguiPool_ = VK_NULL_HANDLE;
-#endif
 
   // CommandBuffer Part
   unsigned int frameNumber_ = 0;
@@ -137,9 +128,9 @@ private:
   VkCommandPool immCommandPool_;
 
   // Compute Pipeline
-  std::unique_ptr<compute::ComputePipelinePacked> computeEffect =
+  std::shared_ptr<PipelineBasic > computeEffect =
       nullptr;                                  // Compute Pipeline
-  graphic::GraphicPipelinePacked graphicEffect; // Graphic Pipeline
+  std::shared_ptr <PipelineBasic > graphicEffect = nullptr; // Graphic Pipeline
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_

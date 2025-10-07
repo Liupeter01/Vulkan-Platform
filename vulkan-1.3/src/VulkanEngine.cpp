@@ -4,6 +4,8 @@
 #include <VulkanEngine.hpp>
 #include <chrono>
 #include <numeric>
+#include <exception>
+#include <stdexcept>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -29,18 +31,37 @@ void VulkanEngine::init() {
   init_vma_allocator();
   init_custom_image();
 
-  computeEffect->init(drawImage_.imageView);
+  //Must be done first!!!
+  
+    // Load Compute Shader
+  computeEffect.reset();
+  computeEffect = std::make_shared<compute::ComputePipelinePacked>(device_);
 
-#if ENABLE_VALIDATION_LAYERS
+  // Load Graphic Shader
+  graphicEffect.reset();
+  graphicEffect = std::make_shared<graphic::GraphicPipelinePacked>(device_);
+
+  if (!computeEffect)
+            throw std::runtime_error("ComputePipelinePacked Allocated Error!");
+
+  auto computeHandle = std::dynamic_pointer_cast<compute::ComputePipelinePacked>(computeEffect);
+  if (!computeHandle)
+            throw std::runtime_error("computeEffect is not of type ComputePipelinePacked!");
+
+  computeHandle->set_descriptors(drawImage_.imageView);
+
+  computeEffect->init();
+  graphicEffect->init();
   init_imgui();
-#endif
 }
 
 void VulkanEngine::destroy() {
-#if ENABLE_VALIDATION_LAYERS
+
   destroy_imgui();
-#endif
   computeEffect->destroy();
+  graphicEffect->destroy();
+  graphicEffect.reset();
+  computeEffect.reset();
 
   destroy_custom_image();
   destroy_vma_allocator();
@@ -90,27 +111,29 @@ void VulkanEngine::run() {
                          .count();
     currTime = nowTime;
 
-#if ENABLE_VALIDATION_LAYERS
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
     if (ImGui::Begin("background")) {
 
-      ComputePipelinePacked &selected = *computeEffect;
+              auto computeHandle = std::dynamic_pointer_cast<compute::ComputePipelinePacked>(computeEffect);
+              if (!computeHandle)
+                        throw std::runtime_error("computeEffect is not of type ComputePipelinePacked!");
+
+      ComputePipelinePacked &selected = *computeHandle;
 
       ImGui::Text("Selected effect: ", selected.name.c_str());
 
-      ImGui::InputFloat4("topLeft", (float *)&selected.data.topLeft);
-      ImGui::InputFloat4("topRight", (float *)&selected.data.topRight);
-      ImGui::InputFloat4("bottomLeft", (float *)&selected.data.bottomLeft);
-      ImGui::InputFloat4("bottomRight", (float *)&selected.data.bottomRight);
+      ImGui::InputFloat4("topLeft", (float *)&selected.getData().topLeft);
+      ImGui::InputFloat4("topRight", (float *)&selected.getData().topRight);
+      ImGui::InputFloat4("bottomLeft", (float *)&selected.getData().bottomLeft);
+      ImGui::InputFloat4("bottomRight", (float *)&selected.getData().bottomRight);
     }
     ImGui::End();
 
     // make imgui calculate internal draw structures
     ImGui::Render();
-#endif
 
     draw();
   }
@@ -118,7 +141,7 @@ void VulkanEngine::run() {
   vkDeviceWaitIdle(device_);
 }
 
-void VulkanEngine::draw_background(VkCommandBuffer &cmd, VkImage &image) {
+void VulkanEngine::draw_background(VkCommandBuffer cmd, VkImage image) {
   // make a clear-color from frame number. This will flash with a 120 frame
   // period.
   VkClearColorValue clearValue;
@@ -133,10 +156,8 @@ void VulkanEngine::draw_background(VkCommandBuffer &cmd, VkImage &image) {
                        &clearRange);
 }
 
-#if ENABLE_VALIDATION_LAYERS
-void VulkanEngine::draw_imgui(VkCommandBuffer cmd,
-                              VkImageView targetImageView) {
-  auto colorAttachmentInfo = tools::attachment_info(targetImageView);
+void VulkanEngine::draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView imageView ) {
+  auto colorAttachmentInfo = tools::attachment_info(imageView);
   auto renderInfo =
       tools::rendering_info(swapchainExtent_, &colorAttachmentInfo);
 
@@ -146,7 +167,6 @@ void VulkanEngine::draw_imgui(VkCommandBuffer cmd,
 
   vkCmdEndRendering(cmd);
 }
-#endif
 
 void VulkanEngine::draw() {
   auto &currentFrame = get_current_frame();
@@ -181,20 +201,29 @@ void VulkanEngine::draw() {
   VkImage &target_image =
       swapchainImages_[swapchainImageIndex]; // SwapChain Image
 
+  VkImageView& image_view =  swapchainImageViews_[swapchainImageIndex];
+
   // transition our main draw image into general layout so we can write into it
   // we will overwrite it all so we dont care about what was the older layout
   util::transition_image(cmd, src_image, VK_IMAGE_LAYOUT_UNDEFINED,
                          VK_IMAGE_LAYOUT_GENERAL);
 
   // Draw Background
-  // draw_background(cmd, src_image);
+  draw_background(cmd, src_image);
 
   // compute
-  computeEffect->draw_compute(cmd, drawExtent_);
+  computeEffect->draw(cmd, drawExtent_, drawImage_.imageView);
+
+  // transition the draw image and the swapchain image into their correct
+// transfer layouts
+  util::transition_image(cmd, src_image, VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+  graphicEffect->draw(cmd, drawExtent_, drawImage_.imageView);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
-  util::transition_image(cmd, src_image, VK_IMAGE_LAYOUT_GENERAL,
+  util::transition_image(cmd, src_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                          VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
   util::transition_image(cmd, target_image, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -204,26 +233,16 @@ void VulkanEngine::draw() {
   util::copy_image_to_image(cmd, src_image, target_image, drawExtent_,
                             swapchainExtent_);
 
-#if ENABLE_VALIDATION_LAYERS
-
   // set swapchain image layout to Attachment Optimal so we can draw it
   util::transition_image(cmd, target_image,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-  draw_imgui(cmd, swapchainImageViews_[swapchainImageIndex]);
+  draw_imgui(cmd, drawExtent_, image_view);
 
   util::transition_image(cmd, target_image,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-
-#else
-  // set swapchain image layout to Present so we can show it on the screen
-  util::transition_image(cmd, target_image,
-                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-
-#endif
 
   vkEndCommandBuffer(cmd);
 
@@ -377,10 +396,6 @@ void VulkanEngine::init_vulkan() {
   graphicsQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
-  // Load Compute Shader
-  computeEffect.reset();
-  computeEffect = std::make_unique<compute::ComputePipelinePacked>(device_);
-
   isInit = true;
 }
 
@@ -481,7 +496,6 @@ void VulkanEngine::init_custom_image() {
   vkCreateImageView(device_, &rview_info, nullptr, &drawImage_.imageView);
 }
 
-#if ENABLE_VALIDATION_LAYERS
 void VulkanEngine::init_imgui() {
   // this initializes the core structures of imgui
   ImGui::CreateContext();
@@ -536,7 +550,6 @@ void VulkanEngine::destroy_imgui() {
   ImGui_ImplVulkan_Shutdown();
   vkDestroyDescriptorPool(device_, imguiPool_, nullptr);
 }
-#endif
 
 void VulkanEngine::destroy_custom_image() {
   vkDestroyImageView(device_, drawImage_.imageView, nullptr);
@@ -569,13 +582,14 @@ void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
 
 void VulkanEngine::destroy_vulkan() {
 
-  if (!isInit)
+  if (isInit)
     return;
   vkDestroySurfaceKHR(instance_, surface_, nullptr);
   vkDestroyDevice(device_, nullptr);
 
   vkb::destroy_debug_utils_messenger(instance_, debugMessenger_);
   vkDestroyInstance(instance_, nullptr);
+  isInit = false;
 }
 
 void VulkanEngine::destroy_swapchain() {
