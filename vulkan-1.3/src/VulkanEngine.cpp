@@ -99,7 +99,7 @@ void VulkanEngine::run() {
 
       ComputePipelinePacked &selected = *computeEffect;
 
-      ImGui::Text("Selected effect: ", selected.name);
+      ImGui::Text("Selected effect: ", selected.name.c_str());
 
       ImGui::InputFloat4("topLeft", (float *)&selected.data.topLeft);
       ImGui::InputFloat4("topRight", (float *)&selected.data.topRight);
