@@ -58,6 +58,8 @@ void VulkanEngine::init() {
 void VulkanEngine::destroy() {
 
   destroy_imgui();
+
+  //Do it before vkdevice being removed!
   computeEffect->destroy();
   graphicEffect->destroy();
   graphicEffect.reset();
@@ -582,14 +584,14 @@ void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
 
 void VulkanEngine::destroy_vulkan() {
 
-  if (isInit)
-    return;
-  vkDestroySurfaceKHR(instance_, surface_, nullptr);
-  vkDestroyDevice(device_, nullptr);
+  if (isInit){
+            vkDestroySurfaceKHR(instance_, surface_, nullptr);
+            vkDestroyDevice(device_, nullptr);
 
-  vkb::destroy_debug_utils_messenger(instance_, debugMessenger_);
-  vkDestroyInstance(instance_, nullptr);
-  isInit = false;
+            vkb::destroy_debug_utils_messenger(instance_, debugMessenger_);
+            vkDestroyInstance(instance_, nullptr);
+            isInit = false;
+  }
 }
 
 void VulkanEngine::destroy_swapchain() {
