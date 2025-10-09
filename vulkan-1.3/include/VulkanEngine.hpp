@@ -2,6 +2,7 @@
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
 #include <Descriptors.hpp>
+#include <GlobalDef.hpp>
 #include <Window.hpp>
 #include <functional>
 #include <iostream>
@@ -10,7 +11,6 @@
 #include <pipeline/GraphicPipeline.hpp>
 #include <string>
 #include <vector>
-#include <GlobalDef.hpp>
 
 // IMGUI Support
 #define GLFW_INCLUDE_VULKAN

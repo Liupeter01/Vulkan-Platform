@@ -3,8 +3,8 @@
 #define _GRAPHIC_PIPELINE_HPP_
 #include <GlobalDef.hpp>
 #include <functional>
-#include <pipeline/PipelineBasic.hpp>
 #include <mesh/MeshBuffers.hpp>
+#include <pipeline/PipelineBasic.hpp>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -74,7 +74,7 @@ public:
   GraphicPipelinePacked &operator=(const GraphicPipelinePacked &) = delete;
   void init() override;
   void destroy() override;
-  void load_mesh(const Mesh& mesh);
+  void load_mesh(const Mesh &mesh);
   void draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
             VkImageView imageView) override;
 
@@ -83,21 +83,17 @@ public:
 
   std::function<void(VkCommandBuffer)> getImmSubmitFunctor();
 
-  template<typename T>
-  inline static constexpr VkIndexType getIndexType() {
-            using Decayed = std::decay_t<T>;
-            if constexpr (std::is_same_v<Decayed, uint32_t>) {
-                      return VK_INDEX_TYPE_UINT32;
-            }
-            else if constexpr (std::is_same_v<Decayed, uint16_t>) {
-                      return VK_INDEX_TYPE_UINT16;
-            }
-            else if constexpr (std::is_same_v<Decayed, uint8_t>) {
-                      return VK_INDEX_TYPE_UINT8;
-            }
-            else {
-                      static_assert(false, "Unsupported index type");
-            }
+  template <typename T> inline static constexpr VkIndexType getIndexType() {
+    using Decayed = std::decay_t<T>;
+    if constexpr (std::is_same_v<Decayed, uint32_t>) {
+      return VK_INDEX_TYPE_UINT32;
+    } else if constexpr (std::is_same_v<Decayed, uint16_t>) {
+      return VK_INDEX_TYPE_UINT16;
+    } else if constexpr (std::is_same_v<Decayed, uint8_t>) {
+      return VK_INDEX_TYPE_UINT8;
+    } else {
+      static_assert(false, "Unsupported index type");
+    }
   }
 
 protected:
@@ -105,10 +101,10 @@ protected:
   void destroy_pipeline();
 
 private:
-          void init_triangle_pipline();
-          void init_mesh_pipline();
+  void init_triangle_pipline();
+  void init_mesh_pipline();
 
-          std::unique_ptr<mesh::GPUGeoMeshBuffers> mesh_ = nullptr;
+  std::unique_ptr<mesh::GPUGeoMeshBuffers> mesh_ = nullptr;
 };
 } // namespace graphic
 } // namespace engine

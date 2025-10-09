@@ -35,11 +35,13 @@ void VulkanEngine::init() {
 
   // Load Compute Shader
   computeEffect.reset();
-  computeEffect = std::make_shared<compute::ComputePipelinePacked>(device_, allocator_);
+  computeEffect =
+      std::make_shared<compute::ComputePipelinePacked>(device_, allocator_);
 
   // Load Graphic Shader
   graphicEffect.reset();
-  graphicEffect = std::make_shared<graphic::GraphicPipelinePacked>(device_, allocator_);
+  graphicEffect =
+      std::make_shared<graphic::GraphicPipelinePacked>(device_, allocator_);
 
   if (!computeEffect)
     throw std::runtime_error("ComputePipelinePacked Allocated Error!");
@@ -48,26 +50,26 @@ void VulkanEngine::init() {
       std::dynamic_pointer_cast<compute::ComputePipelinePacked>(computeEffect);
 
   auto graphicHandle =
-            std::dynamic_pointer_cast<graphic::GraphicPipelinePacked>(graphicEffect);
+      std::dynamic_pointer_cast<graphic::GraphicPipelinePacked>(graphicEffect);
 
   if (!computeHandle || !graphicHandle)
-    throw std::runtime_error(
-        "computeEffect/graphicEffect is not of type ComputePipelinePacked/GraphicPipelinePacked!");
+    throw std::runtime_error("computeEffect/graphicEffect is not of type "
+                             "ComputePipelinePacked/GraphicPipelinePacked!");
 
   computeHandle->set_descriptors(drawImage_.imageView);
 
   Mesh mesh{};
   mesh.vertices.resize(4);
   mesh.indices.resize(6);
-  mesh.vertices[0].position = { 0.5,-0.5, 0 };
-  mesh.vertices[1].position = { 0.5,0.5, 0 };
-  mesh.vertices[2].position = { -0.5,-0.5, 0 };
-  mesh.vertices[3].position = { -0.5,0.5, 0 };
+  mesh.vertices[0].position = {0.5, -0.5, 0};
+  mesh.vertices[1].position = {0.5, 0.5, 0};
+  mesh.vertices[2].position = {-0.5, -0.5, 0};
+  mesh.vertices[3].position = {-0.5, 0.5, 0};
 
-  mesh.vertices[0].color = { 0,0, 0,1 };
-  mesh.vertices[1].color = { 0.5,0.5,0.5 ,1 };
-  mesh.vertices[2].color = { 1,0, 0,1 };
-  mesh.vertices[3].color = { 0,1, 0,1 };
+  mesh.vertices[0].color = {0, 0, 0, 1};
+  mesh.vertices[1].color = {0.5, 0.5, 0.5, 1};
+  mesh.vertices[2].color = {1, 0, 0, 1};
+  mesh.vertices[3].color = {0, 1, 0, 1};
 
   mesh.indices[0] = 0;
   mesh.indices[1] = 1;

@@ -184,16 +184,15 @@ VkPipeline GraphicPipelineBuilder::build() {
 
 namespace graphic {
 
-GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device, VmaAllocator allocator)
+GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device,
+                                             VmaAllocator allocator)
     : PipelineBasic(device, allocator, PipelineType::GRAPHIC) {}
 
 GraphicPipelinePacked::~GraphicPipelinePacked() { destroy(); }
 
 void GraphicPipelinePacked::init() { init_pipeline(); }
 
-void GraphicPipelinePacked::destroy() {
-          destroy_pipeline();
-}
+void GraphicPipelinePacked::destroy() { destroy_pipeline(); }
 
 void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
                                  VkImageView imageView) {
@@ -221,16 +220,17 @@ void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
   vkCmdSetScissor(cmd, 0, 1, &scissor);
 
   GPUGeoPushConstants constants{};
-  constants.matrix = { 1.f };
+  constants.matrix = {1.f};
   constants.vertexBuffer = mesh_->vertexBufferAddress;
 
-  vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 
-            0, sizeof(GPUGeoPushConstants), &constants);
+  vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                     sizeof(GPUGeoPushConstants), &constants);
 
   if (mesh_->indicies_.empty()) {
-            assert(!mesh_->indicies_.empty() && "Index buffer is empty!");
+    assert(!mesh_->indicies_.empty() && "Index buffer is empty!");
   }
-  vkCmdBindIndexBuffer(cmd, mesh_->indexBuffer.buffer, 0, getIndexType<decltype(mesh_->indicies_[0])>());
+  vkCmdBindIndexBuffer(cmd, mesh_->indexBuffer.buffer, 0,
+                       getIndexType<decltype(mesh_->indicies_[0])>());
 
   vkCmdDrawIndexed(cmd, mesh_->indicies_.size(), 1, 0, 0, 0);
 
@@ -238,103 +238,100 @@ void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
 }
 
 void GraphicPipelinePacked::submitMesh(VkCommandBuffer cmd) {
-          mesh_->submitMesh(cmd);
+  mesh_->submitMesh(cmd);
 }
 
 void GraphicPipelinePacked::flushUpload(VkFence fence) {
-          mesh_->flushUpload(fence);
+  mesh_->flushUpload(fence);
 }
 
-std::function<void(VkCommandBuffer)> GraphicPipelinePacked::getImmSubmitFunctor() {
-          return [this](VkCommandBuffer cmd) {
-                    submitMesh(cmd);
-                    };
+std::function<void(VkCommandBuffer)>
+GraphicPipelinePacked::getImmSubmitFunctor() {
+  return [this](VkCommandBuffer cmd) { submitMesh(cmd); };
 }
 
-void GraphicPipelinePacked::init_pipeline() {
-          init_mesh_pipline();
-}
+void GraphicPipelinePacked::init_pipeline() { init_mesh_pipline(); }
 
 void GraphicPipelinePacked::init_triangle_pipline() {
-          if (isInit_)
-                    return;
+  if (isInit_)
+    return;
 
-          VkPipelineLayoutCreateInfo graphicLayout{};
-          graphicLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-          vkCreatePipelineLayout(device_, &graphicLayout, nullptr, &pipelineLayout_);
+  VkPipelineLayoutCreateInfo graphicLayout{};
+  graphicLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  vkCreatePipelineLayout(device_, &graphicLayout, nullptr, &pipelineLayout_);
 
-          GraphicPipelineBuilder builder{ device_ };
-          builder.pipelineLayout_ = pipelineLayout_;
-          pipeline_ = builder
-                    .set_shaders(CONFIG_HOME "shaders/triangle.vert.spv",
-                              CONFIG_HOME "shaders/triangle.frag.spv")
-                    .set_blending(false)
-                    .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-                    .set_polygon_mode(VK_POLYGON_MODE_FILL)
-                    .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
-                    .set_multisampling()
-                    .set_depthtest(false)
-                    .set_depth_format(VK_FORMAT_UNDEFINED)
-                    .set_color_attachment_format(VK_FORMAT_R16G16B16A16_SFLOAT)
-                    .build();
+  GraphicPipelineBuilder builder{device_};
+  builder.pipelineLayout_ = pipelineLayout_;
+  pipeline_ = builder
+                  .set_shaders(CONFIG_HOME "shaders/triangle.vert.spv",
+                               CONFIG_HOME "shaders/triangle.frag.spv")
+                  .set_blending(false)
+                  .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+                  .set_polygon_mode(VK_POLYGON_MODE_FILL)
+                  .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
+                  .set_multisampling()
+                  .set_depthtest(false)
+                  .set_depth_format(VK_FORMAT_UNDEFINED)
+                  .set_color_attachment_format(VK_FORMAT_R16G16B16A16_SFLOAT)
+                  .build();
 
-          vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
-          vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
+  vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
+  vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
 
-          init_finished(); // set isinit flag = true
+  init_finished(); // set isinit flag = true
 }
 
 void GraphicPipelinePacked::init_mesh_pipline() {
-          if (isInit_)
-                    return;
+  if (isInit_)
+    return;
 
-          VkPushConstantRange bufferRange{};
-          bufferRange.offset = 0;
-          bufferRange.size = sizeof(GPUGeoPushConstants);
-          bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  VkPushConstantRange bufferRange{};
+  bufferRange.offset = 0;
+  bufferRange.size = sizeof(GPUGeoPushConstants);
+  bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-          VkPipelineLayoutCreateInfo graphicLayout{};
-          graphicLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-          graphicLayout.pushConstantRangeCount = 1;
-          graphicLayout.pPushConstantRanges = &bufferRange;
-          
-          vkCreatePipelineLayout(device_, &graphicLayout, nullptr, &pipelineLayout_);
+  VkPipelineLayoutCreateInfo graphicLayout{};
+  graphicLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  graphicLayout.pushConstantRangeCount = 1;
+  graphicLayout.pPushConstantRanges = &bufferRange;
 
-          GraphicPipelineBuilder builder{ device_ };
-          builder.pipelineLayout_ = pipelineLayout_;
+  vkCreatePipelineLayout(device_, &graphicLayout, nullptr, &pipelineLayout_);
 
-          pipeline_ = builder
-                    .set_shaders(CONFIG_HOME "shaders/mesh.vert.spv",
-                              CONFIG_HOME "shaders/triangle.frag.spv")
-                    .set_blending(false)
-                    .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-                    .set_polygon_mode(VK_POLYGON_MODE_FILL)
-                    .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
-                    .set_multisampling()
-                    .set_depthtest(false)
-                    .set_depth_format(VK_FORMAT_UNDEFINED)
-                    .set_color_attachment_format(VK_FORMAT_R16G16B16A16_SFLOAT)
-                    .build();
+  GraphicPipelineBuilder builder{device_};
+  builder.pipelineLayout_ = pipelineLayout_;
 
-          vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
-          vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
+  pipeline_ = builder
+                  .set_shaders(CONFIG_HOME "shaders/mesh.vert.spv",
+                               CONFIG_HOME "shaders/triangle.frag.spv")
+                  .set_blending(false)
+                  .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+                  .set_polygon_mode(VK_POLYGON_MODE_FILL)
+                  .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
+                  .set_multisampling()
+                  .set_depthtest(false)
+                  .set_depth_format(VK_FORMAT_UNDEFINED)
+                  .set_color_attachment_format(VK_FORMAT_R16G16B16A16_SFLOAT)
+                  .build();
 
-          init_finished(); // set isinit flag = true
+  vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
+  vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
+
+  init_finished(); // set isinit flag = true
 }
 
 void GraphicPipelinePacked::destroy_pipeline() {
-          if (isInit_) {
-                    vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
-                    vkDestroyPipeline(device_, pipeline_, nullptr);
-                    reset_init();
-          }
+  if (isInit_) {
+    vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
+    vkDestroyPipeline(device_, pipeline_, nullptr);
+    reset_init();
+  }
 }
 
-void GraphicPipelinePacked::load_mesh(const Mesh& mesh) {
+void GraphicPipelinePacked::load_mesh(const Mesh &mesh) {
 
-          mesh_.reset();
-          mesh_ = std::make_unique<mesh::GPUGeoMeshBuffers>(device_, allocator_);
-          mesh_->createMesh(mesh);
+  mesh_.reset();
+  mesh_ = std::make_unique<mesh::GPUGeoMeshBuffers>(device_, allocator_);
+  mesh_->createMesh(mesh);
 }
 
 } // namespace graphic

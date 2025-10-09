@@ -9,7 +9,7 @@ public:
   enum class PipelineType { UNDEFINED, COMPUTE, GRAPHIC };
 
   PipelineBasic(VkDevice device, VmaAllocator allocator, PipelineType type)
-      : device_(device),allocator_(allocator), type_(type), isInit_(false) {}
+      : device_(device), allocator_(allocator), type_(type), isInit_(false) {}
 
   virtual ~PipelineBasic() {
     if (isInit_) {
