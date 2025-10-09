@@ -20,7 +20,7 @@ inline namespace compute {
 class ComputePipelinePacked : public PipelineBasic {
 public:
   std::string name = " ComputePipelinePacked";
-  ComputePipelinePacked(VkDevice device);
+  ComputePipelinePacked(VkDevice device, VmaAllocator allocator);
   virtual ~ComputePipelinePacked();
   void set_descriptors(VkImageView imageView);
   void init() override;

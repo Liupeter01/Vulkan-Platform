@@ -4,9 +4,9 @@
 namespace engine {
 namespace compute {
 
-ComputePipelinePacked::ComputePipelinePacked(VkDevice device)
-    : descriptorAllocator_{device},
-      PipelineBasic{device, PipelineType::COMPUTE} {}
+ComputePipelinePacked::ComputePipelinePacked(VkDevice device, VmaAllocator allocator)
+    : descriptorAllocator_{device,},
+      PipelineBasic{device, allocator, PipelineType::COMPUTE} {}
 
 ComputePipelinePacked::~ComputePipelinePacked() { destroy(); }
 
