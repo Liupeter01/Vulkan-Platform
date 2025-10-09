@@ -10,8 +10,7 @@
 #include <pipeline/GraphicPipeline.hpp>
 #include <string>
 #include <vector>
-#include <vma/vk_mem_alloc.h>
-#include <vulkan/vulkan_core.h>
+#include <GlobalDef.hpp>
 
 // IMGUI Support
 #define GLFW_INCLUDE_VULKAN

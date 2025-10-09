@@ -35,25 +35,56 @@ void VulkanEngine::init() {
 
   // Load Compute Shader
   computeEffect.reset();
-  computeEffect = std::make_shared<compute::ComputePipelinePacked>(device_);
+  computeEffect = std::make_shared<compute::ComputePipelinePacked>(device_, allocator_);
 
   // Load Graphic Shader
   graphicEffect.reset();
-  graphicEffect = std::make_shared<graphic::GraphicPipelinePacked>(device_);
+  graphicEffect = std::make_shared<graphic::GraphicPipelinePacked>(device_, allocator_);
 
   if (!computeEffect)
     throw std::runtime_error("ComputePipelinePacked Allocated Error!");
 
   auto computeHandle =
       std::dynamic_pointer_cast<compute::ComputePipelinePacked>(computeEffect);
-  if (!computeHandle)
+
+  auto graphicHandle =
+            std::dynamic_pointer_cast<graphic::GraphicPipelinePacked>(graphicEffect);
+
+  if (!computeHandle || !graphicHandle)
     throw std::runtime_error(
-        "computeEffect is not of type ComputePipelinePacked!");
+        "computeEffect/graphicEffect is not of type ComputePipelinePacked/GraphicPipelinePacked!");
 
   computeHandle->set_descriptors(drawImage_.imageView);
 
+  Mesh mesh{};
+  mesh.vertices.resize(4);
+  mesh.indices.resize(6);
+  mesh.vertices[0].position = { 0.5,-0.5, 0 };
+  mesh.vertices[1].position = { 0.5,0.5, 0 };
+  mesh.vertices[2].position = { -0.5,-0.5, 0 };
+  mesh.vertices[3].position = { -0.5,0.5, 0 };
+
+  mesh.vertices[0].color = { 0,0, 0,1 };
+  mesh.vertices[1].color = { 0.5,0.5,0.5 ,1 };
+  mesh.vertices[2].color = { 1,0, 0,1 };
+  mesh.vertices[3].color = { 0,1, 0,1 };
+
+  mesh.indices[0] = 0;
+  mesh.indices[1] = 1;
+  mesh.indices[2] = 2;
+
+  mesh.indices[3] = 2;
+  mesh.indices[4] = 1;
+  mesh.indices[5] = 3;
+
+  graphicHandle->load_mesh(mesh);
+
+  imm_command_submit(graphicHandle->getImmSubmitFunctor());
+  graphicHandle->flushUpload(immFence_);
+
   computeEffect->init();
   graphicEffect->init();
+
   init_imgui();
 }
 
