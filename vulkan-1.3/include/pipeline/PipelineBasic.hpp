@@ -1,20 +1,15 @@
 #pragma once
 #ifndef _PIPELINE_BASIC_HPP_
 #define _PIPELINE_BASIC_HPP_
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_core.h>
-
-#define GLM_FORCE_RADIANS // no degresss
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
+#include <GlobalDef.hpp>
 
 namespace engine {
 class PipelineBasic {
 public:
   enum class PipelineType { UNDEFINED, COMPUTE, GRAPHIC };
 
-  PipelineBasic(VkDevice device, PipelineType type)
-      : device_(device), type_(type), isInit_(false) {}
+  PipelineBasic(VkDevice device, VmaAllocator allocator, PipelineType type)
+      : device_(device),allocator_(allocator), type_(type), isInit_(false) {}
 
   virtual ~PipelineBasic() {
     if (isInit_) {
@@ -42,6 +37,7 @@ protected:
   bool isInit_ = false;
   PipelineType type_ = PipelineType::UNDEFINED;
   VkDevice device_ = VK_NULL_HANDLE;
+  VmaAllocator allocator_{};
   VkPipeline pipeline_ = VK_NULL_HANDLE;
   VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
 };
