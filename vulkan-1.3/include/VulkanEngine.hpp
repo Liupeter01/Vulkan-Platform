@@ -52,10 +52,14 @@ private:
   void init_sync();
   void init_vma_allocator();
   void init_custom_image();
+  void init_draw_image();
+  void init_depth_image();
 
   void init_imgui();
   void destroy_imgui();
 
+  void destroy_draw_image();
+  void destroy_depth_image();
   void destroy_custom_image();
   void destroy_vma_allocator();
   void destroy_sync();
