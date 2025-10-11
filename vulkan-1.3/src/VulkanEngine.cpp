@@ -58,28 +58,10 @@ void VulkanEngine::init() {
 
   computeHandle->set_descriptors(drawImage_.imageView);
 
-  Mesh mesh{};
-  mesh.vertices.resize(4);
-  mesh.indices.resize(6);
-  mesh.vertices[0].position = {0.5, -0.5, 0};
-  mesh.vertices[1].position = {0.5, 0.5, 0};
-  mesh.vertices[2].position = {-0.5, -0.5, 0};
-  mesh.vertices[3].position = {-0.5, 0.5, 0};
-
-  mesh.vertices[0].color = {0, 0, 0, 1};
-  mesh.vertices[1].color = {0.5, 0.5, 0.5, 1};
-  mesh.vertices[2].color = {1, 0, 0, 1};
-  mesh.vertices[3].color = {0, 1, 0, 1};
-
-  mesh.indices[0] = 0;
-  mesh.indices[1] = 1;
-  mesh.indices[2] = 2;
-
-  mesh.indices[3] = 2;
-  mesh.indices[4] = 1;
-  mesh.indices[5] = 3;
-
-  graphicHandle->load_mesh(mesh);
+  if (auto mesh = MeshAsset::loadGltfMeshes(device_, allocator_, 
+            CONFIG_HOME"assets/gltf/basicmesh.glb"); mesh) {
+            graphicHandle->load_asset(std::move(mesh.value()));
+  }
 
   imm_command_submit(graphicHandle->getImmSubmitFunctor());
   graphicHandle->flushUpload(immFence_);
@@ -255,12 +237,12 @@ void VulkanEngine::draw() {
   VkCommandBufferBeginInfo cmdBeginInfo = tools::command_buffer_begin_info(
       VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-  drawExtent_.height =
+  drawExtent_.height = static_cast<uint32_t>(
       std::min(swapchainExtent_.height, drawImage_.imageExtent.height) *
-      renderScale;
-  drawExtent_.width =
+      renderScale);
+  drawExtent_.width = static_cast<uint32_t>(
       std::min(swapchainExtent_.width, drawImage_.imageExtent.width) *
-      renderScale;
+      renderScale);
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
