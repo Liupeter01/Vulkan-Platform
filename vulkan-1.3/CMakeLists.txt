@@ -21,11 +21,10 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
   GIT_TAG v1.92.3)
 
-  FetchContent_Declare(
+FetchContent_Declare(
   fastgltf
   GIT_REPOSITORY https://github.com/spnda/fastgltf.git
-  GIT_TAG v0.9.0   
-)
+  GIT_TAG v0.9.0)
 FetchContent_MakeAvailable(fastgltf)
 FetchContent_MakeAvailable(imgui)
 FetchContent_MakeAvailable(fetch_vk_bootstrap)
@@ -44,7 +43,8 @@ target_link_libraries(imgui PUBLIC glfw Vulkan::Vulkan)
 add_executable(${PROJECT_NAME} ${sources} ${header})
 add_dependencies(${PROJECT_NAME} Compile_Shader)
 
-target_include_directories(${PROJECT_NAME} PUBLIC include ${fastgltf_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME}
+                           PUBLIC include ${fastgltf_SOURCE_DIR}/include)
 target_link_libraries(
   ${PROJECT_NAME} PUBLIC glm tinyobjloader vk-bootstrap::vk-bootstrap
                          VulkanMemoryAllocator imgui fastgltf)

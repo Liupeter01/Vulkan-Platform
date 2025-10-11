@@ -77,9 +77,10 @@ public:
   void draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
             VkImageView imageView) override;
 
-  void load_asset(const std::string& name,  std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices);
+  void load_asset(const std::string &name, std::vector<Vertex> &&vertices,
+                  std::vector<uint32_t> &&indices);
   void load_asset(std::shared_ptr<MeshAsset> asset);
-  void load_asset(std::vector<std::shared_ptr<MeshAsset>>&& assets);
+  void load_asset(std::vector<std::shared_ptr<MeshAsset>> &&assets);
 
   void submitMesh(VkCommandBuffer cmd);
   void flushUpload(VkFence fence);
@@ -107,7 +108,7 @@ private:
   void init_triangle_pipline();
   void init_mesh_pipline();
 
-  std::unordered_map< std::string, std::shared_ptr<MeshAsset>> meshes_;
+  std::unordered_map<std::string, std::shared_ptr<MeshAsset>> meshes_;
 };
 } // namespace graphic
 } // namespace engine

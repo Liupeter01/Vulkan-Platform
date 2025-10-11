@@ -221,57 +221,60 @@ void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
 
   vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-            GPUGeoPushConstants constants{};
-          constants.matrix = { 1.f };
-          constants.vertexBuffer = meshes_["Suzanne"]->getVertexDeviceAddr();
+  GPUGeoPushConstants constants{};
+  constants.matrix = {1.f};
+  constants.vertexBuffer = meshes_["Suzanne"]->getVertexDeviceAddr();
 
-                    vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                    sizeof(GPUGeoPushConstants), &constants);
+  vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                     sizeof(GPUGeoPushConstants), &constants);
 
-                    if (meshes_["Suzanne"]->meshBuffers.indicies_.empty()) {
-                              assert(!meshes_["Suzanne"]->meshBuffers.indicies_.empty() && "Index buffer is empty!");
-                    }
+  if (meshes_["Suzanne"]->meshBuffers.indicies_.empty()) {
+    assert(!meshes_["Suzanne"]->meshBuffers.indicies_.empty() &&
+           "Index buffer is empty!");
+  }
 
-                    vkCmdBindIndexBuffer(cmd, meshes_["Suzanne"]->meshBuffers.indexBuffer.buffer, 0,
-                                                  getIndexType<decltype(meshes_["Suzanne"]->meshBuffers.indicies_[0])>());
+  vkCmdBindIndexBuffer(
+      cmd, meshes_["Suzanne"]->meshBuffers.indexBuffer.buffer, 0,
+      getIndexType<decltype(meshes_["Suzanne"]->meshBuffers.indicies_[0])>());
 
+  for (const GeoSurface &surface : meshes_["Suzanne"]->meshSurfaces) {
+    vkCmdDrawIndexed(cmd,
+                     surface.count,      // index
+                     1,                  // instance
+                     surface.startIndex, // index
+                     0,                  // vertex
+                     0                   // instance
+    );
+  }
 
-
-                              for (const GeoSurface& surface : meshes_["Suzanne"]->meshSurfaces){
-                    vkCmdDrawIndexed(
-                              cmd,
-                              surface.count,      // index 
-                              1,                  // instance 
-                              surface.startIndex, // index 
-                              0,                  // vertex
-                              0                   // instance 
-                    );
-          }
-
-  //std::for_each(meshes_.begin(), meshes_.end(), [this, cmd](decltype(*meshes_.begin())& asset) {
+  // std::for_each(meshes_.begin(), meshes_.end(), [this,
+  // cmd](decltype(*meshes_.begin())& asset) {
 
   //          GPUGeoPushConstants constants{};
   //          constants.matrix = { 1.f };
   //          constants.vertexBuffer = asset.second->getVertexDeviceAddr();
 
-  //          vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
+  //          vkCmdPushConstants(cmd, pipelineLayout_,
+  //          VK_SHADER_STAGE_VERTEX_BIT, 0,
   //                    sizeof(GPUGeoPushConstants), &constants);
 
   //          if (asset.second->meshBuffers.indicies_.empty()) {
-  //                    assert(!asset.second->meshBuffers.indicies_.empty() && "Index buffer is empty!");
+  //                    assert(!asset.second->meshBuffers.indicies_.empty() &&
+  //                    "Index buffer is empty!");
   //          }
 
-  //          vkCmdBindIndexBuffer(cmd, asset.second->meshBuffers.indexBuffer.buffer, 0,
+  //          vkCmdBindIndexBuffer(cmd,
+  //          asset.second->meshBuffers.indexBuffer.buffer, 0,
   //                    getIndexType<decltype(asset.second->meshBuffers.indicies_[0])>());
 
   //          for (const GeoSurface& surface : asset.second->meshSurfaces){
   //                    vkCmdDrawIndexed(
   //                              cmd,
-  //                              surface.count,      // index 
-  //                              1,                  // instance 
-  //                              surface.startIndex, // index 
+  //                              surface.count,      // index
+  //                              1,                  // instance
+  //                              surface.startIndex, // index
   //                              0,                  // vertex
-  //                              0                   // instance 
+  //                              0                   // instance
   //                    );
   //          }
   //});
@@ -280,17 +283,19 @@ void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
 }
 
 void GraphicPipelinePacked::submitMesh(VkCommandBuffer cmd) {
-          //std::for_each(meshes_.begin(), meshes_.end(), [this, cmd](decltype(*meshes_.begin())& asset) {
-          //          asset.second->submitMesh(cmd);
-          //          });
-          meshes_["Suzanne"]->submitMesh(cmd);
+  // std::for_each(meshes_.begin(), meshes_.end(), [this,
+  // cmd](decltype(*meshes_.begin())& asset) {
+  //           asset.second->submitMesh(cmd);
+  //           });
+  meshes_["Suzanne"]->submitMesh(cmd);
 }
 
 void GraphicPipelinePacked::flushUpload(VkFence fence) {
-          //std::for_each(meshes_.begin(), meshes_.end(), [this, fence](decltype(*meshes_.begin())& asset) {
-          //          asset.second->flushUpload(fence);
-          //          });
-          meshes_["Suzanne"]->flushUpload(fence);
+  // std::for_each(meshes_.begin(), meshes_.end(), [this,
+  // fence](decltype(*meshes_.begin())& asset) {
+  //           asset.second->flushUpload(fence);
+  //           });
+  meshes_["Suzanne"]->flushUpload(fence);
 }
 
 std::function<void(VkCommandBuffer)>
@@ -375,32 +380,35 @@ void GraphicPipelinePacked::destroy_pipeline() {
   }
 }
 
-void GraphicPipelinePacked::load_asset(const std::string& name, 
-          std::vector<Vertex>&& vertices, 
-          std::vector<uint32_t>&& indices) {
+void GraphicPipelinePacked::load_asset(const std::string &name,
+                                       std::vector<Vertex> &&vertices,
+                                       std::vector<uint32_t> &&indices) {
 
-          std::shared_ptr<MeshAsset> ptr = std::make_shared< MeshAsset>(device_, allocator_);
-          ptr->meshName = name;
-          ptr->createAsset(std::move(vertices), std::move(indices));
+  std::shared_ptr<MeshAsset> ptr =
+      std::make_shared<MeshAsset>(device_, allocator_);
+  ptr->meshName = name;
+  ptr->createAsset(std::move(vertices), std::move(indices));
 
-          load_asset(ptr);
+  load_asset(ptr);
 }
 
 void GraphicPipelinePacked::load_asset(std::shared_ptr<MeshAsset> asset) {
-          
-          if (!asset) return;
 
-          auto [_, status] = meshes_.try_emplace(asset->meshName, asset);
-          if (!status) {
-                    std::cerr << "Create Asset: " << asset->meshName << " Failed!\n";
-          }
+  if (!asset)
+    return;
+
+  auto [_, status] = meshes_.try_emplace(asset->meshName, asset);
+  if (!status) {
+    std::cerr << "Create Asset: " << asset->meshName << " Failed!\n";
+  }
 }
 
-void GraphicPipelinePacked::load_asset(std::vector<std::shared_ptr<MeshAsset>>&& assets) {
+void GraphicPipelinePacked::load_asset(
+    std::vector<std::shared_ptr<MeshAsset>> &&assets) {
 
-          std::for_each(assets.begin(), assets.end(), [this](std::shared_ptr<MeshAsset> asset) {
-                    load_asset(asset);
-                    });
+  std::for_each(
+      assets.begin(), assets.end(),
+      [this](std::shared_ptr<MeshAsset> asset) { load_asset(asset); });
 }
 } // namespace graphic
 

@@ -58,9 +58,10 @@ void VulkanEngine::init() {
 
   computeHandle->set_descriptors(drawImage_.imageView);
 
-  if (auto mesh = MeshAsset::loadGltfMeshes(device_, allocator_, 
-            CONFIG_HOME"assets/gltf/basicmesh.glb"); mesh) {
-            graphicHandle->load_asset(std::move(mesh.value()));
+  if (auto mesh = MeshAsset::loadGltfMeshes(
+          device_, allocator_, CONFIG_HOME "assets/gltf/basicmesh.glb");
+      mesh) {
+    graphicHandle->load_asset(std::move(mesh.value()));
   }
 
   imm_command_submit(graphicHandle->getImmSubmitFunctor());
@@ -518,53 +519,49 @@ void VulkanEngine::init_vma_allocator() {
   vmaCreateAllocator(&allocatorInfo, &allocator_);
 }
 
-void VulkanEngine::init_draw_image(){
-          VkExtent3D drawImageExtent = { window_.getExtent().width,
-                               window_.getExtent().height, 1 };
+void VulkanEngine::init_draw_image() {
+  VkExtent3D drawImageExtent = {window_.getExtent().width,
+                                window_.getExtent().height, 1};
 
-          // hardcoding the draw format to 32 bit float
-          drawImage_.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-          drawImage_.imageExtent = drawImageExtent;
+  // hardcoding the draw format to 32 bit float
+  drawImage_.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+  drawImage_.imageExtent = drawImageExtent;
 
-          VkImageUsageFlags drawImageUsages =
-                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  VkImageUsageFlags drawImageUsages =
+      VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-          VkImageCreateInfo rimg_info = tools::image_create_info(
-                    drawImage_.imageFormat, drawImageUsages, drawImageExtent);
+  VkImageCreateInfo rimg_info = tools::image_create_info(
+      drawImage_.imageFormat, drawImageUsages, drawImageExtent);
 
-          VmaAllocationCreateInfo rimg_allocinfo = {};
-          rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-          rimg_allocinfo.requiredFlags =
-                    VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  VmaAllocationCreateInfo rimg_allocinfo = {};
+  rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+  rimg_allocinfo.requiredFlags =
+      VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-          // allocate and create the image
-          vmaCreateImage(allocator_, &rimg_info, &rimg_allocinfo, &drawImage_.image,
-                    &drawImage_.allocation, nullptr);
+  // allocate and create the image
+  vmaCreateImage(allocator_, &rimg_info, &rimg_allocinfo, &drawImage_.image,
+                 &drawImage_.allocation, nullptr);
 
-          // build a image-view for the draw image to use for rendering
-          VkImageViewCreateInfo rview_info = tools::imageview_create_info(
-                    drawImage_.imageFormat, drawImage_.image, VK_IMAGE_ASPECT_COLOR_BIT);
+  // build a image-view for the draw image to use for rendering
+  VkImageViewCreateInfo rview_info = tools::imageview_create_info(
+      drawImage_.imageFormat, drawImage_.image, VK_IMAGE_ASPECT_COLOR_BIT);
 
-          vkCreateImageView(device_, &rview_info, nullptr, &drawImage_.imageView);
+  vkCreateImageView(device_, &rview_info, nullptr, &drawImage_.imageView);
 }
 
-void VulkanEngine::init_depth_image(){
+void VulkanEngine::init_depth_image() {}
 
+void VulkanEngine::destroy_draw_image() {
+  vkDestroyImageView(device_, drawImage_.imageView, nullptr);
+  vmaDestroyImage(allocator_, drawImage_.image, drawImage_.allocation);
 }
 
-void VulkanEngine::destroy_draw_image(){
-          vkDestroyImageView(device_, drawImage_.imageView, nullptr);
-          vmaDestroyImage(allocator_, drawImage_.image, drawImage_.allocation);
-}
-
-void VulkanEngine::destroy_depth_image(){
-
-}
+void VulkanEngine::destroy_depth_image() {}
 
 void VulkanEngine::init_custom_image() {
-          init_draw_image();
-          init_depth_image();
+  init_draw_image();
+  init_depth_image();
 }
 
 void VulkanEngine::init_imgui() {
@@ -623,8 +620,8 @@ void VulkanEngine::destroy_imgui() {
 }
 
 void VulkanEngine::destroy_custom_image() {
-          destroy_draw_image();
-          destroy_depth_image();
+  destroy_draw_image();
+  destroy_depth_image();
 }
 
 void VulkanEngine::destroy_vma_allocator() { vmaDestroyAllocator(allocator_); }
