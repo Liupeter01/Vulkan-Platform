@@ -3,7 +3,7 @@
 #define _GRAPHIC_PIPELINE_HPP_
 #include <GlobalDef.hpp>
 #include <functional>
-#include <mesh/MeshBuffers.hpp>
+#include <mesh/MeshLoader.hpp>
 #include <pipeline/PipelineBasic.hpp>
 #include <string>
 #include <type_traits>
@@ -74,9 +74,12 @@ public:
   GraphicPipelinePacked &operator=(const GraphicPipelinePacked &) = delete;
   void init() override;
   void destroy() override;
-  void load_mesh(const Mesh &mesh);
   void draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
             VkImageView imageView) override;
+
+  void load_asset(const std::string& name,  std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices);
+  void load_asset(std::shared_ptr<MeshAsset> asset);
+  void load_asset(std::vector<std::shared_ptr<MeshAsset>>&& assets);
 
   void submitMesh(VkCommandBuffer cmd);
   void flushUpload(VkFence fence);
@@ -104,7 +107,7 @@ private:
   void init_triangle_pipline();
   void init_mesh_pipline();
 
-  std::unique_ptr<mesh::GPUGeoMeshBuffers> mesh_ = nullptr;
+  std::unordered_map< std::string, std::shared_ptr<MeshAsset>> meshes_;
 };
 } // namespace graphic
 } // namespace engine
