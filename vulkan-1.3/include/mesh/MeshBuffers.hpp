@@ -30,7 +30,11 @@ namespace engine {
                               std::vector<uint32_t> indicies_;
                               VkDeviceAddress vertexBufferAddress{ };
 
-                              GPUGeoMeshBuffers& createMesh( const Mesh& mesh);
+                              void createMesh(
+                                        std::vector<Vertex>&& vertices,
+                                        std::vector<uint32_t>&& indices);
+
+                              void createMesh(const Mesh& mesh);
                               void submitMesh(VkCommandBuffer cmd);
                               void flushUpload(VkFence fence);
 
