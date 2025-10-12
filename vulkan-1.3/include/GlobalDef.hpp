@@ -21,6 +21,25 @@ struct FrameData {
   VkCommandBuffer _mainCommandBuffer;
 };
 
+struct AllocatedImage {
+          VkImage image;
+          VkImageView imageView;
+          VmaAllocation allocation;
+          VkExtent3D imageExtent;
+          VkFormat imageFormat;
+
+          AllocatedImage(VkDevice device, VmaAllocator allocator);
+          virtual ~AllocatedImage();
+          void create_as_depth(VkExtent3D extent);
+          void create_as_draw(VkExtent3D extent);
+          void destroy();
+
+private:
+          bool isinit_ = false;
+          VkDevice device_;
+          VmaAllocator allocator_;
+};
+
 struct AllocatedBuffer {
   AllocatedBuffer(VmaAllocator allocator);
   virtual ~AllocatedBuffer();
