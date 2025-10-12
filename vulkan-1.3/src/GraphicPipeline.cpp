@@ -122,12 +122,12 @@ GraphicPipelineBuilder::set_input_topology(const VkPrimitiveTopology topology,
   return *this;
 }
 
-GraphicPipelineBuilder &GraphicPipelineBuilder::set_depthtest(bool status) {
-  depthStencil_.depthTestEnable = status;
+GraphicPipelineBuilder &GraphicPipelineBuilder::set_depthtest(bool status, VkCompareOp op) {
+          depthStencil_.depthTestEnable = VK_TRUE;
   depthStencil_.depthWriteEnable = status;
-  depthStencil_.depthCompareOp = VK_COMPARE_OP_NEVER;
-  depthStencil_.depthBoundsTestEnable = status;
-  depthStencil_.stencilTestEnable = status;
+  depthStencil_.depthCompareOp = op;
+  depthStencil_.depthBoundsTestEnable = VK_FALSE;
+  depthStencil_.stencilTestEnable = VK_FALSE;
   depthStencil_.front = {};
   depthStencil_.back = {};
   depthStencil_.minDepthBounds = 0.f;
@@ -197,10 +197,12 @@ void GraphicPipelinePacked::init() { init_pipeline(); }
 void GraphicPipelinePacked::destroy() { destroy_pipeline(); }
 
 void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
-                                 VkImageView imageView) {
+          VkImageView drawImgView,
+          VkImageView depthImgView) {
 
-  auto colorAttachmentInfo = tools::attachment_info(imageView);
-  auto renderInfo = tools::rendering_info(drawExtent, &colorAttachmentInfo);
+  auto colorAttachmentInfo = tools::color_attachment_info(drawImgView);
+  auto depthAttachmentInfo = tools::depth_attachment_info(depthImgView);
+  auto renderInfo = tools::rendering_info(drawExtent, &colorAttachmentInfo, &depthAttachmentInfo);
 
   vkCmdBeginRendering(cmd, &renderInfo);
 
@@ -361,8 +363,8 @@ void GraphicPipelinePacked::init_mesh_pipline() {
                   .set_polygon_mode(VK_POLYGON_MODE_FILL)
                   .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
                   .set_multisampling()
-                  .set_depthtest(false)
-                  .set_depth_format(VK_FORMAT_UNDEFINED)
+                  .set_depthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL)
+                  .set_depth_format(VK_FORMAT_D32_SFLOAT)
                   .set_color_attachment_format(VK_FORMAT_R16G16B16A16_SFLOAT)
                   .build();
 
