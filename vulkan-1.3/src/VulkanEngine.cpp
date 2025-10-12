@@ -31,10 +31,6 @@ void VulkanEngine::init() {
   init_vma_allocator();
   init_custom_image();
 
-  // Must be done first!!!
-
-
-
   // Load Compute Shader
   computeEffect.reset();
   computeEffect =
@@ -201,7 +197,7 @@ void VulkanEngine::draw_background(VkCommandBuffer cmd, VkImage image) {
 
 void VulkanEngine::draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
                               VkImageView imageView) {
-  auto colorAttachmentInfo = tools::attachment_info(imageView);
+  auto colorAttachmentInfo = tools::color_attachment_info(imageView);
   auto renderInfo =
       tools::rendering_info(swapchainExtent_, &colorAttachmentInfo);
 
@@ -250,6 +246,7 @@ void VulkanEngine::draw() {
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
   VkImage &draw_image = drawImage_->image; // Draw Image
+  VkImage& depth_image = depthImage_->image; // Depth Image
   VkImage &swapchain_image =
       swapchainImages_[swapchainImageIndex]; // SwapChain Image
 
@@ -266,12 +263,16 @@ void VulkanEngine::draw() {
   // compute
   computeEffect->draw(cmd, drawExtent_, drawImage_->imageView);
 
-  // transition the draw image and the swapchain image into their correct
-  // transfer layouts
   util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_GENERAL,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-  graphicEffect->draw(cmd, drawExtent_, drawImage_->imageView);
+  util::transition_image(cmd, depth_image,
+            VK_IMAGE_LAYOUT_UNDEFINED, 
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+
+  graphicEffect->draw(cmd, drawExtent_, 
+            drawImage_->imageView, 
+            depthImage_->imageView);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
