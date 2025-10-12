@@ -14,7 +14,7 @@ namespace engine {
 
 VulkanEngine::VulkanEngine(Window &win, bool enableValidationLayer)
     : isInit(false), window_(win), frameNumber_(0), frames_(FRAMES_IN_FLIGHT),
-          enableValidationLayers_(enableValidationLayer) {
+      enableValidationLayers_(enableValidationLayer) {
 
   init();
 }
@@ -245,8 +245,8 @@ void VulkanEngine::draw() {
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-  VkImage &draw_image = drawImage_->image; // Draw Image
-  VkImage& depth_image = depthImage_->image; // Depth Image
+  VkImage &draw_image = drawImage_->image;   // Draw Image
+  VkImage &depth_image = depthImage_->image; // Depth Image
   VkImage &swapchain_image =
       swapchainImages_[swapchainImageIndex]; // SwapChain Image
 
@@ -266,13 +266,11 @@ void VulkanEngine::draw() {
   util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_GENERAL,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-  util::transition_image(cmd, depth_image,
-            VK_IMAGE_LAYOUT_UNDEFINED, 
-            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+  util::transition_image(cmd, depth_image, VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-  graphicEffect->draw(cmd, drawExtent_, 
-            drawImage_->imageView, 
-            depthImage_->imageView);
+  graphicEffect->draw(cmd, drawExtent_, drawImage_->imageView,
+                      depthImage_->imageView);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
@@ -524,17 +522,17 @@ void VulkanEngine::init_vma_allocator() {
 
 void VulkanEngine::init_custom_image() {
 
-          VkExtent3D extent = { window_.getExtent().width,
-                    window_.getExtent().height, 1 };
+  VkExtent3D extent = {window_.getExtent().width, window_.getExtent().height,
+                       1};
 
-          drawImage_.reset();
-          drawImage_ = std::make_unique<AllocatedImage>(device_, allocator_);
+  drawImage_.reset();
+  drawImage_ = std::make_unique<AllocatedImage>(device_, allocator_);
 
-          depthImage_.reset();
-          depthImage_ = std::make_unique<AllocatedImage>(device_, allocator_);
+  depthImage_.reset();
+  depthImage_ = std::make_unique<AllocatedImage>(device_, allocator_);
 
-          drawImage_->create_as_draw(extent);
-          depthImage_->create_as_depth(extent);
+  drawImage_->create_as_draw(extent);
+  depthImage_->create_as_depth(extent);
 }
 
 void VulkanEngine::init_imgui() {
@@ -593,14 +591,14 @@ void VulkanEngine::destroy_imgui() {
 }
 
 void VulkanEngine::destroy_custom_image() {
-          if (!drawImage_ || !depthImage_)
-                    throw std::runtime_error("Draw/Depth Images are null!");
+  if (!drawImage_ || !depthImage_)
+    throw std::runtime_error("Draw/Depth Images are null!");
 
-          drawImage_->destroy();
-          depthImage_->destroy();
+  drawImage_->destroy();
+  depthImage_->destroy();
 
-          drawImage_.reset();
-          depthImage_.reset();
+  drawImage_.reset();
+  depthImage_.reset();
 }
 
 void VulkanEngine::destroy_vma_allocator() { vmaDestroyAllocator(allocator_); }

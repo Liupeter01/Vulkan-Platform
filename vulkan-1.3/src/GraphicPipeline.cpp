@@ -122,8 +122,9 @@ GraphicPipelineBuilder::set_input_topology(const VkPrimitiveTopology topology,
   return *this;
 }
 
-GraphicPipelineBuilder &GraphicPipelineBuilder::set_depthtest(bool status, VkCompareOp op) {
-          depthStencil_.depthTestEnable = VK_TRUE;
+GraphicPipelineBuilder &GraphicPipelineBuilder::set_depthtest(bool status,
+                                                              VkCompareOp op) {
+  depthStencil_.depthTestEnable = VK_TRUE;
   depthStencil_.depthWriteEnable = status;
   depthStencil_.depthCompareOp = op;
   depthStencil_.depthBoundsTestEnable = VK_FALSE;
@@ -197,12 +198,13 @@ void GraphicPipelinePacked::init() { init_pipeline(); }
 void GraphicPipelinePacked::destroy() { destroy_pipeline(); }
 
 void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
-          VkImageView drawImgView,
-          VkImageView depthImgView) {
+                                 VkImageView drawImgView,
+                                 VkImageView depthImgView) {
 
   auto colorAttachmentInfo = tools::color_attachment_info(drawImgView);
   auto depthAttachmentInfo = tools::depth_attachment_info(depthImgView);
-  auto renderInfo = tools::rendering_info(drawExtent, &colorAttachmentInfo, &depthAttachmentInfo);
+  auto renderInfo = tools::rendering_info(drawExtent, &colorAttachmentInfo,
+                                          &depthAttachmentInfo);
 
   vkCmdBeginRendering(cmd, &renderInfo);
 
@@ -318,9 +320,9 @@ void GraphicPipelinePacked::init_triangle_pipline() {
   GraphicPipelineBuilder builder{device_};
   builder.pipelineLayout_ = pipelineLayout_;
   pipeline_ = builder
-            .set_shaders(CONFIG_HOME "shaders/triangle.vert.spv",
-                      CONFIG_HOME "shaders/triangle.frag.spv")
-            .disable_blending()
+                  .set_shaders(CONFIG_HOME "shaders/triangle.vert.spv",
+                               CONFIG_HOME "shaders/triangle.frag.spv")
+                  .disable_blending()
                   .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
                   .set_polygon_mode(VK_POLYGON_MODE_FILL)
                   .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
@@ -358,7 +360,7 @@ void GraphicPipelinePacked::init_mesh_pipline() {
   pipeline_ = builder
                   .set_shaders(CONFIG_HOME "shaders/mesh.vert.spv",
                                CONFIG_HOME "shaders/triangle.frag.spv")
-            .disable_blending()
+                  .disable_blending()
                   .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
                   .set_polygon_mode(VK_POLYGON_MODE_FILL)
                   .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)

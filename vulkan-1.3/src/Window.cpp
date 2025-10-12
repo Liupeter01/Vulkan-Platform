@@ -39,13 +39,6 @@ void engine::Window::initWindow() {
     throw std::runtime_error("Failed to CreateWindow");
   }
 
-  // uint32_t count;
-  // const char **ext = glfwGetRequiredInstanceExtensions(&count);
-
-  // for (int i = 0; i < count; ++i) {
-  //   std::cout << "1=" << ext[i] << std::endl;
-  // }
-
   glfwSetWindowUserPointer(window_, this);
   glfwSetFramebufferSizeCallback(window_, resizeFrameBufferCallback);
 }

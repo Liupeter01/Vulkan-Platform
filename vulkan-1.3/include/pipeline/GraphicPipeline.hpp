@@ -17,7 +17,8 @@ struct GraphicPipelineBuilder {
   VkPipeline build();
   GraphicPipelineBuilder(VkDevice device);
 
-  GraphicPipelineBuilder &set_depthtest(bool status, VkCompareOp op = VK_COMPARE_OP_GREATER_OR_EQUAL);
+  GraphicPipelineBuilder &
+  set_depthtest(bool status, VkCompareOp op = VK_COMPARE_OP_GREATER_OR_EQUAL);
   GraphicPipelineBuilder &disable_blending();
   GraphicPipelineBuilder &set_multisampling();
   GraphicPipelineBuilder &set_color_attachment_format(VkFormat format);
@@ -74,8 +75,7 @@ public:
   GraphicPipelinePacked &operator=(const GraphicPipelinePacked &) = delete;
   void init() override;
   void destroy() override;
-  void draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
-            VkImageView drawImgView,
+  void draw(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView drawImgView,
             VkImageView depthImgView) override;
 
   void load_asset(const std::string &name, std::vector<Vertex> &&vertices,

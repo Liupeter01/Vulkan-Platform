@@ -1,82 +1,81 @@
-#include <Tools.hpp>
 #include <GlobalDef.hpp>
+#include <Tools.hpp>
 
 namespace engine {
 
-          AllocatedImage::AllocatedImage(VkDevice device, VmaAllocator allocator)
-                    :device_(device), allocator_(allocator), isinit_(false) 
-          {}
+AllocatedImage::AllocatedImage(VkDevice device, VmaAllocator allocator)
+    : device_(device), allocator_(allocator), isinit_(false) {}
 
-          AllocatedImage:: ~AllocatedImage() {
-                    destroy();
-          }
+AllocatedImage::~AllocatedImage() { destroy(); }
 
-          void AllocatedImage::create_as_depth(VkExtent3D extent) {
-                    if (isinit_) return;
-                   imageFormat = VK_FORMAT_D32_SFLOAT;
-                    imageExtent = extent;
+void AllocatedImage::create_as_depth(VkExtent3D extent) {
+  if (isinit_)
+    return;
+  imageFormat = VK_FORMAT_D32_SFLOAT;
+  imageExtent = extent;
 
-                    VkImageUsageFlags depthImageUsages{};
-                    depthImageUsages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  VkImageUsageFlags depthImageUsages{};
+  depthImageUsages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-                    VkImageCreateInfo dimg_info =
-                              tools::image_create_info(imageFormat, depthImageUsages, extent);
+  VkImageCreateInfo dimg_info =
+      tools::image_create_info(imageFormat, depthImageUsages, extent);
 
-                    VmaAllocationCreateInfo rimg_allocinfo = {};
-                    rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-                    rimg_allocinfo.requiredFlags =
-                              VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  VmaAllocationCreateInfo rimg_allocinfo = {};
+  rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+  rimg_allocinfo.requiredFlags =
+      VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-                    //allocate and create the image
-                    vmaCreateImage(allocator_, &dimg_info, &rimg_allocinfo, &image, &allocation, nullptr);
+  // allocate and create the image
+  vmaCreateImage(allocator_, &dimg_info, &rimg_allocinfo, &image, &allocation,
+                 nullptr);
 
-                    // build a image-view for the draw image to use for rendering
-                    VkImageViewCreateInfo rview_info = tools::imageview_create_info(
-                              imageFormat, image, VK_IMAGE_ASPECT_DEPTH_BIT);
+  // build a image-view for the draw image to use for rendering
+  VkImageViewCreateInfo rview_info = tools::imageview_create_info(
+      imageFormat, image, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-                    vkCreateImageView(device_, &rview_info, nullptr, &imageView);
-                    isinit_ = true;
-          }
+  vkCreateImageView(device_, &rview_info, nullptr, &imageView);
+  isinit_ = true;
+}
 
-          void AllocatedImage::create_as_draw(VkExtent3D extent) {
-                    if (isinit_) return;
+void AllocatedImage::create_as_draw(VkExtent3D extent) {
+  if (isinit_)
+    return;
 
-                    // hardcoding the draw format to 32 bit float
-                    imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-                    imageExtent = extent;
+  // hardcoding the draw format to 32 bit float
+  imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+  imageExtent = extent;
 
-                    VkImageUsageFlags drawImageUsages =
-                              VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  VkImageUsageFlags drawImageUsages =
+      VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-                    VkImageCreateInfo rimg_info = tools::image_create_info(
-                             imageFormat, drawImageUsages, extent);
+  VkImageCreateInfo rimg_info =
+      tools::image_create_info(imageFormat, drawImageUsages, extent);
 
-                    VmaAllocationCreateInfo rimg_allocinfo = {};
-                    rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-                    rimg_allocinfo.requiredFlags =
-                              VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  VmaAllocationCreateInfo rimg_allocinfo = {};
+  rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+  rimg_allocinfo.requiredFlags =
+      VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-                    // allocate and create the image
-                    vmaCreateImage(allocator_, &rimg_info, &rimg_allocinfo, &image,
-                              &allocation, nullptr);
+  // allocate and create the image
+  vmaCreateImage(allocator_, &rimg_info, &rimg_allocinfo, &image, &allocation,
+                 nullptr);
 
-                    // build a image-view for the draw image to use for rendering
-                    VkImageViewCreateInfo rview_info = tools::imageview_create_info(
-                             imageFormat, image, VK_IMAGE_ASPECT_COLOR_BIT);
+  // build a image-view for the draw image to use for rendering
+  VkImageViewCreateInfo rview_info = tools::imageview_create_info(
+      imageFormat, image, VK_IMAGE_ASPECT_COLOR_BIT);
 
-                    vkCreateImageView(device_, &rview_info, nullptr, &imageView);
-                    isinit_ = true;
-          }
+  vkCreateImageView(device_, &rview_info, nullptr, &imageView);
+  isinit_ = true;
+}
 
-          void AllocatedImage::destroy() {
-                    if (isinit_) {
-                              vkDestroyImageView(device_, imageView, nullptr);
-                              vmaDestroyImage(allocator_, image, allocation);
-                              isinit_ = false;
-                    }
-          }
-
+void AllocatedImage::destroy() {
+  if (isinit_) {
+    vkDestroyImageView(device_, imageView, nullptr);
+    vmaDestroyImage(allocator_, image, allocation);
+    isinit_ = false;
+  }
+}
 
 AllocatedBuffer::AllocatedBuffer(VmaAllocator allocator)
     : allocator_(allocator), isinit(false) {}
