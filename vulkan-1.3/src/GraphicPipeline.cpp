@@ -86,6 +86,9 @@ GraphicPipelineBuilder &GraphicPipelineBuilder::set_multisampling() {
   return *this;
 }
 
+
+
+
 GraphicPipelineBuilder &
 GraphicPipelineBuilder::set_color_attachment_format(VkFormat format) {
   colorAttachmentformat_ = format;
@@ -112,6 +115,39 @@ GraphicPipelineBuilder::set_shaders(const std::string &vertexShaderPath,
   shaderStages_[1] = std::move(tools::shader_stage_create_info(
       device_, fragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT));
   return *this;
+}
+
+GraphicPipelineBuilder& GraphicPipelineBuilder::set_blending_additive(bool status) {
+          colorBlendAttachment_.blendEnable = status;
+          colorBlendAttachment_.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+          colorBlendAttachment_.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+          colorBlendAttachment_.colorBlendOp = VK_BLEND_OP_ADD;
+          colorBlendAttachment_.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+          colorBlendAttachment_.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+          colorBlendAttachment_.alphaBlendOp = VK_BLEND_OP_ADD;
+          colorBlendAttachment_.colorWriteMask =
+                    VK_COLOR_COMPONENT_R_BIT |
+                    VK_COLOR_COMPONENT_G_BIT |
+                    VK_COLOR_COMPONENT_B_BIT |
+                    VK_COLOR_COMPONENT_A_BIT;
+          return *this;
+}
+
+GraphicPipelineBuilder& GraphicPipelineBuilder::set_blending_alphablend(bool status) {
+          colorBlendAttachment_.blendEnable = status;
+          colorBlendAttachment_.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+          colorBlendAttachment_.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+          colorBlendAttachment_.colorBlendOp = VK_BLEND_OP_ADD;
+          colorBlendAttachment_.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+          colorBlendAttachment_.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+          colorBlendAttachment_.alphaBlendOp = VK_BLEND_OP_ADD;
+
+          colorBlendAttachment_.colorWriteMask =
+                    VK_COLOR_COMPONENT_R_BIT |
+                    VK_COLOR_COMPONENT_G_BIT |
+                    VK_COLOR_COMPONENT_B_BIT |
+                    VK_COLOR_COMPONENT_A_BIT;
+          return *this;
 }
 
 GraphicPipelineBuilder &
@@ -358,9 +394,10 @@ void GraphicPipelinePacked::init_mesh_pipline() {
   builder.pipelineLayout_ = pipelineLayout_;
 
   pipeline_ = builder
-                  .set_shaders(CONFIG_HOME "shaders/mesh.vert.spv",
-                               CONFIG_HOME "shaders/triangle.frag.spv")
-                  .disable_blending()
+            .set_shaders(CONFIG_HOME "shaders/mesh.vert.spv",
+                      CONFIG_HOME "shaders/triangle.frag.spv")
+            //.disable_blending()
+            .set_blending_alphablend(true)
                   .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
                   .set_polygon_mode(VK_POLYGON_MODE_FILL)
                   .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
