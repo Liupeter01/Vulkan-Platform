@@ -14,7 +14,7 @@ namespace engine {
 
 VulkanEngine::VulkanEngine(Window &win, bool enableValidationLayer)
     : isInit(false), window_(win), frameNumber_(0), frames_(FRAMES_IN_FLIGHT),
-      enableValidationLayers_(enableValidationLayer) {
+          enableValidationLayers_(enableValidationLayer) {
 
   init();
 }
@@ -32,6 +32,8 @@ void VulkanEngine::init() {
   init_custom_image();
 
   // Must be done first!!!
+
+
 
   // Load Compute Shader
   computeEffect.reset();
@@ -56,7 +58,7 @@ void VulkanEngine::init() {
     throw std::runtime_error("computeEffect/graphicEffect is not of type "
                              "ComputePipelinePacked/GraphicPipelinePacked!");
 
-  computeHandle->set_descriptors(drawImage_.imageView);
+  computeHandle->set_descriptors(drawImage_->imageView);
 
   if (auto mesh = MeshAsset::loadGltfMeshes(
           device_, allocator_, CONFIG_HOME "assets/gltf/basicmesh.glb");
@@ -239,59 +241,59 @@ void VulkanEngine::draw() {
       VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
   drawExtent_.height = static_cast<uint32_t>(
-      std::min(swapchainExtent_.height, drawImage_.imageExtent.height) *
+      std::min(swapchainExtent_.height, drawImage_->imageExtent.height) *
       renderScale);
   drawExtent_.width = static_cast<uint32_t>(
-      std::min(swapchainExtent_.width, drawImage_.imageExtent.width) *
+      std::min(swapchainExtent_.width, drawImage_->imageExtent.width) *
       renderScale);
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-  VkImage &src_image = drawImage_.image; // Draw Image
-  VkImage &target_image =
+  VkImage &draw_image = drawImage_->image; // Draw Image
+  VkImage &swapchain_image =
       swapchainImages_[swapchainImageIndex]; // SwapChain Image
 
   VkImageView &image_view = swapchainImageViews_[swapchainImageIndex];
 
   // transition our main draw image into general layout so we can write into it
   // we will overwrite it all so we dont care about what was the older layout
-  util::transition_image(cmd, src_image, VK_IMAGE_LAYOUT_UNDEFINED,
+  util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_UNDEFINED,
                          VK_IMAGE_LAYOUT_GENERAL);
 
   // Draw Background
-  draw_background(cmd, src_image);
+  draw_background(cmd, draw_image);
 
   // compute
-  computeEffect->draw(cmd, drawExtent_, drawImage_.imageView);
+  computeEffect->draw(cmd, drawExtent_, drawImage_->imageView);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
-  util::transition_image(cmd, src_image, VK_IMAGE_LAYOUT_GENERAL,
+  util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_GENERAL,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-  graphicEffect->draw(cmd, drawExtent_, drawImage_.imageView);
+  graphicEffect->draw(cmd, drawExtent_, drawImage_->imageView);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
-  util::transition_image(cmd, src_image,
+  util::transition_image(cmd, draw_image,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                          VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
-  util::transition_image(cmd, target_image, VK_IMAGE_LAYOUT_UNDEFINED,
+  util::transition_image(cmd, swapchain_image, VK_IMAGE_LAYOUT_UNDEFINED,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
   // execute a copy from the draw image into the swapchain
-  util::copy_image_to_image(cmd, src_image, target_image, drawExtent_,
+  util::copy_image_to_image(cmd, draw_image, swapchain_image, drawExtent_,
                             swapchainExtent_);
 
   // set swapchain image layout to Attachment Optimal so we can draw it
-  util::transition_image(cmd, target_image,
+  util::transition_image(cmd, swapchain_image,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
   draw_imgui(cmd, drawExtent_, image_view);
 
-  util::transition_image(cmd, target_image,
+  util::transition_image(cmd, swapchain_image,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
@@ -519,49 +521,19 @@ void VulkanEngine::init_vma_allocator() {
   vmaCreateAllocator(&allocatorInfo, &allocator_);
 }
 
-void VulkanEngine::init_draw_image() {
-  VkExtent3D drawImageExtent = {window_.getExtent().width,
-                                window_.getExtent().height, 1};
-
-  // hardcoding the draw format to 32 bit float
-  drawImage_.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-  drawImage_.imageExtent = drawImageExtent;
-
-  VkImageUsageFlags drawImageUsages =
-      VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-  VkImageCreateInfo rimg_info = tools::image_create_info(
-      drawImage_.imageFormat, drawImageUsages, drawImageExtent);
-
-  VmaAllocationCreateInfo rimg_allocinfo = {};
-  rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-  rimg_allocinfo.requiredFlags =
-      VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-  // allocate and create the image
-  vmaCreateImage(allocator_, &rimg_info, &rimg_allocinfo, &drawImage_.image,
-                 &drawImage_.allocation, nullptr);
-
-  // build a image-view for the draw image to use for rendering
-  VkImageViewCreateInfo rview_info = tools::imageview_create_info(
-      drawImage_.imageFormat, drawImage_.image, VK_IMAGE_ASPECT_COLOR_BIT);
-
-  vkCreateImageView(device_, &rview_info, nullptr, &drawImage_.imageView);
-}
-
-void VulkanEngine::init_depth_image() {}
-
-void VulkanEngine::destroy_draw_image() {
-  vkDestroyImageView(device_, drawImage_.imageView, nullptr);
-  vmaDestroyImage(allocator_, drawImage_.image, drawImage_.allocation);
-}
-
-void VulkanEngine::destroy_depth_image() {}
-
 void VulkanEngine::init_custom_image() {
-  init_draw_image();
-  init_depth_image();
+
+          VkExtent3D extent = { window_.getExtent().width,
+                    window_.getExtent().height, 1 };
+
+          drawImage_.reset();
+          drawImage_ = std::make_unique<AllocatedImage>(device_, allocator_);
+
+          depthImage_.reset();
+          depthImage_ = std::make_unique<AllocatedImage>(device_, allocator_);
+
+          drawImage_->create_as_draw(extent);
+          depthImage_->create_as_depth(extent);
 }
 
 void VulkanEngine::init_imgui() {
@@ -620,8 +592,14 @@ void VulkanEngine::destroy_imgui() {
 }
 
 void VulkanEngine::destroy_custom_image() {
-  destroy_draw_image();
-  destroy_depth_image();
+          if (!drawImage_ || !depthImage_)
+                    throw std::runtime_error("Draw/Depth Images are null!");
+
+          drawImage_->destroy();
+          depthImage_->destroy();
+
+          drawImage_.reset();
+          depthImage_.reset();
 }
 
 void VulkanEngine::destroy_vma_allocator() { vmaDestroyAllocator(allocator_); }

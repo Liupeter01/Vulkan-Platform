@@ -52,14 +52,10 @@ private:
   void init_sync();
   void init_vma_allocator();
   void init_custom_image();
-  void init_draw_image();
-  void init_depth_image();
 
   void init_imgui();
   void destroy_imgui();
 
-  void destroy_draw_image();
-  void destroy_depth_image();
   void destroy_custom_image();
   void destroy_vma_allocator();
   void destroy_sync();
@@ -115,16 +111,9 @@ private:
   VkQueue graphicsQueue_;
   uint32_t graphicsQueueFamily_;
 
-  struct AllocatedImage {
-    VkImage image;
-    VkImageView imageView;
-    VmaAllocation allocation;
-    VkExtent3D imageExtent;
-    VkFormat imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-  };
-
-  AllocatedImage drawImage_;
   VkExtent2D drawExtent_;
+  std::unique_ptr<AllocatedImage> drawImage_ = nullptr;
+  std::unique_ptr<AllocatedImage> depthImage_ = nullptr;
   float renderScale = 1.f;
 
   VmaAllocator allocator_;
