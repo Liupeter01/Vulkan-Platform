@@ -213,7 +213,7 @@ inline static VkDescriptorPoolCreateInfo descriptor_pool_create_info(
 }
 
 [[nodiscard]]
-inline static VkRenderingAttachmentInfo attachment_info(
+inline static VkRenderingAttachmentInfo color_attachment_info(
     VkImageView view, std::optional<VkClearValue> clear = std::nullopt,
     VkImageLayout layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
   VkRenderingAttachmentInfo colorAttachment{};
@@ -231,6 +231,21 @@ inline static VkRenderingAttachmentInfo attachment_info(
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   colorAttachment.clearValue = *clear;
   return colorAttachment;
+}
+
+
+[[nodiscard]]
+inline static VkRenderingAttachmentInfo depth_attachment_info(
+          VkImageView view, VkImageLayout layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) {
+
+          VkRenderingAttachmentInfo depthAttachment{};
+          depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+          depthAttachment.imageView = view;
+          depthAttachment.imageLayout = layout;
+          depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+          depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+          depthAttachment.clearValue.depthStencil.depth = 0.f;
+          return depthAttachment;
 }
 
 [[nodiscard]]
