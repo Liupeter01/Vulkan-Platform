@@ -101,7 +101,8 @@ void ComputePipelinePacked::init_pipeline() {
 }
 
 void ComputePipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
-                                 VkImageView imageView) {
+          VkImageView drawImgView,
+          VkImageView depthImgView) {
 
   vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
                     pipeline_);

@@ -26,7 +26,8 @@ public:
   void init() override;
   void destroy() override;
   void draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
-            VkImageView imageView) override;
+            VkImageView drawImgView,
+            VkImageView depthImgView) override;
   ComputeShaderPushConstants &getData() { return data; }
 
 protected:

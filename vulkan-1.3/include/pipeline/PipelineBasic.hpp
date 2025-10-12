@@ -23,7 +23,8 @@ public:
   PipelineBasic &operator=(const PipelineBasic &) = delete;
 
   virtual void draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
-                    VkImageView imageView = VK_NULL_HANDLE) = 0;
+                    VkImageView drawImgView = VK_NULL_HANDLE, 
+            VkImageView depthImgView = VK_NULL_HANDLE) = 0;
   bool isCompute() const { return type_ == PipelineType::COMPUTE; }
   bool isGraphics() const { return type_ == PipelineType::GRAPHIC; }
   virtual void init() = 0;
