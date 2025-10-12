@@ -66,11 +66,11 @@ void GraphicPipelineBuilder::init_colorBlend_state() {
   colorBlendState_.pAttachments = &colorBlendAttachment_;
 }
 
-GraphicPipelineBuilder &GraphicPipelineBuilder::set_blending(bool status) {
+GraphicPipelineBuilder &GraphicPipelineBuilder::disable_blending() {
   colorBlendAttachment_.colorWriteMask =
       VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  colorBlendAttachment_.blendEnable = status;
+  colorBlendAttachment_.blendEnable = VK_FALSE;
   return *this;
 }
 
@@ -318,9 +318,9 @@ void GraphicPipelinePacked::init_triangle_pipline() {
   GraphicPipelineBuilder builder{device_};
   builder.pipelineLayout_ = pipelineLayout_;
   pipeline_ = builder
-                  .set_shaders(CONFIG_HOME "shaders/triangle.vert.spv",
-                               CONFIG_HOME "shaders/triangle.frag.spv")
-                  .set_blending(false)
+            .set_shaders(CONFIG_HOME "shaders/triangle.vert.spv",
+                      CONFIG_HOME "shaders/triangle.frag.spv")
+            .disable_blending()
                   .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
                   .set_polygon_mode(VK_POLYGON_MODE_FILL)
                   .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
@@ -358,7 +358,7 @@ void GraphicPipelinePacked::init_mesh_pipline() {
   pipeline_ = builder
                   .set_shaders(CONFIG_HOME "shaders/mesh.vert.spv",
                                CONFIG_HOME "shaders/triangle.frag.spv")
-                  .set_blending(false)
+            .disable_blending()
                   .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
                   .set_polygon_mode(VK_POLYGON_MODE_FILL)
                   .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)

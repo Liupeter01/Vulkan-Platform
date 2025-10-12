@@ -18,7 +18,7 @@ struct GraphicPipelineBuilder {
   GraphicPipelineBuilder(VkDevice device);
 
   GraphicPipelineBuilder &set_depthtest(bool status, VkCompareOp op = VK_COMPARE_OP_GREATER_OR_EQUAL);
-  GraphicPipelineBuilder &set_blending(bool status = VK_FALSE);
+  GraphicPipelineBuilder &disable_blending();
   GraphicPipelineBuilder &set_multisampling();
   GraphicPipelineBuilder &set_color_attachment_format(VkFormat format);
   GraphicPipelineBuilder &set_depth_format(VkFormat format);
