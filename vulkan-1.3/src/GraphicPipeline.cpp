@@ -239,19 +239,21 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
   // now that we are sure that the commands finished executing, we can safely
   VkCommandBuffer cmd = currentFrame._mainCommandBuffer;
 
-  AllocatedBuffer sceneDataBuffer{allocator_};
-  sceneDataBuffer.create(sizeof(GPUSceneData),
+  std::shared_ptr<AllocatedBuffer>  sceneDataBuffer =
+            std::make_shared<AllocatedBuffer>(allocator_);
+
+  sceneDataBuffer->create(sizeof(GPUSceneData),
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                          VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-  GPUSceneData *data = reinterpret_cast<GPUSceneData *>(sceneDataBuffer.map());
+  GPUSceneData *data = reinterpret_cast<GPUSceneData *>(sceneDataBuffer->map());
   *data = sceneData_;
-  sceneDataBuffer.unmap();
+  sceneDataBuffer->unmap();
 
   VkDescriptorSet sceneSet = currentFrame.allocate(sceneDescriptorSetLayout_);
 
   DescriptorWriter writer{device_};
-  writer.write_buffer(0, sceneDataBuffer.buffer, sizeof(GPUSceneData), 0,
+  writer.write_buffer(0, sceneDataBuffer->buffer, sizeof(GPUSceneData), 0,
                       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   writer.update_set(sceneSet);
 
@@ -340,7 +342,7 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
   //});
 
   currentFrame.destroy_by_deferred(
-      [&sceneDataBuffer]() { sceneDataBuffer.destroy(); });
+      [sceneDataBuffer]() { sceneDataBuffer->destroy(); });
 
   vkCmdEndRendering(cmd);
 }
