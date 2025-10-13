@@ -24,8 +24,7 @@ VulkanEngine::~VulkanEngine() { destroy(); }
 void VulkanEngine::init() {
   init_vulkan();
   init_swapchain();
-  init_sync();
-  init_commands();
+  init_frames(setCount_, frame_sizes);
   init_immediate_sync();
   init_immediate_commands();
   init_vma_allocator();
@@ -85,8 +84,7 @@ void VulkanEngine::destroy() {
   destroy_vma_allocator();
   destroy_immediate_commands();
   destroy_immediate_sync();
-  destroy_commands();
-  destroy_sync();
+  destroy_frames();
   destroy_swapchain();
   destroy_vulkan();
 }
@@ -216,6 +214,9 @@ void VulkanEngine::draw() {
                   std::numeric_limits<uint64_t>::max());
   vkResetFences(device_, 1, &currentFrame._renderFinishedFence);
 
+  currentFrame.clean_last_frame();      //execute flush
+  currentFrame.reset_allocator_pools(); //reset pools
+
   // request image from the swapchain
   uint32_t swapchainImageIndex{};
   VkResult e = vkAcquireNextImageKHR(
@@ -261,7 +262,7 @@ void VulkanEngine::draw() {
   draw_background(cmd, draw_image);
 
   // compute
-  computeEffect->draw(cmd, drawExtent_, drawImage_->imageView);
+  computeEffect->draw(drawExtent_, *drawImage_, *depthImage_, currentFrame);
 
   util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_GENERAL,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -269,8 +270,7 @@ void VulkanEngine::draw() {
   util::transition_image(cmd, depth_image, VK_IMAGE_LAYOUT_UNDEFINED,
                          VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-  graphicEffect->draw(cmd, drawExtent_, drawImage_->imageView,
-                      depthImage_->imageView);
+  graphicEffect->draw(drawExtent_, *drawImage_, *depthImage_, currentFrame);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
@@ -459,21 +459,6 @@ void VulkanEngine::init_swapchain() {
   create_swapchain(window_.getExtent().width, window_.getExtent().height);
 }
 
-void VulkanEngine::init_commands() {
-  VkCommandPoolCreateInfo commandPoolInfo = tools::command_pool_create_info(
-      graphicsQueueFamily_, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-
-  for (auto &frame : frames_) {
-    vkCreateCommandPool(device_, &commandPoolInfo, nullptr,
-                        &frame._commandPool);
-
-    VkCommandBufferAllocateInfo cmdAllocInfo =
-        tools::command_buffer_allocate_info(frame._commandPool, 1);
-
-    vkAllocateCommandBuffers(device_, &cmdAllocInfo, &frame._mainCommandBuffer);
-  }
-}
-
 void VulkanEngine::init_immediate_commands() {
   VkCommandPoolCreateInfo commandPoolInfo = tools::command_pool_create_info(
       graphicsQueueFamily_, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
@@ -492,22 +477,6 @@ void VulkanEngine::init_immediate_sync() {
       tools::fence_create_info(VK_FENCE_CREATE_SIGNALED_BIT);
 
   vkCreateFence(device_, &fenceCreateInfo, nullptr, &immFence_);
-}
-
-void VulkanEngine::init_sync() {
-  // DeadLock Prevention!!!
-  VkFenceCreateInfo fenceCreateInfo =
-      tools::fence_create_info(VK_FENCE_CREATE_SIGNALED_BIT);
-  VkSemaphoreCreateInfo semaphoreCreateInfo = tools::semaphore_create_info();
-
-  for (auto &frame : frames_) {
-    vkCreateFence(device_, &fenceCreateInfo, nullptr,
-                  &frame._renderFinishedFence);
-    vkCreateSemaphore(device_, &semaphoreCreateInfo, nullptr,
-                      &frame._swapChainWait);
-    vkCreateSemaphore(device_, &semaphoreCreateInfo, nullptr,
-                      &frame._renderPresentKHRSignal);
-  }
 }
 
 void VulkanEngine::init_vma_allocator() {
@@ -625,6 +594,37 @@ void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
   swapchainImageViews_ = vkbSwapchain.get_image_views().value();
 }
 
+void VulkanEngine::init_frames(const uint32_t setCount, const std::vector<PoolSizeRatio>& poolSizeRatio) {
+          // DeadLock Prevention!!!
+          VkFenceCreateInfo fenceCreateInfo =
+                    tools::fence_create_info(VK_FENCE_CREATE_SIGNALED_BIT);
+          VkSemaphoreCreateInfo semaphoreCreateInfo = tools::semaphore_create_info();
+
+          VkCommandPoolCreateInfo commandPoolInfo = tools::command_pool_create_info(
+                    graphicsQueueFamily_, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+
+          std::generate(frames_.begin(), frames_.end(),
+                    [this, commandPoolInfo, semaphoreCreateInfo, fenceCreateInfo,setCount, poolSizeRatio]() {
+                    auto ret = std::make_unique<FrameData>(device_);
+                    ret->init_sync(fenceCreateInfo, semaphoreCreateInfo);
+                    ret->init_command(commandPoolInfo);
+                    ret->init_allocator(setCount, poolSizeRatio);
+                    return ret;
+                    });
+}
+
+void VulkanEngine::destroy_frames() {
+          vkDeviceWaitIdle(device_);
+          for (auto& frame : frames_) {
+                    if (frame) {
+                              frame->destroy_command(false);
+                              frame->destroy_sync();
+                              frame->destroy_allocator();
+                    }
+          }
+          frames_.clear(); 
+}
+
 void VulkanEngine::destroy_vulkan() {
 
   if (isInit) {
@@ -647,14 +647,6 @@ void VulkanEngine::destroy_swapchain() {
   }
 }
 
-void VulkanEngine::destroy_sync() {
-  for (auto &frame : frames_) {
-    vkDestroyFence(device_, frame._renderFinishedFence, nullptr);
-    vkDestroySemaphore(device_, frame._swapChainWait, nullptr);
-    vkDestroySemaphore(device_, frame._renderPresentKHRSignal, nullptr);
-  }
-}
-
 void VulkanEngine::destroy_immediate_sync() {
   vkDestroyFence(device_, immFence_, nullptr);
 }
@@ -663,19 +655,8 @@ void VulkanEngine::destroy_immediate_commands() {
   vkDestroyCommandPool(device_, immCommandPool_, nullptr);
 }
 
-void VulkanEngine::destroy_commands() {
-  if (isInit) {
-    // make sure the gpu has stopped doing its things
-    vkDeviceWaitIdle(device_);
-
-    for (auto &frame : frames_) {
-      vkDestroyCommandPool(device_, frame._commandPool, nullptr);
-    }
-  }
-}
-
 FrameData &VulkanEngine::get_current_frame() {
-  return frames_[frameNumber_ % FRAMES_IN_FLIGHT];
+  return *frames_[frameNumber_ % FRAMES_IN_FLIGHT];
 }
 void VulkanEngine::switch_to_next_frame() { ++frameNumber_; }
 } // namespace engine

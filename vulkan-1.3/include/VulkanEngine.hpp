@@ -46,25 +46,22 @@ protected:
 private:
   void init_vulkan();
   void init_swapchain();
-  void init_commands();
+  void create_swapchain(uint32_t width, uint32_t height);
+  void init_frames(const uint32_t setCount, const std::vector<PoolSizeRatio>& poolSizeRatio);
   void init_immediate_commands();
   void init_immediate_sync();
-  void init_sync();
   void init_vma_allocator();
   void init_custom_image();
-
   void init_imgui();
-  void destroy_imgui();
 
+  void destroy_imgui();
   void destroy_custom_image();
   void destroy_vma_allocator();
-  void destroy_sync();
+  void destroy_frames();
   void destroy_immediate_sync();
   void destroy_immediate_commands();
-  void destroy_commands();
   void destroy_swapchain();
   void destroy_vulkan();
-  void create_swapchain(uint32_t width, uint32_t height);
 
 private:
   void resize_swapchain();
@@ -106,8 +103,16 @@ private:
 
   // CommandBuffer Part
   unsigned int frameNumber_ = 0;
-  std::vector<FrameData> frames_;
 
+  const uint32_t setCount_ = 1000;
+  const std::vector<PoolSizeRatio> frame_sizes = {
+    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3 },
+    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 },
+    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 },
+  };
+
+  std::vector<std::unique_ptr<FrameData>> frames_;
   VkQueue graphicsQueue_;
   uint32_t graphicsQueueFamily_;
 
