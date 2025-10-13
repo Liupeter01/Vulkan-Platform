@@ -76,10 +76,13 @@ public:
 
   GraphicPipelinePacked(const GraphicPipelinePacked &) = delete;
   GraphicPipelinePacked &operator=(const GraphicPipelinePacked &) = delete;
+
   void init() override;
   void destroy() override;
-  void draw(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView drawImgView,
-            VkImageView depthImgView) override;
+  void draw(VkExtent2D drawExtent, 
+            AllocatedImage& offscreen_draw,
+            AllocatedImage& offscreen_depth,
+            FrameData& curr_frame) override;
 
   void load_asset(const std::string &name, std::vector<Vertex> &&vertices,
                   std::vector<uint32_t> &&indices);
@@ -105,6 +108,7 @@ public:
   }
 
 protected:
+          void set_layout();
   void init_pipeline();
   void destroy_pipeline();
 
@@ -112,6 +116,8 @@ private:
   void init_triangle_pipline();
   void init_mesh_pipline();
 
+  GPUSceneData sceneData_{};
+  VkDescriptorSetLayout sceneDescriptorSetLayout_;
   std::unordered_map<std::string, std::shared_ptr<MeshAsset>> meshes_;
 };
 } // namespace graphic

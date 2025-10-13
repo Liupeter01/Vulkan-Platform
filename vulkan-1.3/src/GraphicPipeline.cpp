@@ -225,7 +225,9 @@ namespace graphic {
 
 GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device,
                                              VmaAllocator allocator)
-    : PipelineBasic(device, allocator, PipelineType::GRAPHIC) {}
+    : PipelineBasic(device, allocator, PipelineType::GRAPHIC) {
+          set_layout();
+}
 
 GraphicPipelinePacked::~GraphicPipelinePacked() { destroy(); }
 
@@ -233,12 +235,30 @@ void GraphicPipelinePacked::init() { init_pipeline(); }
 
 void GraphicPipelinePacked::destroy() { destroy_pipeline(); }
 
-void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
-                                 VkImageView drawImgView,
-                                 VkImageView depthImgView) {
+void GraphicPipelinePacked::draw(VkExtent2D drawExtent, 
+          AllocatedImage& offscreen_draw,
+          AllocatedImage& offscreen_depth, FrameData& currentFrame) {
 
-  auto colorAttachmentInfo = tools::color_attachment_info(drawImgView);
-  auto depthAttachmentInfo = tools::depth_attachment_info(depthImgView);
+          // now that we are sure that the commands finished executing, we can safely
+          VkCommandBuffer cmd = currentFrame._mainCommandBuffer;
+
+          AllocatedBuffer sceneDataBuffer{ allocator_ };
+          sceneDataBuffer.create(sizeof(GPUSceneData),
+                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                    VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+          GPUSceneData* data = reinterpret_cast<GPUSceneData*>(sceneDataBuffer.map());
+          *data = sceneData_;
+          sceneDataBuffer.unmap();
+
+          VkDescriptorSet sceneSet = currentFrame.allocate(sceneDescriptorSetLayout_);
+
+          DescriptorWriter writer{ device_ };
+          writer.write_buffer(0, sceneDataBuffer.buffer, sizeof(GPUSceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+          writer.update_set(sceneSet);
+
+  auto colorAttachmentInfo = tools::color_attachment_info(offscreen_draw.imageView);
+  auto depthAttachmentInfo = tools::depth_attachment_info(offscreen_depth.imageView);
   auto renderInfo = tools::rendering_info(drawExtent, &colorAttachmentInfo,
                                           &depthAttachmentInfo);
 
@@ -319,6 +339,10 @@ void GraphicPipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
   //          }
   //});
 
+  currentFrame.destroy_by_deferred([&sceneDataBuffer]() {
+            sceneDataBuffer.destroy();
+            });
+
   vkCmdEndRendering(cmd);
 }
 
@@ -341,6 +365,13 @@ void GraphicPipelinePacked::flushUpload(VkFence fence) {
 std::function<void(VkCommandBuffer)>
 GraphicPipelinePacked::getImmSubmitFunctor() {
   return [this](VkCommandBuffer cmd) { submitMesh(cmd); };
+}
+
+void GraphicPipelinePacked::set_layout() {
+          DescriptorLayoutBuilder builder{ device_ };
+          sceneDescriptorSetLayout_ =
+                    builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                    .build(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
 }
 
 void GraphicPipelinePacked::init_pipeline() { init_mesh_pipline(); }
