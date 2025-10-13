@@ -5,8 +5,9 @@ namespace engine {
 namespace compute {
 
 ComputePipelinePacked::ComputePipelinePacked(VkDevice device, VmaAllocator allocator)
-    : descriptorAllocator_{device,},
-      PipelineBasic{device, allocator, PipelineType::COMPUTE} {}
+          : PipelineBasic{ device, allocator, PipelineType::COMPUTE }, descriptorAllocator_{ device } {
+          set_layout();
+}
 
 ComputePipelinePacked::~ComputePipelinePacked() { destroy(); }
 
@@ -14,44 +15,30 @@ void ComputePipelinePacked::init() { init_pipeline(); }
 
 void ComputePipelinePacked::destroy() {
   if (isInit_) {
-    descriptorAllocator_.reset_pool();
-    descriptorAllocator_.destroy_pool();
     vkDestroyDescriptorSetLayout(device_, descriptorLayout_, nullptr);
-
     vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
     vkDestroyPipeline(device_, pipeline_, nullptr);
-
     reset_init();
   }
 }
 
+void ComputePipelinePacked::set_layout() {
+
+              DescriptorLayoutBuilder builder{device_};
+              descriptorLayout_ = builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+                                      .build(VK_SHADER_STAGE_COMPUTE_BIT); // add bindings
+}
+
 void ComputePipelinePacked::set_descriptors(VkImageView imageView) {
-
-  {
-    DescriptorLayoutBuilder builder{device_};
-    descriptorLayout_ = builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
-                            .build(VK_SHADER_STAGE_COMPUTE_BIT); // add bindings
-  }
-
-  // allocate a descriptor set for our draw image
-  descriptorAllocator_.init_pool(10, sizes);
-
+          descriptorAllocator_.init(1, sizes);
   descriptor_ = descriptorAllocator_.allocate(descriptorLayout_);
 
-  VkDescriptorImageInfo imgInfo{};
-  imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-  imgInfo.imageView = imageView;
+  DescriptorWriter writer{ device_ };
+  writer.write_image(0, imageView, VK_NULL_HANDLE, 
+            VK_IMAGE_LAYOUT_GENERAL, 
+            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
-  VkWriteDescriptorSet drawImageWrite = {};
-  drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-
-  drawImageWrite.dstBinding = 0;
-  drawImageWrite.dstSet = descriptor_;
-  drawImageWrite.descriptorCount = 1;
-  drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-  drawImageWrite.pImageInfo = &imgInfo;
-
-  vkUpdateDescriptorSets(device_, 1, &drawImageWrite, 0, nullptr);
+  writer.update_set(descriptor_);
 }
 
 void ComputePipelinePacked::init_pipeline() {

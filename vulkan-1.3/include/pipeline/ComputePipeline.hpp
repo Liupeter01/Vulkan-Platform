@@ -30,14 +30,16 @@ public:
   ComputeShaderPushConstants &getData() { return data; }
 
 protected:
+          void set_layout();
   ComputeShaderPushConstants data{};
 
 private:
-  const std::vector<DescriptorAllocator::PoolSizeRatio> sizes{
+  const std::vector<PoolSizeRatio> sizes{
       {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
 
+  DescriptorPoolAllocator descriptorAllocator_;
+
   // Initializing the layout and descriptors; store image, or vertex indicies
-  DescriptorAllocator descriptorAllocator_;
   VkDescriptorSet descriptor_;
   VkDescriptorSetLayout descriptorLayout_;
 
