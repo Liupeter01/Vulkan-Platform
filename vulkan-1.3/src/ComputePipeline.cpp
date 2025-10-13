@@ -87,9 +87,13 @@ void ComputePipelinePacked::init_pipeline() {
   init_finished(); // set isinit flag = true
 }
 
-void ComputePipelinePacked::draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
-                                 VkImageView drawImgView,
-                                 VkImageView depthImgView) {
+void ComputePipelinePacked::draw(VkExtent2D drawExtent,
+          AllocatedImage& offscreen_draw,
+          AllocatedImage& offscreen_depth,
+          FrameData& curr_frame) {
+
+          // now that we are sure that the commands finished executing, we can safely
+          VkCommandBuffer cmd = curr_frame._mainCommandBuffer;
 
   vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
                     pipeline_);

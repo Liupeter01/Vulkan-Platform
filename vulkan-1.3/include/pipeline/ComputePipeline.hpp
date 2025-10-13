@@ -25,8 +25,10 @@ public:
   void set_descriptors(VkImageView imageView);
   void init() override;
   void destroy() override;
-  void draw(VkCommandBuffer cmd, VkExtent2D drawExtent, VkImageView drawImgView,
-            VkImageView depthImgView) override;
+  void draw(VkExtent2D drawExtent,
+            AllocatedImage& offscreen_draw,
+            AllocatedImage& offscreen_depth,
+            FrameData& curr_frame) override;
   ComputeShaderPushConstants &getData() { return data; }
 
 protected:

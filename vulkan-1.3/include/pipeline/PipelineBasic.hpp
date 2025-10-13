@@ -22,9 +22,10 @@ public:
   PipelineBasic(const PipelineBasic &) = delete;
   PipelineBasic &operator=(const PipelineBasic &) = delete;
 
-  virtual void draw(VkCommandBuffer cmd, VkExtent2D drawExtent,
-                    VkImageView drawImgView = VK_NULL_HANDLE,
-                    VkImageView depthImgView = VK_NULL_HANDLE) = 0;
+  virtual void draw(VkExtent2D drawExtent,
+            AllocatedImage& offscreen_draw,
+            AllocatedImage& offscreen_depth,
+            FrameData& curr_frame) = 0;
   bool isCompute() const { return type_ == PipelineType::COMPUTE; }
   bool isGraphics() const { return type_ == PipelineType::GRAPHIC; }
   virtual void init() = 0;
