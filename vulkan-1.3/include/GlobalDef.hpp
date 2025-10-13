@@ -1,9 +1,9 @@
 #pragma once
 #ifndef _GLOBALDEF_HPP_
 #define _GLOBALDEF_HPP_
-#include <vk_mem_alloc.h>
 #include <Descriptors.hpp>
 #include <FrameData.hpp>
+#include <vk_mem_alloc.h>
 
 #define GLM_FORCE_RADIANS // no degresss
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

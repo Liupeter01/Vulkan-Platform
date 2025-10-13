@@ -86,9 +86,6 @@ GraphicPipelineBuilder &GraphicPipelineBuilder::set_multisampling() {
   return *this;
 }
 
-
-
-
 GraphicPipelineBuilder &
 GraphicPipelineBuilder::set_color_attachment_format(VkFormat format) {
   colorAttachmentformat_ = format;
@@ -117,37 +114,36 @@ GraphicPipelineBuilder::set_shaders(const std::string &vertexShaderPath,
   return *this;
 }
 
-GraphicPipelineBuilder& GraphicPipelineBuilder::set_blending_additive(bool status) {
-          colorBlendAttachment_.blendEnable = status;
-          colorBlendAttachment_.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-          colorBlendAttachment_.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
-          colorBlendAttachment_.colorBlendOp = VK_BLEND_OP_ADD;
-          colorBlendAttachment_.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-          colorBlendAttachment_.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-          colorBlendAttachment_.alphaBlendOp = VK_BLEND_OP_ADD;
-          colorBlendAttachment_.colorWriteMask =
-                    VK_COLOR_COMPONENT_R_BIT |
-                    VK_COLOR_COMPONENT_G_BIT |
-                    VK_COLOR_COMPONENT_B_BIT |
-                    VK_COLOR_COMPONENT_A_BIT;
-          return *this;
+GraphicPipelineBuilder &
+GraphicPipelineBuilder::set_blending_additive(bool status) {
+  colorBlendAttachment_.blendEnable = status;
+  colorBlendAttachment_.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  colorBlendAttachment_.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+  colorBlendAttachment_.colorBlendOp = VK_BLEND_OP_ADD;
+  colorBlendAttachment_.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+  colorBlendAttachment_.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+  colorBlendAttachment_.alphaBlendOp = VK_BLEND_OP_ADD;
+  colorBlendAttachment_.colorWriteMask =
+      VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+      VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+  return *this;
 }
 
-GraphicPipelineBuilder& GraphicPipelineBuilder::set_blending_alphablend(bool status) {
-          colorBlendAttachment_.blendEnable = status;
-          colorBlendAttachment_.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-          colorBlendAttachment_.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-          colorBlendAttachment_.colorBlendOp = VK_BLEND_OP_ADD;
-          colorBlendAttachment_.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-          colorBlendAttachment_.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-          colorBlendAttachment_.alphaBlendOp = VK_BLEND_OP_ADD;
+GraphicPipelineBuilder &
+GraphicPipelineBuilder::set_blending_alphablend(bool status) {
+  colorBlendAttachment_.blendEnable = status;
+  colorBlendAttachment_.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  colorBlendAttachment_.dstColorBlendFactor =
+      VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  colorBlendAttachment_.colorBlendOp = VK_BLEND_OP_ADD;
+  colorBlendAttachment_.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+  colorBlendAttachment_.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+  colorBlendAttachment_.alphaBlendOp = VK_BLEND_OP_ADD;
 
-          colorBlendAttachment_.colorWriteMask =
-                    VK_COLOR_COMPONENT_R_BIT |
-                    VK_COLOR_COMPONENT_G_BIT |
-                    VK_COLOR_COMPONENT_B_BIT |
-                    VK_COLOR_COMPONENT_A_BIT;
-          return *this;
+  colorBlendAttachment_.colorWriteMask =
+      VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+      VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+  return *this;
 }
 
 GraphicPipelineBuilder &
@@ -226,7 +222,7 @@ namespace graphic {
 GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device,
                                              VmaAllocator allocator)
     : PipelineBasic(device, allocator, PipelineType::GRAPHIC) {
-          set_layout();
+  set_layout();
 }
 
 GraphicPipelinePacked::~GraphicPipelinePacked() { destroy(); }
@@ -235,30 +231,34 @@ void GraphicPipelinePacked::init() { init_pipeline(); }
 
 void GraphicPipelinePacked::destroy() { destroy_pipeline(); }
 
-void GraphicPipelinePacked::draw(VkExtent2D drawExtent, 
-          AllocatedImage& offscreen_draw,
-          AllocatedImage& offscreen_depth, FrameData& currentFrame) {
+void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
+                                 AllocatedImage &offscreen_draw,
+                                 AllocatedImage &offscreen_depth,
+                                 FrameData &currentFrame) {
 
-          // now that we are sure that the commands finished executing, we can safely
-          VkCommandBuffer cmd = currentFrame._mainCommandBuffer;
+  // now that we are sure that the commands finished executing, we can safely
+  VkCommandBuffer cmd = currentFrame._mainCommandBuffer;
 
-          AllocatedBuffer sceneDataBuffer{ allocator_ };
-          sceneDataBuffer.create(sizeof(GPUSceneData),
-                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                    VMA_MEMORY_USAGE_CPU_TO_GPU);
+  AllocatedBuffer sceneDataBuffer{allocator_};
+  sceneDataBuffer.create(sizeof(GPUSceneData),
+                         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                         VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-          GPUSceneData* data = reinterpret_cast<GPUSceneData*>(sceneDataBuffer.map());
-          *data = sceneData_;
-          sceneDataBuffer.unmap();
+  GPUSceneData *data = reinterpret_cast<GPUSceneData *>(sceneDataBuffer.map());
+  *data = sceneData_;
+  sceneDataBuffer.unmap();
 
-          VkDescriptorSet sceneSet = currentFrame.allocate(sceneDescriptorSetLayout_);
+  VkDescriptorSet sceneSet = currentFrame.allocate(sceneDescriptorSetLayout_);
 
-          DescriptorWriter writer{ device_ };
-          writer.write_buffer(0, sceneDataBuffer.buffer, sizeof(GPUSceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-          writer.update_set(sceneSet);
+  DescriptorWriter writer{device_};
+  writer.write_buffer(0, sceneDataBuffer.buffer, sizeof(GPUSceneData), 0,
+                      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+  writer.update_set(sceneSet);
 
-  auto colorAttachmentInfo = tools::color_attachment_info(offscreen_draw.imageView);
-  auto depthAttachmentInfo = tools::depth_attachment_info(offscreen_depth.imageView);
+  auto colorAttachmentInfo =
+      tools::color_attachment_info(offscreen_draw.imageView);
+  auto depthAttachmentInfo =
+      tools::depth_attachment_info(offscreen_depth.imageView);
   auto renderInfo = tools::rendering_info(drawExtent, &colorAttachmentInfo,
                                           &depthAttachmentInfo);
 
@@ -339,9 +339,8 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
   //          }
   //});
 
-  currentFrame.destroy_by_deferred([&sceneDataBuffer]() {
-            sceneDataBuffer.destroy();
-            });
+  currentFrame.destroy_by_deferred(
+      [&sceneDataBuffer]() { sceneDataBuffer.destroy(); });
 
   vkCmdEndRendering(cmd);
 }
@@ -368,10 +367,11 @@ GraphicPipelinePacked::getImmSubmitFunctor() {
 }
 
 void GraphicPipelinePacked::set_layout() {
-          DescriptorLayoutBuilder builder{ device_ };
-          sceneDescriptorSetLayout_ =
-                    builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-                    .build(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
+  DescriptorLayoutBuilder builder{device_};
+  sceneDescriptorSetLayout_ =
+      builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+          .build(VK_SHADER_STAGE_VERTEX_BIT |
+                 VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
 }
 
 void GraphicPipelinePacked::init_pipeline() { init_mesh_pipline(); }
@@ -425,10 +425,10 @@ void GraphicPipelinePacked::init_mesh_pipline() {
   builder.pipelineLayout_ = pipelineLayout_;
 
   pipeline_ = builder
-            .set_shaders(CONFIG_HOME "shaders/mesh.vert.spv",
-                      CONFIG_HOME "shaders/triangle.frag.spv")
-            //.disable_blending()
-            .set_blending_alphablend(true)
+                  .set_shaders(CONFIG_HOME "shaders/mesh.vert.spv",
+                               CONFIG_HOME "shaders/triangle.frag.spv")
+                  //.disable_blending()
+                  .set_blending_alphablend(true)
                   .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
                   .set_polygon_mode(VK_POLYGON_MODE_FILL)
                   .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)

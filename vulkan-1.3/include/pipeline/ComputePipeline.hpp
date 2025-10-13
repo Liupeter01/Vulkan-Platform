@@ -25,19 +25,16 @@ public:
   void set_descriptors(VkImageView imageView);
   void init() override;
   void destroy() override;
-  void draw(VkExtent2D drawExtent,
-            AllocatedImage& offscreen_draw,
-            AllocatedImage& offscreen_depth,
-            FrameData& curr_frame) override;
+  void draw(VkExtent2D drawExtent, AllocatedImage &offscreen_draw,
+            AllocatedImage &offscreen_depth, FrameData &curr_frame) override;
   ComputeShaderPushConstants &getData() { return data; }
 
 protected:
-          void set_layout();
+  void set_layout();
   ComputeShaderPushConstants data{};
 
 private:
-  const std::vector<PoolSizeRatio> sizes{
-      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
+  const std::vector<PoolSizeRatio> sizes{{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
 
   DescriptorPoolAllocator descriptorAllocator_;
 

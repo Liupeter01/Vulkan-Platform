@@ -4,9 +4,11 @@
 namespace engine {
 namespace compute {
 
-ComputePipelinePacked::ComputePipelinePacked(VkDevice device, VmaAllocator allocator)
-          : PipelineBasic{ device, allocator, PipelineType::COMPUTE }, descriptorAllocator_{ device } {
-          set_layout();
+ComputePipelinePacked::ComputePipelinePacked(VkDevice device,
+                                             VmaAllocator allocator)
+    : PipelineBasic{device, allocator, PipelineType::COMPUTE},
+      descriptorAllocator_{device} {
+  set_layout();
 }
 
 ComputePipelinePacked::~ComputePipelinePacked() { destroy(); }
@@ -24,19 +26,18 @@ void ComputePipelinePacked::destroy() {
 
 void ComputePipelinePacked::set_layout() {
 
-              DescriptorLayoutBuilder builder{device_};
-              descriptorLayout_ = builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
-                                      .build(VK_SHADER_STAGE_COMPUTE_BIT); // add bindings
+  DescriptorLayoutBuilder builder{device_};
+  descriptorLayout_ = builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+                          .build(VK_SHADER_STAGE_COMPUTE_BIT); // add bindings
 }
 
 void ComputePipelinePacked::set_descriptors(VkImageView imageView) {
-          descriptorAllocator_.init(1, sizes);
+  descriptorAllocator_.init(1, sizes);
   descriptor_ = descriptorAllocator_.allocate(descriptorLayout_);
 
-  DescriptorWriter writer{ device_ };
-  writer.write_image(0, imageView, VK_NULL_HANDLE, 
-            VK_IMAGE_LAYOUT_GENERAL, 
-            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+  DescriptorWriter writer{device_};
+  writer.write_image(0, imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
+                     VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
   writer.update_set(descriptor_);
 }
@@ -88,12 +89,12 @@ void ComputePipelinePacked::init_pipeline() {
 }
 
 void ComputePipelinePacked::draw(VkExtent2D drawExtent,
-          AllocatedImage& offscreen_draw,
-          AllocatedImage& offscreen_depth,
-          FrameData& curr_frame) {
+                                 AllocatedImage &offscreen_draw,
+                                 AllocatedImage &offscreen_depth,
+                                 FrameData &curr_frame) {
 
-          // now that we are sure that the commands finished executing, we can safely
-          VkCommandBuffer cmd = curr_frame._mainCommandBuffer;
+  // now that we are sure that the commands finished executing, we can safely
+  VkCommandBuffer cmd = curr_frame._mainCommandBuffer;
 
   vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
                     pipeline_);

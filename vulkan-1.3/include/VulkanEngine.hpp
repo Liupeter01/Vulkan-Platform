@@ -47,7 +47,8 @@ private:
   void init_vulkan();
   void init_swapchain();
   void create_swapchain(uint32_t width, uint32_t height);
-  void init_frames(const uint32_t setCount, const std::vector<PoolSizeRatio>& poolSizeRatio);
+  void init_frames(const uint32_t setCount,
+                   const std::vector<PoolSizeRatio> &poolSizeRatio);
   void init_immediate_commands();
   void init_immediate_sync();
   void init_vma_allocator();
@@ -106,10 +107,10 @@ private:
 
   const uint32_t setCount_ = 1000;
   const std::vector<PoolSizeRatio> frame_sizes = {
-    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3 },
-    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 },
-    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
-    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 },
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
   };
 
   std::vector<std::unique_ptr<FrameData>> frames_;

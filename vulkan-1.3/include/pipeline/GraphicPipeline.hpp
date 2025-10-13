@@ -26,8 +26,10 @@ struct GraphicPipelineBuilder {
   GraphicPipelineBuilder &set_shaders(const std::string &vertexShaderPath,
                                       const std::string &fragmentShaderPath);
 
-  GraphicPipelineBuilder& GraphicPipelineBuilder::set_blending_additive(bool status);
-  GraphicPipelineBuilder& GraphicPipelineBuilder::set_blending_alphablend(bool status);
+  GraphicPipelineBuilder &
+  GraphicPipelineBuilder::set_blending_additive(bool status);
+  GraphicPipelineBuilder &
+  GraphicPipelineBuilder::set_blending_alphablend(bool status);
 
   GraphicPipelineBuilder &set_input_topology(
       const VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
@@ -79,10 +81,8 @@ public:
 
   void init() override;
   void destroy() override;
-  void draw(VkExtent2D drawExtent, 
-            AllocatedImage& offscreen_draw,
-            AllocatedImage& offscreen_depth,
-            FrameData& curr_frame) override;
+  void draw(VkExtent2D drawExtent, AllocatedImage &offscreen_draw,
+            AllocatedImage &offscreen_depth, FrameData &curr_frame) override;
 
   void load_asset(const std::string &name, std::vector<Vertex> &&vertices,
                   std::vector<uint32_t> &&indices);
@@ -108,7 +108,7 @@ public:
   }
 
 protected:
-          void set_layout();
+  void set_layout();
   void init_pipeline();
   void destroy_pipeline();
 

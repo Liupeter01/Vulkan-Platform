@@ -214,8 +214,8 @@ void VulkanEngine::draw() {
                   std::numeric_limits<uint64_t>::max());
   vkResetFences(device_, 1, &currentFrame._renderFinishedFence);
 
-  currentFrame.clean_last_frame();      //execute flush
-  currentFrame.reset_allocator_pools(); //reset pools
+  currentFrame.clean_last_frame();      // execute flush
+  currentFrame.reset_allocator_pools(); // reset pools
 
   // request image from the swapchain
   uint32_t swapchainImageIndex{};
@@ -594,35 +594,37 @@ void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
   swapchainImageViews_ = vkbSwapchain.get_image_views().value();
 }
 
-void VulkanEngine::init_frames(const uint32_t setCount, const std::vector<PoolSizeRatio>& poolSizeRatio) {
-          // DeadLock Prevention!!!
-          VkFenceCreateInfo fenceCreateInfo =
-                    tools::fence_create_info(VK_FENCE_CREATE_SIGNALED_BIT);
-          VkSemaphoreCreateInfo semaphoreCreateInfo = tools::semaphore_create_info();
+void VulkanEngine::init_frames(
+    const uint32_t setCount, const std::vector<PoolSizeRatio> &poolSizeRatio) {
+  // DeadLock Prevention!!!
+  VkFenceCreateInfo fenceCreateInfo =
+      tools::fence_create_info(VK_FENCE_CREATE_SIGNALED_BIT);
+  VkSemaphoreCreateInfo semaphoreCreateInfo = tools::semaphore_create_info();
 
-          VkCommandPoolCreateInfo commandPoolInfo = tools::command_pool_create_info(
-                    graphicsQueueFamily_, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+  VkCommandPoolCreateInfo commandPoolInfo = tools::command_pool_create_info(
+      graphicsQueueFamily_, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
-          std::generate(frames_.begin(), frames_.end(),
-                    [this, commandPoolInfo, semaphoreCreateInfo, fenceCreateInfo,setCount, poolSizeRatio]() {
-                    auto ret = std::make_unique<FrameData>(device_);
-                    ret->init_sync(fenceCreateInfo, semaphoreCreateInfo);
-                    ret->init_command(commandPoolInfo);
-                    ret->init_allocator(setCount, poolSizeRatio);
-                    return ret;
-                    });
+  std::generate(frames_.begin(), frames_.end(),
+                [this, commandPoolInfo, semaphoreCreateInfo, fenceCreateInfo,
+                 setCount, poolSizeRatio]() {
+                  auto ret = std::make_unique<FrameData>(device_);
+                  ret->init_sync(fenceCreateInfo, semaphoreCreateInfo);
+                  ret->init_command(commandPoolInfo);
+                  ret->init_allocator(setCount, poolSizeRatio);
+                  return ret;
+                });
 }
 
 void VulkanEngine::destroy_frames() {
-          vkDeviceWaitIdle(device_);
-          for (auto& frame : frames_) {
-                    if (frame) {
-                              frame->destroy_command(false);
-                              frame->destroy_sync();
-                              frame->destroy_allocator();
-                    }
-          }
-          frames_.clear(); 
+  vkDeviceWaitIdle(device_);
+  for (auto &frame : frames_) {
+    if (frame) {
+      frame->destroy_command(false);
+      frame->destroy_sync();
+      frame->destroy_allocator();
+    }
+  }
+  frames_.clear();
 }
 
 void VulkanEngine::destroy_vulkan() {

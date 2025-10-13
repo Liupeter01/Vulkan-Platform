@@ -52,11 +52,11 @@ struct GPUGeoPushConstants {
 };
 
 struct GPUSceneData {
-          glm::mat4 view;
-          glm::mat4 proj;
-          glm::vec4 ambientColor;
-          glm::vec4 sunlightDirection; // w for sun power
-          glm::vec4 sunlightColor;
+  glm::mat4 view;
+  glm::mat4 proj;
+  glm::vec4 ambientColor;
+  glm::vec4 sunlightDirection; // w for sun power
+  glm::vec4 sunlightColor;
 };
 
 } // namespace mesh
