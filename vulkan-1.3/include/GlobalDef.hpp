@@ -2,24 +2,14 @@
 #ifndef _GLOBALDEF_HPP_
 #define _GLOBALDEF_HPP_
 #include <vk_mem_alloc.h>
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_core.h>
+#include <Descriptors.hpp>
+#include <FrameData.hpp>
 
 #define GLM_FORCE_RADIANS // no degresss
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
 namespace engine {
-
-// Double Buffer
-constexpr unsigned int FRAMES_IN_FLIGHT = 2;
-
-struct FrameData {
-  VkFence _renderFinishedFence;
-  VkSemaphore _swapChainWait, _renderPresentKHRSignal;
-  VkCommandPool _commandPool;
-  VkCommandBuffer _mainCommandBuffer;
-};
 
 struct AllocatedImage {
   VkImage image;
