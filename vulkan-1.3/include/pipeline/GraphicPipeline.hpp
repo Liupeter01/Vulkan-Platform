@@ -26,10 +26,8 @@ struct GraphicPipelineBuilder {
   GraphicPipelineBuilder &set_shaders(const std::string &vertexShaderPath,
                                       const std::string &fragmentShaderPath);
 
-  GraphicPipelineBuilder &
-  GraphicPipelineBuilder::set_blending_additive(bool status);
-  GraphicPipelineBuilder &
-  GraphicPipelineBuilder::set_blending_alphablend(bool status);
+  GraphicPipelineBuilder &set_blending_additive(bool status);
+  GraphicPipelineBuilder &set_blending_alphablend(bool status);
 
   GraphicPipelineBuilder &set_input_topology(
       const VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
