@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 
 namespace engine {
+          struct AllocatedBuffer;
 
 struct AllocatedImage {
   VkImage image;
@@ -20,8 +21,13 @@ struct AllocatedImage {
 
   AllocatedImage(VkDevice device, VmaAllocator allocator);
   virtual ~AllocatedImage();
-  void create_as_depth(VkExtent3D extent);
-  void create_as_draw(VkExtent3D extent);
+
+  void create_image(VkExtent3D extent,
+            VkFormat format, 
+            VkImageUsageFlags usage, 
+            bool mipmapped = false, 
+            const  std::string& name = "AllocatedImage");
+
   void destroy();
 
 private:
@@ -39,7 +45,7 @@ struct AllocatedBuffer {
   VmaAllocationInfo info{};
 
   void create(size_t allocSize, VkBufferUsageFlags usage,
-              VmaMemoryUsage memoryUsage);
+              VmaMemoryUsage memoryUsage, const std::string &name = "AllocatedBuffer");
   void destroy();
 
   void *map();
@@ -52,6 +58,30 @@ private:
   bool isinit = false;
   VmaAllocator allocator_;
 };
+
+struct AllocatedTexture {
+          AllocatedTexture(VkDevice device, VmaAllocator allocator);
+          virtual ~AllocatedTexture();
+          void createBuffer(void* data,
+                    VkExtent3D size,
+                    VkFormat format,
+                    VkImageUsageFlags usage,
+                    bool mipmapped = false);
+
+          void uploadBufferToImage(VkCommandBuffer cmd);
+          void flushUpload(VkFence fence);
+          void destroy();
+
+private:
+          bool isinit = false;
+          bool pendingUpload_ = false;
+          VkExtent3D extent_;
+          AllocatedImage dstImage_;
+          AllocatedBuffer srcBuffer_;
+          VkDevice device_;
+          VmaAllocator allocator_;
+};
+
 } // namespace engine
 
 #endif //_GLOBALDEF_HPP_
