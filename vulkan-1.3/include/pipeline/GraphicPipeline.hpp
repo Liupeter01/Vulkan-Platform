@@ -87,10 +87,18 @@ public:
   void load_asset(std::shared_ptr<MeshAsset> asset);
   void load_asset(std::vector<std::shared_ptr<MeshAsset>> &&assets);
 
+  void load_default_colors();
+  void destroy_default_colors();
+
   void submitMesh(VkCommandBuffer cmd);
+  void submitColorImage(VkCommandBuffer cmd);
   void flushUpload(VkFence fence);
 
-  std::function<void(VkCommandBuffer)> getImmSubmitFunctor();
+  [[nodiscard]]
+  std::function<void(VkCommandBuffer)> getMeshFunctor();
+
+  [[nodiscard]]
+  std::function<void(VkCommandBuffer)> getColorFunctor();
 
   template <typename T> inline static constexpr VkIndexType getIndexType() {
     using Decayed = std::decay_t<T>;
@@ -106,16 +114,25 @@ public:
   }
 
 protected:
-  void set_layout();
+  void init_layout();
   void init_pipeline();
+
+  void destroy_layout();
   void destroy_pipeline();
 
 private:
   void init_triangle_pipline();
   void init_mesh_pipline();
 
+  std::unique_ptr<AllocatedTexture> white_{};
+  std::unique_ptr<AllocatedTexture>  grey_{};
+  std::unique_ptr<AllocatedTexture>  black_{};
+  std::unique_ptr<AllocatedTexture>  magenta_{};
+  std::unique_ptr<AllocatedTexture>  loaderrorImage_{};
+
   GPUSceneData sceneData_{};
   VkDescriptorSetLayout sceneDescriptorSetLayout_;
+
   std::unordered_map<std::string, std::shared_ptr<MeshAsset>> meshes_;
 };
 } // namespace graphic

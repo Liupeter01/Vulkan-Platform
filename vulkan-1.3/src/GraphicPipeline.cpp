@@ -221,15 +221,31 @@ namespace graphic {
 
 GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device,
                                              VmaAllocator allocator)
-    : PipelineBasic(device, allocator, PipelineType::GRAPHIC) {
-  set_layout();
-}
+    : PipelineBasic(device, allocator, PipelineType::GRAPHIC) 
+{}
 
 GraphicPipelinePacked::~GraphicPipelinePacked() { destroy(); }
 
-void GraphicPipelinePacked::init() { init_pipeline(); }
+void GraphicPipelinePacked::init() { 
+          if (isInit_)
+                    return;
 
-void GraphicPipelinePacked::destroy() { destroy_pipeline(); }
+          init_layout();
+          init_pipeline(); 
+          load_default_colors();
+
+          init_finished();
+}
+
+void GraphicPipelinePacked::destroy() {
+
+          if (isInit_) {
+                    destroy_default_colors();
+                    destroy_layout();
+                    destroy_pipeline();
+                    reset_init();
+          }
+}
 
 void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
                                  AllocatedImage &offscreen_draw,
@@ -244,7 +260,11 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
 
   sceneDataBuffer->create(sizeof(GPUSceneData),
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                         VMA_MEMORY_USAGE_CPU_TO_GPU);
+                         VMA_MEMORY_USAGE_CPU_TO_GPU, 
+                              "GraphicPipeline::Draw::SceneDataBuffer");
+
+  currentFrame.destroy_by_deferred(
+            [sceneDataBuffer]() { sceneDataBuffer->destroy(); });
 
   GPUSceneData *data = reinterpret_cast<GPUSceneData *>(sceneDataBuffer->map());
   *data = sceneData_;
@@ -309,41 +329,6 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
     );
   }
 
-  // std::for_each(meshes_.begin(), meshes_.end(), [this,
-  // cmd](decltype(*meshes_.begin())& asset) {
-
-  //          GPUGeoPushConstants constants{};
-  //          constants.matrix = { 1.f };
-  //          constants.vertexBuffer = asset.second->getVertexDeviceAddr();
-
-  //          vkCmdPushConstants(cmd, pipelineLayout_,
-  //          VK_SHADER_STAGE_VERTEX_BIT, 0,
-  //                    sizeof(GPUGeoPushConstants), &constants);
-
-  //          if (asset.second->meshBuffers.indicies_.empty()) {
-  //                    assert(!asset.second->meshBuffers.indicies_.empty() &&
-  //                    "Index buffer is empty!");
-  //          }
-
-  //          vkCmdBindIndexBuffer(cmd,
-  //          asset.second->meshBuffers.indexBuffer.buffer, 0,
-  //                    getIndexType<decltype(asset.second->meshBuffers.indicies_[0])>());
-
-  //          for (const GeoSurface& surface : asset.second->meshSurfaces){
-  //                    vkCmdDrawIndexed(
-  //                              cmd,
-  //                              surface.count,      // index
-  //                              1,                  // instance
-  //                              surface.startIndex, // index
-  //                              0,                  // vertex
-  //                              0                   // instance
-  //                    );
-  //          }
-  //});
-
-  currentFrame.destroy_by_deferred(
-      [sceneDataBuffer]() { sceneDataBuffer->destroy(); });
-
   vkCmdEndRendering(cmd);
 }
 
@@ -355,25 +340,45 @@ void GraphicPipelinePacked::submitMesh(VkCommandBuffer cmd) {
   meshes_["Suzanne"]->submitMesh(cmd);
 }
 
+void GraphicPipelinePacked::submitColorImage(VkCommandBuffer cmd) {
+          black_->uploadBufferToImage(cmd);
+          white_->uploadBufferToImage(cmd);
+          grey_->uploadBufferToImage(cmd);
+          magenta_->uploadBufferToImage(cmd);
+          loaderrorImage_->uploadBufferToImage(cmd);
+}
+
 void GraphicPipelinePacked::flushUpload(VkFence fence) {
   // std::for_each(meshes_.begin(), meshes_.end(), [this,
   // fence](decltype(*meshes_.begin())& asset) {
   //           asset.second->flushUpload(fence);
   //           });
   meshes_["Suzanne"]->flushUpload(fence);
+
+  black_->flushUpload(fence);
+  white_->flushUpload(fence);
+  grey_->flushUpload(fence);
+  magenta_->flushUpload(fence);
+  loaderrorImage_->flushUpload(fence);
 }
 
-std::function<void(VkCommandBuffer)>
-GraphicPipelinePacked::getImmSubmitFunctor() {
-  return [this](VkCommandBuffer cmd) { submitMesh(cmd); };
+std::function<void(VkCommandBuffer)> GraphicPipelinePacked::getMeshFunctor() {
+          return [this](VkCommandBuffer cmd) { submitMesh(cmd); };
+}
+std::function<void(VkCommandBuffer)> GraphicPipelinePacked::getColorFunctor() {
+          return [this](VkCommandBuffer cmd) { submitColorImage(cmd); };
 }
 
-void GraphicPipelinePacked::set_layout() {
+void GraphicPipelinePacked::init_layout() {
   DescriptorLayoutBuilder builder{device_};
   sceneDescriptorSetLayout_ =
       builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
           .build(VK_SHADER_STAGE_VERTEX_BIT |
                  VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
+}
+
+void GraphicPipelinePacked::destroy_layout() {
+          vkDestroyDescriptorSetLayout(device_, sceneDescriptorSetLayout_, nullptr);
 }
 
 void GraphicPipelinePacked::init_pipeline() { init_mesh_pipline(); }
@@ -408,9 +413,6 @@ void GraphicPipelinePacked::init_triangle_pipline() {
 }
 
 void GraphicPipelinePacked::init_mesh_pipline() {
-  if (isInit_)
-    return;
-
   VkPushConstantRange bufferRange{};
   bufferRange.offset = 0;
   bufferRange.size = sizeof(GPUGeoPushConstants);
@@ -442,16 +444,11 @@ void GraphicPipelinePacked::init_mesh_pipline() {
 
   vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
   vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
-
-  init_finished(); // set isinit flag = true
 }
 
 void GraphicPipelinePacked::destroy_pipeline() {
-  if (isInit_) {
-    vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
-    vkDestroyPipeline(device_, pipeline_, nullptr);
-    reset_init();
-  }
+          vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
+          vkDestroyPipeline(device_, pipeline_, nullptr);
 }
 
 void GraphicPipelinePacked::load_asset(const std::string &name,
@@ -484,6 +481,69 @@ void GraphicPipelinePacked::load_asset(
       assets.begin(), assets.end(),
       [this](std::shared_ptr<MeshAsset> asset) { load_asset(asset); });
 }
-} // namespace graphic
 
+void GraphicPipelinePacked::destroy_default_colors() {
+          white_->destroy();
+          grey_->destroy();
+          black_->destroy();
+          magenta_->destroy();
+          loaderrorImage_->destroy();
+
+          white_.reset();
+          grey_.reset();
+          black_.reset();
+          magenta_.reset();
+          loaderrorImage_.reset();
+}
+
+void GraphicPipelinePacked::load_default_colors() {
+
+          white_.reset();
+          grey_.reset();
+          black_.reset();
+          magenta_.reset();
+          loaderrorImage_.reset();
+
+          white_ = std::make_unique<AllocatedTexture>(device_, allocator_);
+          grey_ = std::make_unique<AllocatedTexture>(device_, allocator_);
+          black_ = std::make_unique<AllocatedTexture>(device_, allocator_);
+          magenta_ = std::make_unique<AllocatedTexture>(device_, allocator_);
+          loaderrorImage_ = std::make_unique<AllocatedTexture>(device_, allocator_);
+
+           uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
+           uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
+            uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
+         uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
+
+         std::array<uint32_t, 16 * 16 > pixels; //for 16x16 checkerboard texture
+
+#pragma omp parallel for collapse(2)
+         for (int x = 0; x < 16; x++) {
+                   for (int y = 0; y < 16; y++) {
+                             pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
+                   }
+         }
+
+          white_->createBuffer(reinterpret_cast<void*>(&white), VkExtent3D { 1, 1, 1 },
+                    VK_FORMAT_R8G8B8A8_UNORM, 
+                    VK_IMAGE_USAGE_SAMPLED_BIT);
+
+          grey_->createBuffer(reinterpret_cast<void*>(&grey), VkExtent3D{ 1, 1, 1 },
+                    VK_FORMAT_R8G8B8A8_UNORM,
+                    VK_IMAGE_USAGE_SAMPLED_BIT);
+
+          black_->createBuffer(reinterpret_cast<void*>(&black), VkExtent3D{ 1, 1, 1 },
+                    VK_FORMAT_R8G8B8A8_UNORM,
+                    VK_IMAGE_USAGE_SAMPLED_BIT);
+
+          magenta_->createBuffer(reinterpret_cast<void*>(&magenta), VkExtent3D{ 1, 1, 1 },
+                    VK_FORMAT_R8G8B8A8_UNORM,
+                    VK_IMAGE_USAGE_SAMPLED_BIT);
+
+          loaderrorImage_->createBuffer(reinterpret_cast<void*>(pixels.data()), VkExtent3D{ 16, 16, 1 },
+                    VK_FORMAT_R8G8B8A8_UNORM,
+                    VK_IMAGE_USAGE_SAMPLED_BIT);
+}
+
+} // namespace graphic
 } // namespace engine
