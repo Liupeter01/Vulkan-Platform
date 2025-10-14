@@ -33,7 +33,6 @@ protected:
   ComputeShaderPushConstants data{};
 
 private:
-
   // Initializing the layout and descriptors; store image, or vertex indicies
   VkDescriptorSetLayout descriptorLayout_;
 

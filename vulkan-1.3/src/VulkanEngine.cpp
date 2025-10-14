@@ -80,7 +80,7 @@ void VulkanEngine::destroy() {
   graphicEffect->destroy();
   graphicEffect.reset();
 
-  //HAS TO BE DONE BEFORE REMOVE VMA!!!
+  // HAS TO BE DONE BEFORE REMOVE VMA!!!
   destroy_frames();
 
   destroy_custom_image();
@@ -489,7 +489,7 @@ void VulkanEngine::init_vma_allocator() {
   allocatorInfo.instance = instance_;
   allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
-  #if ENABLE_VALIDATION_LAYERS
+#if ENABLE_VALIDATION_LAYERS
   allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
 #endif
 
@@ -507,14 +507,13 @@ void VulkanEngine::init_custom_image() {
   depthImage_.reset();
   depthImage_ = std::make_unique<AllocatedImage>(device_, allocator_);
 
-  drawImage_->create_image(extent, 
-            VK_FORMAT_R16G16B16A16_SFLOAT, 
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+  drawImage_->create_image(
+      extent, VK_FORMAT_R16G16B16A16_SFLOAT,
+      VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
 
-  depthImage_->create_image(extent,
-            VK_FORMAT_D32_SFLOAT,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+  depthImage_->create_image(extent, VK_FORMAT_D32_SFLOAT,
+                            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
 void VulkanEngine::init_imgui() {
@@ -583,16 +582,16 @@ void VulkanEngine::destroy_custom_image() {
   depthImage_.reset();
 }
 
-void VulkanEngine::destroy_vma_allocator() { 
+void VulkanEngine::destroy_vma_allocator() {
 
- #if ENABLE_VALIDATION_LAYERS
-          char* stats = nullptr;
-          vmaBuildStatsString(allocator_, &stats, true);
-          printf("%s\n", stats);
-          vmaFreeStatsString(allocator_, stats);
+#if ENABLE_VALIDATION_LAYERS
+  char *stats = nullptr;
+  vmaBuildStatsString(allocator_, &stats, true);
+  printf("%s\n", stats);
+  vmaFreeStatsString(allocator_, stats);
 #endif
 
-          vmaDestroyAllocator(allocator_); 
+  vmaDestroyAllocator(allocator_);
 }
 
 void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {

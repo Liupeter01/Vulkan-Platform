@@ -10,7 +10,7 @@
 #include <glm/glm.hpp>
 
 namespace engine {
-          struct AllocatedBuffer;
+struct AllocatedBuffer;
 
 struct AllocatedImage {
   VkImage image;
@@ -22,11 +22,9 @@ struct AllocatedImage {
   AllocatedImage(VkDevice device, VmaAllocator allocator);
   virtual ~AllocatedImage();
 
-  void create_image(VkExtent3D extent,
-            VkFormat format, 
-            VkImageUsageFlags usage, 
-            bool mipmapped = false, 
-            const  std::string& name = "AllocatedImage");
+  void create_image(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage,
+                    bool mipmapped = false,
+                    const std::string &name = "AllocatedImage");
 
   void destroy();
 
@@ -45,7 +43,8 @@ struct AllocatedBuffer {
   VmaAllocationInfo info{};
 
   void create(size_t allocSize, VkBufferUsageFlags usage,
-              VmaMemoryUsage memoryUsage, const std::string &name = "AllocatedBuffer");
+              VmaMemoryUsage memoryUsage,
+              const std::string &name = "AllocatedBuffer");
   void destroy();
 
   void *map();
@@ -60,26 +59,23 @@ private:
 };
 
 struct AllocatedTexture {
-          AllocatedTexture(VkDevice device, VmaAllocator allocator);
-          virtual ~AllocatedTexture();
-          void createBuffer(void* data,
-                    VkExtent3D size,
-                    VkFormat format,
-                    VkImageUsageFlags usage,
-                    bool mipmapped = false);
+  AllocatedTexture(VkDevice device, VmaAllocator allocator);
+  virtual ~AllocatedTexture();
+  void createBuffer(void *data, VkExtent3D size, VkFormat format,
+                    VkImageUsageFlags usage, bool mipmapped = false);
 
-          void uploadBufferToImage(VkCommandBuffer cmd);
-          void flushUpload(VkFence fence);
-          void destroy();
+  void uploadBufferToImage(VkCommandBuffer cmd);
+  void flushUpload(VkFence fence);
+  void destroy();
 
 private:
-          bool isinit = false;
-          bool pendingUpload_ = false;
-          VkExtent3D extent_;
-          AllocatedImage dstImage_;
-          AllocatedBuffer srcBuffer_;
-          VkDevice device_;
-          VmaAllocator allocator_;
+  bool isinit = false;
+  bool pendingUpload_ = false;
+  VkExtent3D extent_;
+  AllocatedImage dstImage_;
+  AllocatedBuffer srcBuffer_;
+  VkDevice device_;
+  VmaAllocator allocator_;
 };
 
 } // namespace engine

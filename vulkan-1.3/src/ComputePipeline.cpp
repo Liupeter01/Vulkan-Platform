@@ -92,9 +92,9 @@ void ComputePipelinePacked::draw(VkExtent2D drawExtent,
 
   VkDescriptorSet sceneSet = curr_frame.allocate(descriptorLayout_);
 
-  DescriptorWriter writer{ device_ };
-  writer.write_image(0, offscreen_draw.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
-            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+  DescriptorWriter writer{device_};
+  writer.write_image(0, offscreen_draw.imageView, VK_NULL_HANDLE,
+                     VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
   writer.update_set(sceneSet);
 
   // bind the descriptor set containing the draw image for the compute pipeline

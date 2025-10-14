@@ -22,7 +22,7 @@ FrameData::FrameData(VkDevice device)
 
 FrameData::~FrameData() {
 
-          _deletionQueue.flush();
+  _deletionQueue.flush();
   destroy_command();
   destroy_sync();
   destroy_allocator();

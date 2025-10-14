@@ -26,23 +26,20 @@ void GPUGeoMeshBuffers::createMesh(std::vector<Vertex> &&vertices,
   const std::size_t indiciesBufferSize =
       indicies_.size() * sizeof(indicies_[0]);
 
-  vertexBuffer.create(vertexBufferSize,
-                      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                          VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+  vertexBuffer.create(
+      vertexBufferSize,
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
 
-                          // Shader Device Addr
-                          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+          // Shader Device Addr
+          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 
-                      VMA_MEMORY_USAGE_GPU_ONLY, 
-                    "GPUGeoMeshBuffers::VertexBuffer"
-            );
+      VMA_MEMORY_USAGE_GPU_ONLY, "GPUGeoMeshBuffers::VertexBuffer");
 
-  indexBuffer.create(indiciesBufferSize,
-                     VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                         VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+  indexBuffer.create(
+      indiciesBufferSize,
+      VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 
-                     VMA_MEMORY_USAGE_GPU_ONLY,
-            "GPUGeoMeshBuffers::IndiciesBuffer");
+      VMA_MEMORY_USAGE_GPU_ONLY, "GPUGeoMeshBuffers::IndiciesBuffer");
 
   // find the adress of the vertex buffer
   VkBufferDeviceAddressInfo deviceAdressInfo{};

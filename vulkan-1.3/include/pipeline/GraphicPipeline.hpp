@@ -125,10 +125,10 @@ private:
   void init_mesh_pipline();
 
   std::unique_ptr<AllocatedTexture> white_{};
-  std::unique_ptr<AllocatedTexture>  grey_{};
-  std::unique_ptr<AllocatedTexture>  black_{};
-  std::unique_ptr<AllocatedTexture>  magenta_{};
-  std::unique_ptr<AllocatedTexture>  loaderrorImage_{};
+  std::unique_ptr<AllocatedTexture> grey_{};
+  std::unique_ptr<AllocatedTexture> black_{};
+  std::unique_ptr<AllocatedTexture> magenta_{};
+  std::unique_ptr<AllocatedTexture> loaderrorImage_{};
 
   GPUSceneData sceneData_{};
   VkDescriptorSetLayout sceneDescriptorSetLayout_;
