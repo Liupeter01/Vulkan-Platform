@@ -53,19 +53,19 @@ void VulkanEngine::init() {
     throw std::runtime_error("computeEffect/graphicEffect is not of type "
                              "ComputePipelinePacked/GraphicPipelinePacked!");
 
-  computeHandle->set_descriptors(drawImage_->imageView);
-
   if (auto mesh = MeshAsset::loadGltfMeshes(
           device_, allocator_, CONFIG_HOME "assets/gltf/basicmesh.glb");
       mesh) {
     graphicHandle->load_asset(std::move(mesh.value()));
   }
 
-  imm_command_submit(graphicHandle->getImmSubmitFunctor());
-  graphicHandle->flushUpload(immFence_);
-
   computeEffect->init();
   graphicEffect->init();
+
+  imm_command_submit(graphicHandle->getMeshFunctor());
+  imm_command_submit(graphicHandle->getColorFunctor());
+
+  graphicHandle->flushUpload(immFence_);
 
   init_imgui();
 }
@@ -76,15 +76,17 @@ void VulkanEngine::destroy() {
 
   // Do it before vkdevice being removed!
   computeEffect->destroy();
+  computeEffect.reset();
   graphicEffect->destroy();
   graphicEffect.reset();
-  computeEffect.reset();
+
+  //HAS TO BE DONE BEFORE REMOVE VMA!!!
+  destroy_frames();
 
   destroy_custom_image();
   destroy_vma_allocator();
   destroy_immediate_commands();
   destroy_immediate_sync();
-  destroy_frames();
   destroy_swapchain();
   destroy_vulkan();
 }
@@ -486,6 +488,11 @@ void VulkanEngine::init_vma_allocator() {
   allocatorInfo.device = device_;
   allocatorInfo.instance = instance_;
   allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+
+  #if ENABLE_VALIDATION_LAYERS
+  allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
+#endif
+
   vmaCreateAllocator(&allocatorInfo, &allocator_);
 }
 
@@ -500,8 +507,14 @@ void VulkanEngine::init_custom_image() {
   depthImage_.reset();
   depthImage_ = std::make_unique<AllocatedImage>(device_, allocator_);
 
-  drawImage_->create_as_draw(extent);
-  depthImage_->create_as_depth(extent);
+  drawImage_->create_image(extent, 
+            VK_FORMAT_R16G16B16A16_SFLOAT, 
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+
+  depthImage_->create_image(extent,
+            VK_FORMAT_D32_SFLOAT,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
 void VulkanEngine::init_imgui() {
@@ -570,7 +583,17 @@ void VulkanEngine::destroy_custom_image() {
   depthImage_.reset();
 }
 
-void VulkanEngine::destroy_vma_allocator() { vmaDestroyAllocator(allocator_); }
+void VulkanEngine::destroy_vma_allocator() { 
+
+ #if ENABLE_VALIDATION_LAYERS
+          char* stats = nullptr;
+          vmaBuildStatsString(allocator_, &stats, true);
+          printf("%s\n", stats);
+          vmaFreeStatsString(allocator_, stats);
+#endif
+
+          vmaDestroyAllocator(allocator_); 
+}
 
 void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
   vkb::SwapchainBuilder swapchainBuilder{physicalDevice_, device_, surface_};
