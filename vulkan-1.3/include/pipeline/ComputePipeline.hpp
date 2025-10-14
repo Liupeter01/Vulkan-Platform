@@ -22,7 +22,6 @@ public:
   std::string name = " ComputePipelinePacked";
   ComputePipelinePacked(VkDevice device, VmaAllocator allocator);
   virtual ~ComputePipelinePacked();
-  void set_descriptors(VkImageView imageView);
   void init() override;
   void destroy() override;
   void draw(VkExtent2D drawExtent, AllocatedImage &offscreen_draw,
@@ -34,12 +33,8 @@ protected:
   ComputeShaderPushConstants data{};
 
 private:
-  const std::vector<PoolSizeRatio> sizes{{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
-
-  DescriptorPoolAllocator descriptorAllocator_;
 
   // Initializing the layout and descriptors; store image, or vertex indicies
-  VkDescriptorSet descriptor_;
   VkDescriptorSetLayout descriptorLayout_;
 
 private:

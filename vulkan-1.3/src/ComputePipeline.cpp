@@ -6,8 +6,7 @@ namespace compute {
 
 ComputePipelinePacked::ComputePipelinePacked(VkDevice device,
                                              VmaAllocator allocator)
-    : PipelineBasic{device, allocator, PipelineType::COMPUTE},
-      descriptorAllocator_{device} {
+    : PipelineBasic{device, allocator, PipelineType::COMPUTE} {
   set_layout();
 }
 
@@ -29,17 +28,6 @@ void ComputePipelinePacked::set_layout() {
   DescriptorLayoutBuilder builder{device_};
   descriptorLayout_ = builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
                           .build(VK_SHADER_STAGE_COMPUTE_BIT); // add bindings
-}
-
-void ComputePipelinePacked::set_descriptors(VkImageView imageView) {
-  descriptorAllocator_.init(1, sizes);
-  descriptor_ = descriptorAllocator_.allocate(descriptorLayout_);
-
-  DescriptorWriter writer{device_};
-  writer.write_image(0, imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
-                     VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-
-  writer.update_set(descriptor_);
 }
 
 void ComputePipelinePacked::init_pipeline() {
@@ -102,9 +90,16 @@ void ComputePipelinePacked::draw(VkExtent2D drawExtent,
   vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                      sizeof(ComputeShaderPushConstants), &data);
 
+  VkDescriptorSet sceneSet = curr_frame.allocate(descriptorLayout_);
+
+  DescriptorWriter writer{ device_ };
+  writer.write_image(0, offscreen_draw.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL,
+            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+  writer.update_set(sceneSet);
+
   // bind the descriptor set containing the draw image for the compute pipeline
   vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout_,
-                          0, 1, &descriptor_, 0, nullptr);
+                          0, 1, &sceneSet, 0, nullptr);
 
   // execute the compute pipeline dispatch. We are using 16x16 workgroup size so
   // we need to divide by it
