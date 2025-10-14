@@ -29,8 +29,6 @@ FetchContent_MakeAvailable(fastgltf)
 FetchContent_MakeAvailable(imgui)
 FetchContent_MakeAvailable(fetch_vk_bootstrap)
 
-find_package(OpenMP REQUIRED)
-
 file(GLOB IMGUI_SOURCES CONFIGURE_DEPENDS ${imgui_SOURCE_DIR}/imgui*.cpp)
 
 list(APPEND IMGUI_SOURCES ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
@@ -49,7 +47,7 @@ target_include_directories(${PROJECT_NAME}
                            PUBLIC include ${fastgltf_SOURCE_DIR}/include)
 target_link_libraries(
   ${PROJECT_NAME} PUBLIC glm tinyobjloader vk-bootstrap::vk-bootstrap
-                         VulkanMemoryAllocator imgui fastgltf OpenMP::OpenMP_CXX)
+                         VulkanMemoryAllocator imgui fastgltf)
 
 target_compile_definitions(${PROJECT_NAME}
                            PUBLIC CONFIG_HOME="${CMAKE_SOURCE_DIR}/")

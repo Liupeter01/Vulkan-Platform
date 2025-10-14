@@ -515,7 +515,6 @@ void GraphicPipelinePacked::load_default_colors() {
 
   std::array<uint32_t, 16 * 16> pixels; // for 16x16 checkerboard texture
 
-#pragma omp parallel for collapse(2)
   for (int x = 0; x < 16; x++) {
     for (int y = 0; y < 16; y++) {
       pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
