@@ -33,13 +33,16 @@ void GPUGeoMeshBuffers::createMesh(std::vector<Vertex> &&vertices,
                           // Shader Device Addr
                           VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 
-                      VMA_MEMORY_USAGE_GPU_ONLY);
+                      VMA_MEMORY_USAGE_GPU_ONLY, 
+                    "GPUGeoMeshBuffers::VertexBuffer"
+            );
 
   indexBuffer.create(indiciesBufferSize,
                      VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
                          VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 
-                     VMA_MEMORY_USAGE_GPU_ONLY);
+                     VMA_MEMORY_USAGE_GPU_ONLY,
+            "GPUGeoMeshBuffers::IndiciesBuffer");
 
   // find the adress of the vertex buffer
   VkBufferDeviceAddressInfo deviceAdressInfo{};
