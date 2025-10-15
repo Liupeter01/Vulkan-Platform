@@ -231,14 +231,17 @@ void GraphicPipelinePacked::init() {
 
   init_layout();
   init_pipeline();
-  load_default_colors();
-
+  init_default_colors();
+  init_sampler();
   init_finished();
+
+  sceneData_.proj[1][1] *= -1;
 }
 
 void GraphicPipelinePacked::destroy() {
 
   if (isInit_) {
+            destroy_sampler();
     destroy_default_colors();
     destroy_layout();
     destroy_pipeline();
@@ -268,12 +271,24 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
   *data = sceneData_;
   sceneDataBuffer->unmap();
 
-  VkDescriptorSet sceneSet = currentFrame.allocate(sceneDescriptorSetLayout_);
+  std::vector< VkDescriptorSet> descriptorSets;
+  VkDescriptorSet sceneSet = currentFrame.allocate(setLayouts_[0]);
+  VkDescriptorSet singleImageSet = currentFrame.allocate(setLayouts_[1]);
 
-  DescriptorWriter writer{device_};
-  writer.write_buffer(0, sceneDataBuffer->buffer, sizeof(GPUSceneData), 0,
+  DescriptorWriter scenewriter{device_};
+  scenewriter.write_buffer(0, sceneDataBuffer->buffer, sizeof(GPUSceneData), 0,
                       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-  writer.update_set(sceneSet);
+  scenewriter.update_set(sceneSet);
+
+  DescriptorWriter imagewriter{ device_ };
+  imagewriter.write_image(0, loaderrorImage_->getImageView(),
+            defaultSamplerNearest_,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+  imagewriter.update_set(singleImageSet);
+
+  descriptorSets.push_back(sceneSet);
+  descriptorSets.push_back(singleImageSet);
 
   auto colorAttachmentInfo =
       tools::color_attachment_info(offscreen_draw.imageView);
@@ -307,6 +322,9 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
 
   vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
                      sizeof(GPUGeoPushConstants), &constants);
+
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipelineLayout_, 0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
 
   if (meshes_["Suzanne"]->meshBuffers.indicies_.empty()) {
     assert(!meshes_["Suzanne"]->meshBuffers.indicies_.empty() &&
@@ -368,15 +386,14 @@ std::function<void(VkCommandBuffer)> GraphicPipelinePacked::getColorFunctor() {
 }
 
 void GraphicPipelinePacked::init_layout() {
-  DescriptorLayoutBuilder builder{device_};
-  sceneDescriptorSetLayout_ =
-      builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-          .build(VK_SHADER_STAGE_VERTEX_BIT |
-                 VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
+          setLayouts_[0] = create_ubo_layout();
+          setLayouts_[1] = create_sampler_layout();
 }
 
 void GraphicPipelinePacked::destroy_layout() {
-  vkDestroyDescriptorSetLayout(device_, sceneDescriptorSetLayout_, nullptr);
+          for (auto& layout : setLayouts_) {
+                    vkDestroyDescriptorSetLayout(device_, layout, nullptr);
+          }
 }
 
 void GraphicPipelinePacked::init_pipeline() { init_mesh_pipline(); }
@@ -420,6 +437,8 @@ void GraphicPipelinePacked::init_mesh_pipline() {
   graphicLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   graphicLayout.pushConstantRangeCount = 1;
   graphicLayout.pPushConstantRanges = &bufferRange;
+  graphicLayout.setLayoutCount = static_cast<uint32_t>(setLayouts_.size());
+  graphicLayout.pSetLayouts = setLayouts_.data();
 
   vkCreatePipelineLayout(device_, &graphicLayout, nullptr, &pipelineLayout_);
 
@@ -428,7 +447,7 @@ void GraphicPipelinePacked::init_mesh_pipline() {
 
   pipeline_ = builder
                   .set_shaders(CONFIG_HOME "shaders/mesh.vert.spv",
-                               CONFIG_HOME "shaders/triangle.frag.spv")
+                               CONFIG_HOME "shaders/mesh.frag.spv")
                   //.disable_blending()
                   .set_blending_alphablend(true)
                   .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -442,6 +461,19 @@ void GraphicPipelinePacked::init_mesh_pipline() {
 
   vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
   vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
+}
+
+VkDescriptorSetLayout GraphicPipelinePacked::create_ubo_layout() {
+          return  DescriptorLayoutBuilder{ device_ }
+                    .add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                    .build(VK_SHADER_STAGE_VERTEX_BIT |
+                              VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
+}
+
+VkDescriptorSetLayout GraphicPipelinePacked::create_sampler_layout() {
+          return  DescriptorLayoutBuilder{ device_ }
+                    .add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                    .build(VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
 }
 
 void GraphicPipelinePacked::destroy_pipeline() {
@@ -494,7 +526,24 @@ void GraphicPipelinePacked::destroy_default_colors() {
   loaderrorImage_.reset();
 }
 
-void GraphicPipelinePacked::load_default_colors() {
+void GraphicPipelinePacked::init_sampler() {
+          VkSamplerCreateInfo samplerInfo{};
+          samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+          samplerInfo.magFilter = VK_FILTER_NEAREST;
+          samplerInfo.minFilter = VK_FILTER_NEAREST;
+          vkCreateSampler(device_, &samplerInfo, nullptr, &defaultSamplerNearest_);
+
+          samplerInfo.magFilter = VK_FILTER_LINEAR;
+          samplerInfo.minFilter = VK_FILTER_LINEAR;
+          vkCreateSampler(device_, &samplerInfo, nullptr, &defaultSamplerLinear_);
+}
+
+void GraphicPipelinePacked::destroy_sampler() {
+          vkDestroySampler(device_, defaultSamplerNearest_, nullptr);
+          vkDestroySampler(device_, defaultSamplerLinear_, nullptr);
+}
+
+void GraphicPipelinePacked::init_default_colors() {
 
   white_.reset();
   grey_.reset();
@@ -510,7 +559,7 @@ void GraphicPipelinePacked::load_default_colors() {
 
   uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
   uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
-  uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
+  uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 1));
   uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
 
   std::array<uint32_t, 16 * 16> pixels; // for 16x16 checkerboard texture

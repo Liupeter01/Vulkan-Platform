@@ -87,9 +87,6 @@ public:
   void load_asset(std::shared_ptr<MeshAsset> asset);
   void load_asset(std::vector<std::shared_ptr<MeshAsset>> &&assets);
 
-  void load_default_colors();
-  void destroy_default_colors();
-
   void submitMesh(VkCommandBuffer cmd);
   void submitColorImage(VkCommandBuffer cmd);
   void flushUpload(VkFence fence);
@@ -116,13 +113,21 @@ public:
 protected:
   void init_layout();
   void init_pipeline();
+  void init_default_colors();
+  void init_sampler();
 
+  void destroy_sampler();
+  void destroy_default_colors();
   void destroy_layout();
   void destroy_pipeline();
 
 private:
   void init_triangle_pipline();
   void init_mesh_pipline();
+  [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
+  [[nodiscard]] VkDescriptorSetLayout create_sampler_layout();
+
+private:
 
   std::unique_ptr<AllocatedTexture> white_{};
   std::unique_ptr<AllocatedTexture> grey_{};
@@ -130,8 +135,15 @@ private:
   std::unique_ptr<AllocatedTexture> magenta_{};
   std::unique_ptr<AllocatedTexture> loaderrorImage_{};
 
+  VkSampler defaultSamplerLinear_;
+  VkSampler defaultSamplerNearest_;
+
   GPUSceneData sceneData_{};
-  VkDescriptorSetLayout sceneDescriptorSetLayout_;
+
+  //VkDescriptorSetLayout Configs
+  // 1. sceneDescriptorSetLayout_;
+ //  2. singleImageDescriptorSetLayout_;
+  std::array<VkDescriptorSetLayout, 2> setLayouts_;
 
   std::unordered_map<std::string, std::shared_ptr<MeshAsset>> meshes_;
 };
