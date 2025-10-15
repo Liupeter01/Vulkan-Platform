@@ -128,7 +128,6 @@ private:
   [[nodiscard]] VkDescriptorSetLayout create_sampler_layout();
 
 private:
-
   std::unique_ptr<AllocatedTexture> white_{};
   std::unique_ptr<AllocatedTexture> grey_{};
   std::unique_ptr<AllocatedTexture> black_{};
@@ -140,9 +139,9 @@ private:
 
   GPUSceneData sceneData_{};
 
-  //VkDescriptorSetLayout Configs
-  // 1. sceneDescriptorSetLayout_;
- //  2. singleImageDescriptorSetLayout_;
+  // VkDescriptorSetLayout Configs
+  //  1. sceneDescriptorSetLayout_;
+  //  2. singleImageDescriptorSetLayout_;
   std::array<VkDescriptorSetLayout, 2> setLayouts_;
 
   std::unordered_map<std::string, std::shared_ptr<MeshAsset>> meshes_;

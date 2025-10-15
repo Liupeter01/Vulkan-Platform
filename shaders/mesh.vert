@@ -22,17 +22,17 @@ layout(push_constant) uniform PushConstant {
     VertexBuffer vertexBuffer;
 } pc;
 
-layout(set=0,binding=0) uniform SceneData {
-  mat4 view;
- mat4 proj;
-  vec4 ambientColor;
-  vec4 sunlightDirection; // w for sun power
-  vec4 sunlightColor;
+layout(set = 0, binding = 0) uniform SceneData {
+    mat4 view;
+    mat4 proj;
+    vec4 ambientColor;
+    vec4 sunlightDirection; // w for sun power
+    vec4 sunlightColor;
 } myScene;
 
 void main() {
 
-  // load vertex data from device address
+    // load vertex data from device address
     Vertex v = pc.vertexBuffer.vertices[gl_VertexIndex];
 
     // transform to clip space
@@ -42,4 +42,3 @@ void main() {
     outColor = v.color.xyz;
     outUV = vec2(v.uv_x, v.uv_y);
 }
-

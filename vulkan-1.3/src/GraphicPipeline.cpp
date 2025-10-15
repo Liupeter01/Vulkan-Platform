@@ -241,7 +241,7 @@ void GraphicPipelinePacked::init() {
 void GraphicPipelinePacked::destroy() {
 
   if (isInit_) {
-            destroy_sampler();
+    destroy_sampler();
     destroy_default_colors();
     destroy_layout();
     destroy_pipeline();
@@ -271,20 +271,20 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
   *data = sceneData_;
   sceneDataBuffer->unmap();
 
-  std::vector< VkDescriptorSet> descriptorSets;
+  std::vector<VkDescriptorSet> descriptorSets;
   VkDescriptorSet sceneSet = currentFrame.allocate(setLayouts_[0]);
   VkDescriptorSet singleImageSet = currentFrame.allocate(setLayouts_[1]);
 
   DescriptorWriter scenewriter{device_};
   scenewriter.write_buffer(0, sceneDataBuffer->buffer, sizeof(GPUSceneData), 0,
-                      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+                           VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   scenewriter.update_set(sceneSet);
 
-  DescriptorWriter imagewriter{ device_ };
+  DescriptorWriter imagewriter{device_};
   imagewriter.write_image(0, loaderrorImage_->getImageView(),
-            defaultSamplerNearest_,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                          defaultSamplerNearest_,
+                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
   imagewriter.update_set(singleImageSet);
 
   descriptorSets.push_back(sceneSet);
@@ -323,8 +323,9 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
   vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
                      sizeof(GPUGeoPushConstants), &constants);
 
-  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipelineLayout_, 0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0, nullptr);
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout_,
+                          0, static_cast<uint32_t>(descriptorSets.size()),
+                          descriptorSets.data(), 0, nullptr);
 
   if (meshes_["Suzanne"]->meshBuffers.indicies_.empty()) {
     assert(!meshes_["Suzanne"]->meshBuffers.indicies_.empty() &&
@@ -386,14 +387,14 @@ std::function<void(VkCommandBuffer)> GraphicPipelinePacked::getColorFunctor() {
 }
 
 void GraphicPipelinePacked::init_layout() {
-          setLayouts_[0] = create_ubo_layout();
-          setLayouts_[1] = create_sampler_layout();
+  setLayouts_[0] = create_ubo_layout();
+  setLayouts_[1] = create_sampler_layout();
 }
 
 void GraphicPipelinePacked::destroy_layout() {
-          for (auto& layout : setLayouts_) {
-                    vkDestroyDescriptorSetLayout(device_, layout, nullptr);
-          }
+  for (auto &layout : setLayouts_) {
+    vkDestroyDescriptorSetLayout(device_, layout, nullptr);
+  }
 }
 
 void GraphicPipelinePacked::init_pipeline() { init_mesh_pipline(); }
@@ -464,16 +465,16 @@ void GraphicPipelinePacked::init_mesh_pipline() {
 }
 
 VkDescriptorSetLayout GraphicPipelinePacked::create_ubo_layout() {
-          return  DescriptorLayoutBuilder{ device_ }
-                    .add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-                    .build(VK_SHADER_STAGE_VERTEX_BIT |
-                              VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
+  return DescriptorLayoutBuilder{device_}
+      .add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+      .build(VK_SHADER_STAGE_VERTEX_BIT |
+             VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
 }
 
 VkDescriptorSetLayout GraphicPipelinePacked::create_sampler_layout() {
-          return  DescriptorLayoutBuilder{ device_ }
-                    .add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-                    .build(VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
+  return DescriptorLayoutBuilder{device_}
+      .add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+      .build(VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
 }
 
 void GraphicPipelinePacked::destroy_pipeline() {
@@ -527,20 +528,20 @@ void GraphicPipelinePacked::destroy_default_colors() {
 }
 
 void GraphicPipelinePacked::init_sampler() {
-          VkSamplerCreateInfo samplerInfo{};
-          samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-          samplerInfo.magFilter = VK_FILTER_NEAREST;
-          samplerInfo.minFilter = VK_FILTER_NEAREST;
-          vkCreateSampler(device_, &samplerInfo, nullptr, &defaultSamplerNearest_);
+  VkSamplerCreateInfo samplerInfo{};
+  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+  samplerInfo.magFilter = VK_FILTER_NEAREST;
+  samplerInfo.minFilter = VK_FILTER_NEAREST;
+  vkCreateSampler(device_, &samplerInfo, nullptr, &defaultSamplerNearest_);
 
-          samplerInfo.magFilter = VK_FILTER_LINEAR;
-          samplerInfo.minFilter = VK_FILTER_LINEAR;
-          vkCreateSampler(device_, &samplerInfo, nullptr, &defaultSamplerLinear_);
+  samplerInfo.magFilter = VK_FILTER_LINEAR;
+  samplerInfo.minFilter = VK_FILTER_LINEAR;
+  vkCreateSampler(device_, &samplerInfo, nullptr, &defaultSamplerLinear_);
 }
 
 void GraphicPipelinePacked::destroy_sampler() {
-          vkDestroySampler(device_, defaultSamplerNearest_, nullptr);
-          vkDestroySampler(device_, defaultSamplerLinear_, nullptr);
+  vkDestroySampler(device_, defaultSamplerNearest_, nullptr);
+  vkDestroySampler(device_, defaultSamplerLinear_, nullptr);
 }
 
 void GraphicPipelinePacked::init_default_colors() {
