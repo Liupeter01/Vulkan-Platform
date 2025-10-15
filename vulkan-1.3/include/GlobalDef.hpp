@@ -64,6 +64,8 @@ struct AllocatedTexture {
   void createBuffer(void *data, VkExtent3D size, VkFormat format,
                     VkImageUsageFlags usage, bool mipmapped = false);
 
+  VkImage&  getImage();
+  VkImageView & getImageView();
   void uploadBufferToImage(VkCommandBuffer cmd);
   void flushUpload(VkFence fence);
   void destroy();

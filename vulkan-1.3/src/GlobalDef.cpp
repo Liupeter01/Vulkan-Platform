@@ -151,6 +151,14 @@ void AllocatedTexture::createBuffer(void *data, VkExtent3D size,
   isinit = true;
 }
 
+VkImage& AllocatedTexture::getImage() {
+          return dstImage_.image;
+}
+
+VkImageView& AllocatedTexture::getImageView() {
+          return dstImage_.imageView;
+}
+
 void AllocatedTexture::uploadBufferToImage(VkCommandBuffer cmd) {
 
   VkBufferImageCopy copyRegion{};
