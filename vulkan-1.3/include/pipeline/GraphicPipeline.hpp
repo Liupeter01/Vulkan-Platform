@@ -6,6 +6,7 @@
 #include <mesh/MeshLoader.hpp>
 #include <pipeline/PipelineBasic.hpp>
 #include <pipeline/GraphicPipelineBuilder.hpp>
+#include <material/GLTFMetallic_Roughness.hpp>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -75,6 +76,8 @@ private:
   //  1. sceneDescriptorSetLayout_;
   //  2. singleImageDescriptorSetLayout_;
   std::array<VkDescriptorSetLayout, 2> setLayouts_;
+
+  GLTFMetallic_Roughness metalRoughMaterial;
 
   std::unordered_map<std::string, std::shared_ptr<MeshAsset>> meshes_;
 };
