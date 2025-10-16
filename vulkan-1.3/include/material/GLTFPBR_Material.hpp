@@ -9,28 +9,24 @@
 
 namespace engine {
 
-          enum class MaterialPass {
-                    UNDEFINED,
-                    OPAQUE,
-                    TRANSPARENT
-          } ;
+enum class MaterialPass { UNDEFINED, OPAQUE, TRANSPARENT };
 
-          struct MaterialConstants {
-                    glm::vec4 colorFactors;
-                    glm::vec4 metal_rough_factors;	 //R & B
-                    glm::vec4 extra[14];			//padding, we need it anyway for uniform buffers
-          };
+struct MaterialConstants {
+  glm::vec4 colorFactors;
+  glm::vec4 metal_rough_factors; // R & B
+  glm::vec4 extra[14]; // padding, we need it anyway for uniform buffers
+};
 
-          struct MaterialResources {
-                    VkImageView colorImage{};
-                    VkImageView metalRoughImage{};
+struct MaterialResources {
+  VkImageView colorImage{};
+  VkImageView metalRoughImage{};
 
-                    VkSampler colorSampler{};
-                    VkSampler metalRoughSampler{};
+  VkSampler colorSampler{};
+  VkSampler metalRoughSampler{};
 
-                    VkBuffer materialConstantsData{};
-                    size_t materialConstantsOffset{};
-          };
-}
+  VkBuffer materialConstantsData{};
+  size_t materialConstantsOffset{};
+};
+} // namespace engine
 
 #endif

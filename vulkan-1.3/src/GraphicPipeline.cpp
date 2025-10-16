@@ -8,7 +8,8 @@ namespace graphic {
 
 GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device,
                                              VmaAllocator allocator)
-    : PipelineBasic(device, allocator, PipelineType::GRAPHIC), metalRoughMaterial(device){}
+    : PipelineBasic(device, allocator, PipelineType::GRAPHIC),
+      metalRoughMaterial(device) {}
 
 GraphicPipelinePacked::~GraphicPipelinePacked() { destroy(); }
 
@@ -52,23 +53,28 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
   VkCommandBuffer cmd = currentFrame._mainCommandBuffer;
 
   /*set = 0, binding = 0*/
-  std::shared_ptr<AllocatedBuffer> sceneDataBuffer = std::make_shared<AllocatedBuffer>(allocator_);
+  std::shared_ptr<AllocatedBuffer> sceneDataBuffer =
+      std::make_shared<AllocatedBuffer>(allocator_);
 
-  sceneDataBuffer->create(sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VMA_MEMORY_USAGE_CPU_TO_GPU, "GraphicPipeline::Draw::SceneDataBuffer");
+  sceneDataBuffer->create(
+      sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      VMA_MEMORY_USAGE_CPU_TO_GPU, "GraphicPipeline::Draw::SceneDataBuffer");
 
-  GPUSceneData* data = reinterpret_cast<GPUSceneData*>(sceneDataBuffer->map());
+  GPUSceneData *data = reinterpret_cast<GPUSceneData *>(sceneDataBuffer->map());
   *data = sceneData_;
   sceneDataBuffer->unmap();
 
   /*set = 1, binding = 0*/
-  std::shared_ptr<AllocatedBuffer> materialBuffer = std::make_shared<AllocatedBuffer>(allocator_);
-  materialBuffer->create(sizeof(MaterialConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VMA_MEMORY_USAGE_CPU_TO_GPU, "GraphicPipeline::Draw::MaterialConstants");
+  std::shared_ptr<AllocatedBuffer> materialBuffer =
+      std::make_shared<AllocatedBuffer>(allocator_);
+  materialBuffer->create(
+      sizeof(MaterialConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      VMA_MEMORY_USAGE_CPU_TO_GPU, "GraphicPipeline::Draw::MaterialConstants");
 
-  MaterialConstants* constant = reinterpret_cast<MaterialConstants*>(materialBuffer->map());
-  constant->colorFactors = glm::vec4{ 1,1,1,1 };
-  constant->metal_rough_factors = glm::vec4{ 1,0.5,0,0 };
+  MaterialConstants *constant =
+      reinterpret_cast<MaterialConstants *>(materialBuffer->map());
+  constant->colorFactors = glm::vec4{1, 1, 1, 1};
+  constant->metal_rough_factors = glm::vec4{1, 0.5, 0, 0};
   materialBuffer->unmap();
 
   MaterialResources materialResources;
@@ -78,35 +84,32 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
   materialResources.metalRoughSampler = defaultSamplerLinear_;
   materialResources.materialConstantsData = materialBuffer->buffer;
 
-  MaterialInstance ins =  metalRoughMaterial.generate_instance(
-            MaterialPass::OPAQUE, 
-            materialResources, 
-            currentFrame._frameDescriptor);
+  MaterialInstance ins = metalRoughMaterial.generate_instance(
+      MaterialPass::OPAQUE, materialResources, currentFrame._frameDescriptor);
 
-  currentFrame.destroy_by_deferred(
-            [sceneDataBuffer, materialBuffer]() {
-                      sceneDataBuffer->destroy();
-                      materialBuffer->destroy();
-            });
+  currentFrame.destroy_by_deferred([sceneDataBuffer, materialBuffer]() {
+    sceneDataBuffer->destroy();
+    materialBuffer->destroy();
+  });
 
   std::vector<VkDescriptorSet> descriptorSets;
   VkDescriptorSet sceneSet = currentFrame.allocate(setLayouts_[0]);
-  //VkDescriptorSet singleImageSet = currentFrame.allocate(setLayouts_[1]);
+  // VkDescriptorSet singleImageSet = currentFrame.allocate(setLayouts_[1]);
 
   DescriptorWriter scenewriter{device_};
   scenewriter.write_buffer(0, sceneDataBuffer->buffer, sizeof(GPUSceneData), 0,
                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   scenewriter.update_set(sceneSet);
 
-  //DescriptorWriter imagewriter{device_};
-  //imagewriter.write_image(0, loaderrorImage_->getImageView(),
-  //                        defaultSamplerNearest_,
-  //                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-  //                        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-  //imagewriter.update_set(singleImageSet);
+  // DescriptorWriter imagewriter{device_};
+  // imagewriter.write_image(0, loaderrorImage_->getImageView(),
+  //                         defaultSamplerNearest_,
+  //                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+  //                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+  // imagewriter.update_set(singleImageSet);
 
   descriptorSets.push_back(sceneSet);
-  //descriptorSets.push_back(singleImageSet);
+  // descriptorSets.push_back(singleImageSet);
 
   descriptorSets.push_back(ins.materialSet);
 
@@ -119,8 +122,9 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
 
   vkCmdBeginRendering(cmd, &renderInfo);
 
-  //vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
-  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ins.pipeline->getPipeline());
+  // vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
+  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    ins.pipeline->getPipeline());
 
   // set dynamic viewport and scissor
   VkViewport viewport = {};
@@ -141,19 +145,22 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
   constants.matrix = {1.f};
   constants.vertexBuffer = meshes_["Suzanne"]->getVertexDeviceAddr();
 
-  //vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
-  //                   sizeof(GPUGeoPushConstants), &constants);
+  // vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
+  //                    sizeof(GPUGeoPushConstants), &constants);
 
-  //vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout_,
-  //                        0, static_cast<uint32_t>(descriptorSets.size()),
-  //                        descriptorSets.data(), 0, nullptr);
+  // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+  // pipelineLayout_,
+  //                         0, static_cast<uint32_t>(descriptorSets.size()),
+  //                         descriptorSets.data(), 0, nullptr);
 
-  vkCmdPushConstants(cmd, ins.pipeline->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
-            sizeof(GPUGeoPushConstants), &constants);
+  vkCmdPushConstants(cmd, ins.pipeline->getPipelineLayout(),
+                     VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUGeoPushConstants),
+                     &constants);
 
-  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ins.pipeline->getPipelineLayout(),
-            0, static_cast<uint32_t>(descriptorSets.size()),
-            descriptorSets.data(), 0, nullptr);
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          ins.pipeline->getPipelineLayout(), 0,
+                          static_cast<uint32_t>(descriptorSets.size()),
+                          descriptorSets.data(), 0, nullptr);
 
   if (meshes_["Suzanne"]->meshBuffers.indicies_.empty()) {
     assert(!meshes_["Suzanne"]->meshBuffers.indicies_.empty() &&
@@ -162,7 +169,8 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
 
   vkCmdBindIndexBuffer(
       cmd, meshes_["Suzanne"]->meshBuffers.indexBuffer.buffer, 0,
-      tools::getIndexType<decltype(meshes_["Suzanne"]->meshBuffers.indicies_[0])>());
+      tools::getIndexType<
+          decltype(meshes_["Suzanne"]->meshBuffers.indicies_[0])>());
 
   for (const GeoSurface &surface : meshes_["Suzanne"]->meshSurfaces) {
     vkCmdDrawIndexed(cmd,

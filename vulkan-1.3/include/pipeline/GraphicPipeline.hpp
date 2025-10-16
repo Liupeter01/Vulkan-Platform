@@ -3,10 +3,10 @@
 #define _GRAPHIC_PIPELINE_HPP_
 #include <GlobalDef.hpp>
 #include <functional>
-#include <mesh/MeshLoader.hpp>
-#include <pipeline/PipelineBasic.hpp>
-#include <pipeline/GraphicPipelineBuilder.hpp>
 #include <material/GLTFMetallic_Roughness.hpp>
+#include <mesh/MeshLoader.hpp>
+#include <pipeline/GraphicPipelineBuilder.hpp>
+#include <pipeline/PipelineBasic.hpp>
 #include <string>
 #include <type_traits>
 #include <vector>

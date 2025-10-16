@@ -315,19 +315,16 @@ static constexpr uint32_t bytes_per_pixel(VkFormat format) {
 }
 
 template <typename T> inline static constexpr VkIndexType getIndexType() {
-          using Decayed = std::decay_t<T>;
-          if constexpr (std::is_same_v<Decayed, uint32_t>) {
-                    return VK_INDEX_TYPE_UINT32;
-          }
-          else if constexpr (std::is_same_v<Decayed, uint16_t>) {
-                    return VK_INDEX_TYPE_UINT16;
-          }
-          else if constexpr (std::is_same_v<Decayed, uint8_t>) {
-                    return VK_INDEX_TYPE_UINT8;
-          }
-          else {
-                    static_assert(false, "Unsupported index type");
-          }
+  using Decayed = std::decay_t<T>;
+  if constexpr (std::is_same_v<Decayed, uint32_t>) {
+    return VK_INDEX_TYPE_UINT32;
+  } else if constexpr (std::is_same_v<Decayed, uint16_t>) {
+    return VK_INDEX_TYPE_UINT16;
+  } else if constexpr (std::is_same_v<Decayed, uint8_t>) {
+    return VK_INDEX_TYPE_UINT8;
+  } else {
+    static_assert(false, "Unsupported index type");
+  }
 }
 
 } // namespace tools

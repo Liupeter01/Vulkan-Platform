@@ -151,9 +151,11 @@ void AllocatedTexture::createBuffer(void *data, VkExtent3D size,
   isinit = true;
 }
 
-VkImage &AllocatedTexture::getImage() const{ return dstImage_.image; }
+VkImage &AllocatedTexture::getImage() const { return dstImage_.image; }
 
-VkImageView &AllocatedTexture::getImageView() const{ return dstImage_.imageView; }
+VkImageView &AllocatedTexture::getImageView() const {
+  return dstImage_.imageView;
+}
 
 void AllocatedTexture::uploadBufferToImage(VkCommandBuffer cmd) {
 
