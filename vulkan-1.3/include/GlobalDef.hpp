@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _GLOBALDEF_HPP_
 #define _GLOBALDEF_HPP_
+#include <string>
 #include <Descriptors.hpp>
 #include <FrameData.hpp>
 #include <vk_mem_alloc.h>
@@ -64,8 +65,8 @@ struct AllocatedTexture {
   void createBuffer(void *data, VkExtent3D size, VkFormat format,
                     VkImageUsageFlags usage, bool mipmapped = false);
 
-  VkImage &getImage();
-  VkImageView &getImageView();
+  VkImage &getImage() const;
+  VkImageView &getImageView() const;
   void uploadBufferToImage(VkCommandBuffer cmd);
   void flushUpload(VkFence fence);
   void destroy();
@@ -74,7 +75,7 @@ private:
   bool isinit = false;
   bool pendingUpload_ = false;
   VkExtent3D extent_;
-  AllocatedImage dstImage_;
+  mutable AllocatedImage dstImage_;
   AllocatedBuffer srcBuffer_;
   VkDevice device_;
   VmaAllocator allocator_;
