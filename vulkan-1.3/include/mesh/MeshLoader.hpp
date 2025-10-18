@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <mesh/MeshBuffers.hpp>
 #include <optional>
+#include <material/GLTFPBR_Material.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
@@ -14,6 +15,7 @@ namespace mesh {
 struct GeoSurface {
   uint32_t startIndex{};
   uint32_t count{};
+  std::shared_ptr<MaterialInstance> material{};
 };
 
 struct MeshAsset {
