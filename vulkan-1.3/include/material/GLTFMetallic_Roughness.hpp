@@ -3,15 +3,9 @@
 #define _GLTF_METALLIC_ROUGHNESS_
 #include <Descriptors.hpp>
 #include <material/GLTFPBR_Material.hpp>
-#include <pipeline/MaterialPipeline.hpp>
+#include <material/MaterialPipeline.hpp>
 
 namespace engine {
-
-struct MaterialInstance {
-  MaterialPass passType;
-  MaterialPipeline *pipeline;
-  VkDescriptorSet materialSet;
-};
 
 inline namespace material {
 class GLTFMetallic_Roughness {
@@ -22,8 +16,9 @@ public:
   void init(VkDescriptorSetLayout globalSceneLayout);
   void destory();
 
+  [[nodiscard]] 
   MaterialInstance
-  generate_instance(MaterialPass pass, const MaterialResources &resources,
+  generate_instance(MaterialPass pass, MaterialResources &resources,
                     DescriptorPoolAllocator &globalDescriptorAllocator);
 
 private:

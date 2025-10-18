@@ -9,6 +9,8 @@
 
 namespace engine {
 
+          struct MaterialPipeline;
+
 enum class MaterialPass { UNDEFINED, OPAQUE, TRANSPARENT };
 
 struct MaterialConstants {
@@ -27,6 +29,13 @@ struct MaterialResources {
   VkBuffer materialConstantsData{};
   size_t materialConstantsOffset{};
 };
+
+struct MaterialInstance {
+          MaterialPass passType;
+          MaterialPipeline* pipeline;
+          VkDescriptorSet materialSet;
+};
+
 } // namespace engine
 
 #endif

@@ -42,7 +42,7 @@ void GLTFMetallic_Roughness::destory() {
 }
 
 MaterialInstance GLTFMetallic_Roughness::generate_instance(
-    MaterialPass pass, const MaterialResources &resources,
+    MaterialPass pass, MaterialResources &resources,
     DescriptorPoolAllocator &globalDescriptorAllocator) {
 
   if (pass == MaterialPass::UNDEFINED)
