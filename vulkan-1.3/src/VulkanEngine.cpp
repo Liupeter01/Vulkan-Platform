@@ -40,8 +40,8 @@ void VulkanEngine::init() {
   graphicEffect =
       std::make_shared<graphic::GraphicPipelinePacked>(device_, allocator_);
 
-  if (graphicEffect || computeEffect)
-    std::runtime_error("Init Graphic/Compute Pipeline Packed Error!");
+  if (!graphicEffect || !computeEffect)
+    throw std::runtime_error("Init Graphic/Compute Pipeline Packed Error!");
 
   if (auto mesh = MeshAsset::loadGltfMeshes(
           device_, allocator_, CONFIG_HOME "assets/gltf/basicmesh.glb");
