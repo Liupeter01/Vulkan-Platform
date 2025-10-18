@@ -11,6 +11,7 @@
 
 namespace engine {
 struct MaterialInstance;
+class Scene;
 
 struct RenderObject {
   uint32_t indexCount;
@@ -33,6 +34,7 @@ struct IRenderable {
 };
 
 struct BaseNode : public IRenderable {
+  friend class Scene;
   BaseNode(std::shared_ptr<BaseNode> base = nullptr);
 
   virtual void Draw(const glm::mat4 &parentMatrix, DrawContext &ctx) override;
