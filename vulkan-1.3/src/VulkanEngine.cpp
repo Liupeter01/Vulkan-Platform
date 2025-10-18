@@ -125,14 +125,10 @@ void VulkanEngine::run() {
 
     if (ImGui::Begin("background")) {
 
-      auto computeHandle =
-          std::dynamic_pointer_cast<compute::ComputePipelinePacked>(
-              computeEffect);
-      if (!computeHandle)
-        throw std::runtime_error(
-            "computeEffect is not of type ComputePipelinePacked!");
+      if (!computeEffect)
+        throw std::runtime_error("computeEffect not init!");
 
-      ComputePipelinePacked &selected = *computeHandle;
+      ComputePipelinePacked &selected = *computeEffect;
 
       ImGui::Text("Selected effect: ", selected.name.c_str());
 
