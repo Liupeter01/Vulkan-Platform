@@ -1,12 +1,10 @@
 #pragma once
-#ifndef _GRAPHIC_PIPELINE_HPP_
-#define _GRAPHIC_PIPELINE_HPP_
+#ifndef _GRAPHIC_PIPELINE_PACKED_HPP_
+#define _GRAPHIC_PIPELINE_PACKED_HPP_
 #include <GlobalDef.hpp>
 #include <functional>
 #include <material/GLTFMetallic_Roughness.hpp>
 #include <mesh/MeshLoader.hpp>
-#include <pipeline/GraphicPipelineBuilder.hpp>
-#include <pipeline/PipelineBasic.hpp>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -14,7 +12,7 @@
 namespace engine {
 inline namespace graphic {
 // Graphic Pipeline
-class GraphicPipelinePacked : public PipelineBasic {
+class GraphicPipelinePacked{
 public:
   std::string name = " GraphicPipelinePacked";
   GraphicPipelinePacked(VkDevice device, VmaAllocator allocator);
@@ -23,10 +21,10 @@ public:
   GraphicPipelinePacked(const GraphicPipelinePacked &) = delete;
   GraphicPipelinePacked &operator=(const GraphicPipelinePacked &) = delete;
 
-  void init() override;
-  void destroy() override;
+  void init() ;
+  void destroy() ;
   void draw(VkExtent2D drawExtent, AllocatedImage &offscreen_draw,
-            AllocatedImage &offscreen_depth, FrameData &curr_frame) override;
+            AllocatedImage &offscreen_depth, FrameData &curr_frame) ;
 
   void load_asset(const std::string &name, std::vector<Vertex> &&vertices,
                   std::vector<uint32_t> &&indices);
@@ -45,20 +43,15 @@ public:
 
 protected:
   void init_layout();
-  void init_pipeline();
   void init_default_colors();
   void init_sampler();
 
   void destroy_sampler();
   void destroy_default_colors();
   void destroy_layout();
-  void destroy_pipeline();
 
 private:
-  void init_triangle_pipline();
-  void init_mesh_pipline();
   [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
-  [[nodiscard]] VkDescriptorSetLayout create_sampler_layout();
 
 private:
   std::unique_ptr<AllocatedTexture> white_{};
@@ -71,17 +64,16 @@ private:
   VkSampler defaultSamplerNearest_;
 
   GPUSceneData sceneData_{};
-
-  // VkDescriptorSetLayout Configs
-  //  1. sceneDescriptorSetLayout_;
-  //  2. singleImageDescriptorSetLayout_;
-  std::array<VkDescriptorSetLayout, 2> setLayouts_;
-
+  VkDescriptorSetLayout sceneDescriptorSetLayout_;
   GLTFMetallic_Roughness metalRoughMaterial;
+
+  bool isInit_  = false;
+  VkDevice device_;
+  VmaAllocator allocator_;
 
   std::unordered_map<std::string, std::shared_ptr<MeshAsset>> meshes_;
 };
 } // namespace graphic
 } // namespace engine
 
-#endif //_GRAPHIC_PIPELINE_HPP_
+#endif //_GRAPHIC_PIPELINE_PACKED_HPP_

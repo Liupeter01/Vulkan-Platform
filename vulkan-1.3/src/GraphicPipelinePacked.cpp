@@ -1,15 +1,16 @@
 #include <Tools.hpp>
 #include <algorithm>
 #include <iostream>
-#include <pipeline/GraphicPipeline.hpp>
+#include <pipeline/GraphicPipelinePacked.hpp>
 
 namespace engine {
 namespace graphic {
 
 GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device,
                                              VmaAllocator allocator)
-    : PipelineBasic(device, allocator, PipelineType::GRAPHIC),
-      metalRoughMaterial(device) {}
+    : device_(device) 
+     , allocator_(allocator)
+     , metalRoughMaterial(device) {}
 
 GraphicPipelinePacked::~GraphicPipelinePacked() { destroy(); }
 
@@ -19,14 +20,13 @@ void GraphicPipelinePacked::init() {
 
   init_layout();
 
-  metalRoughMaterial.init(setLayouts_[0]);
+  metalRoughMaterial.init(sceneDescriptorSetLayout_);
 
-  init_pipeline();
   init_default_colors();
   init_sampler();
 
   sceneData_.proj[1][1] *= -1;
-  init_finished();
+  isInit_ = true;
 }
 
 void GraphicPipelinePacked::destroy() {
@@ -39,8 +39,7 @@ void GraphicPipelinePacked::destroy() {
 
     metalRoughMaterial.destory();
 
-    destroy_pipeline();
-    reset_init();
+    isInit_ = false;
   }
 }
 
@@ -92,26 +91,14 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
     materialBuffer->destroy();
   });
 
-  std::vector<VkDescriptorSet> descriptorSets;
-  VkDescriptorSet sceneSet = currentFrame.allocate(setLayouts_[0]);
-  // VkDescriptorSet singleImageSet = currentFrame.allocate(setLayouts_[1]);
-
+  VkDescriptorSet sceneSet = currentFrame.allocate(sceneDescriptorSetLayout_);
   DescriptorWriter scenewriter{device_};
   scenewriter.write_buffer(0, sceneDataBuffer->buffer, sizeof(GPUSceneData), 0,
                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   scenewriter.update_set(sceneSet);
 
-  // DescriptorWriter imagewriter{device_};
-  // imagewriter.write_image(0, loaderrorImage_->getImageView(),
-  //                         defaultSamplerNearest_,
-  //                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-  //                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-  // imagewriter.update_set(singleImageSet);
 
-  descriptorSets.push_back(sceneSet);
-  // descriptorSets.push_back(singleImageSet);
-
-  descriptorSets.push_back(ins.materialSet);
+  std::vector<VkDescriptorSet> descriptorSets{ sceneSet , ins.materialSet };
 
   auto colorAttachmentInfo =
       tools::color_attachment_info(offscreen_draw.imageView);
@@ -144,14 +131,6 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
   GPUGeoPushConstants constants{};
   constants.matrix = {1.f};
   constants.vertexBuffer = meshes_["Suzanne"]->getVertexDeviceAddr();
-
-  // vkCmdPushConstants(cmd, pipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
-  //                    sizeof(GPUGeoPushConstants), &constants);
-
-  // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-  // pipelineLayout_,
-  //                         0, static_cast<uint32_t>(descriptorSets.size()),
-  //                         descriptorSets.data(), 0, nullptr);
 
   vkCmdPushConstants(cmd, ins.pipeline->getPipelineLayout(),
                      VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUGeoPushConstants),
@@ -186,14 +165,12 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
 }
 
 void GraphicPipelinePacked::submitMesh(VkCommandBuffer cmd) {
-  // std::for_each(meshes_.begin(), meshes_.end(), [this,
-  // cmd](decltype(*meshes_.begin())& asset) {
-  //           asset.second->submitMesh(cmd);
-  //           });
+
   meshes_["Suzanne"]->submitMesh(cmd);
 }
 
 void GraphicPipelinePacked::submitColorImage(VkCommandBuffer cmd) {
+
   black_->uploadBufferToImage(cmd);
   white_->uploadBufferToImage(cmd);
   grey_->uploadBufferToImage(cmd);
@@ -202,10 +179,7 @@ void GraphicPipelinePacked::submitColorImage(VkCommandBuffer cmd) {
 }
 
 void GraphicPipelinePacked::flushUpload(VkFence fence) {
-  // std::for_each(meshes_.begin(), meshes_.end(), [this,
-  // fence](decltype(*meshes_.begin())& asset) {
-  //           asset.second->flushUpload(fence);
-  //           });
+
   meshes_["Suzanne"]->flushUpload(fence);
 
   black_->flushUpload(fence);
@@ -223,81 +197,11 @@ std::function<void(VkCommandBuffer)> GraphicPipelinePacked::getColorFunctor() {
 }
 
 void GraphicPipelinePacked::init_layout() {
-  setLayouts_[0] = create_ubo_layout();
-  setLayouts_[1] = create_sampler_layout();
+          sceneDescriptorSetLayout_ = create_ubo_layout();
 }
 
 void GraphicPipelinePacked::destroy_layout() {
-  for (auto &layout : setLayouts_) {
-    vkDestroyDescriptorSetLayout(device_, layout, nullptr);
-  }
-}
-
-void GraphicPipelinePacked::init_pipeline() { init_mesh_pipline(); }
-
-void GraphicPipelinePacked::init_triangle_pipline() {
-  if (isInit_)
-    return;
-
-  VkPipelineLayoutCreateInfo graphicLayout{};
-  graphicLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  vkCreatePipelineLayout(device_, &graphicLayout, nullptr, &pipelineLayout_);
-
-  GraphicPipelineBuilder builder{device_};
-  builder.pipelineLayout_ = pipelineLayout_;
-  pipeline_ = builder
-                  .set_shaders(CONFIG_HOME "shaders/triangle.vert.spv",
-                               CONFIG_HOME "shaders/triangle.frag.spv")
-                  .disable_blending()
-                  .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-                  .set_polygon_mode(VK_POLYGON_MODE_FILL)
-                  .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
-                  .set_multisampling()
-                  .set_depthtest(false)
-                  .set_depth_format(VK_FORMAT_UNDEFINED)
-                  .set_color_attachment_format(VK_FORMAT_R16G16B16A16_SFLOAT)
-                  .build();
-
-  vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
-  vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
-
-  init_finished(); // set isinit flag = true
-}
-
-void GraphicPipelinePacked::init_mesh_pipline() {
-  VkPushConstantRange bufferRange{};
-  bufferRange.offset = 0;
-  bufferRange.size = sizeof(GPUGeoPushConstants);
-  bufferRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-  VkPipelineLayoutCreateInfo graphicLayout{};
-  graphicLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  graphicLayout.pushConstantRangeCount = 1;
-  graphicLayout.pPushConstantRanges = &bufferRange;
-  graphicLayout.setLayoutCount = static_cast<uint32_t>(setLayouts_.size());
-  graphicLayout.pSetLayouts = setLayouts_.data();
-
-  vkCreatePipelineLayout(device_, &graphicLayout, nullptr, &pipelineLayout_);
-
-  GraphicPipelineBuilder builder{device_};
-  builder.pipelineLayout_ = pipelineLayout_;
-
-  pipeline_ = builder
-                  .set_shaders(CONFIG_HOME "shaders/mesh.vert.spv",
-                               CONFIG_HOME "shaders/mesh.frag.spv")
-                  //.disable_blending()
-                  .set_blending_alphablend(true)
-                  .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-                  .set_polygon_mode(VK_POLYGON_MODE_FILL)
-                  .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
-                  .set_multisampling()
-                  .set_depthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL)
-                  .set_depth_format(VK_FORMAT_D32_SFLOAT)
-                  .set_color_attachment_format(VK_FORMAT_R16G16B16A16_SFLOAT)
-                  .build();
-
-  vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
-  vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
+          vkDestroyDescriptorSetLayout(device_, sceneDescriptorSetLayout_, nullptr);
 }
 
 VkDescriptorSetLayout GraphicPipelinePacked::create_ubo_layout() {
@@ -305,17 +209,6 @@ VkDescriptorSetLayout GraphicPipelinePacked::create_ubo_layout() {
       .add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
       .build(VK_SHADER_STAGE_VERTEX_BIT |
              VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
-}
-
-VkDescriptorSetLayout GraphicPipelinePacked::create_sampler_layout() {
-  return DescriptorLayoutBuilder{device_}
-      .add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-      .build(VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
-}
-
-void GraphicPipelinePacked::destroy_pipeline() {
-  vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
-  vkDestroyPipeline(device_, pipeline_, nullptr);
 }
 
 void GraphicPipelinePacked::load_asset(const std::string &name,
