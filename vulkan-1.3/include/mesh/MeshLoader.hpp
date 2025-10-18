@@ -2,9 +2,9 @@
 #ifndef _MESH_LOADER_HPP_
 #define _MESH_LOADER_HPP_
 #include <filesystem>
+#include <material/GLTFPBR_Material.hpp>
 #include <mesh/MeshBuffers.hpp>
 #include <optional>
-#include <material/GLTFPBR_Material.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>

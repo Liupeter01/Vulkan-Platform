@@ -8,9 +8,7 @@ namespace graphic {
 
 GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device,
                                              VmaAllocator allocator)
-    : device_(device) 
-     , allocator_(allocator)
-     , metalRoughMaterial(device) {}
+    : device_(device), allocator_(allocator), metalRoughMaterial(device) {}
 
 GraphicPipelinePacked::~GraphicPipelinePacked() { destroy(); }
 
@@ -97,8 +95,7 @@ void GraphicPipelinePacked::draw(VkExtent2D drawExtent,
                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   scenewriter.update_set(sceneSet);
 
-
-  std::vector<VkDescriptorSet> descriptorSets{ sceneSet , ins.materialSet };
+  std::vector<VkDescriptorSet> descriptorSets{sceneSet, ins.materialSet};
 
   auto colorAttachmentInfo =
       tools::color_attachment_info(offscreen_draw.imageView);
@@ -197,11 +194,11 @@ std::function<void(VkCommandBuffer)> GraphicPipelinePacked::getColorFunctor() {
 }
 
 void GraphicPipelinePacked::init_layout() {
-          sceneDescriptorSetLayout_ = create_ubo_layout();
+  sceneDescriptorSetLayout_ = create_ubo_layout();
 }
 
 void GraphicPipelinePacked::destroy_layout() {
-          vkDestroyDescriptorSetLayout(device_, sceneDescriptorSetLayout_, nullptr);
+  vkDestroyDescriptorSetLayout(device_, sceneDescriptorSetLayout_, nullptr);
 }
 
 VkDescriptorSetLayout GraphicPipelinePacked::create_ubo_layout() {

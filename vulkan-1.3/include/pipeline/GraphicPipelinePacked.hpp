@@ -12,7 +12,7 @@
 namespace engine {
 inline namespace graphic {
 // Graphic Pipeline
-class GraphicPipelinePacked{
+class GraphicPipelinePacked {
 public:
   std::string name = " GraphicPipelinePacked";
   GraphicPipelinePacked(VkDevice device, VmaAllocator allocator);
@@ -21,10 +21,10 @@ public:
   GraphicPipelinePacked(const GraphicPipelinePacked &) = delete;
   GraphicPipelinePacked &operator=(const GraphicPipelinePacked &) = delete;
 
-  void init() ;
-  void destroy() ;
+  void init();
+  void destroy();
   void draw(VkExtent2D drawExtent, AllocatedImage &offscreen_draw,
-            AllocatedImage &offscreen_depth, FrameData &curr_frame) ;
+            AllocatedImage &offscreen_depth, FrameData &curr_frame);
 
   void load_asset(const std::string &name, std::vector<Vertex> &&vertices,
                   std::vector<uint32_t> &&indices);
@@ -67,7 +67,7 @@ private:
   VkDescriptorSetLayout sceneDescriptorSetLayout_;
   GLTFMetallic_Roughness metalRoughMaterial;
 
-  bool isInit_  = false;
+  bool isInit_ = false;
   VkDevice device_;
   VmaAllocator allocator_;
 

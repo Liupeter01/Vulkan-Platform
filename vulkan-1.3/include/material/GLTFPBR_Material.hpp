@@ -9,7 +9,7 @@
 
 namespace engine {
 
-          struct MaterialPipeline;
+struct MaterialPipeline;
 
 enum class MaterialPass { UNDEFINED, OPAQUE, TRANSPARENT };
 
@@ -31,9 +31,9 @@ struct MaterialResources {
 };
 
 struct MaterialInstance {
-          MaterialPass passType;
-          MaterialPipeline* pipeline;
-          VkDescriptorSet materialSet;
+  MaterialPass passType;
+  MaterialPipeline *pipeline;
+  VkDescriptorSet materialSet;
 };
 
 } // namespace engine

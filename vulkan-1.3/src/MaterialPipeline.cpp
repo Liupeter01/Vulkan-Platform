@@ -1,6 +1,6 @@
 #include <material/GLTFPBR_Material.hpp>
-#include <mesh/MeshBuffers.hpp>
 #include <material/MaterialPipeline.hpp>
+#include <mesh/MeshBuffers.hpp>
 
 namespace engine {
 MaterialPipeline::MaterialPipeline(VkDevice device) : device_(device) {}

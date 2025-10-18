@@ -16,7 +16,7 @@ public:
   void init(VkDescriptorSetLayout globalSceneLayout);
   void destory();
 
-  [[nodiscard]] 
+  [[nodiscard]]
   MaterialInstance
   generate_instance(MaterialPass pass, MaterialResources &resources,
                     DescriptorPoolAllocator &globalDescriptorAllocator);

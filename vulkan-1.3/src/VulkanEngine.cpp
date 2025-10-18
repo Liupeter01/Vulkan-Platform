@@ -41,12 +41,12 @@ void VulkanEngine::init() {
       std::make_shared<graphic::GraphicPipelinePacked>(device_, allocator_);
 
   if (graphicEffect || computeEffect)
-            std::runtime_error("Init Graphic/Compute Pipeline Packed Error!");
+    std::runtime_error("Init Graphic/Compute Pipeline Packed Error!");
 
   if (auto mesh = MeshAsset::loadGltfMeshes(
           device_, allocator_, CONFIG_HOME "assets/gltf/basicmesh.glb");
       mesh) {
-            graphicEffect->load_asset(std::move(mesh.value()));
+    graphicEffect->load_asset(std::move(mesh.value()));
   }
 
   computeEffect->init();

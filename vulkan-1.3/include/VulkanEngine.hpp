@@ -130,8 +130,10 @@ private:
   VkCommandPool immCommandPool_;
 
   // Compute Pipeline
-  std::shared_ptr<ComputePipelinePacked> computeEffect = nullptr; // Compute Pipeline
-  std::shared_ptr<GraphicPipelinePacked> graphicEffect = nullptr; // Graphic Pipeline
+  std::shared_ptr<ComputePipelinePacked> computeEffect =
+      nullptr; // Compute Pipeline
+  std::shared_ptr<GraphicPipelinePacked> graphicEffect =
+      nullptr; // Graphic Pipeline
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_

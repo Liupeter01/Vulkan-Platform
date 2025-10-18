@@ -5,9 +5,9 @@
 
 #include "input_structures.glsl"
 
-layout (location = 0) out vec3 outNormal;
-layout (location = 1) out vec3 outColor;
-layout (location = 2) out vec2 outUV;
+layout(location = 0) out vec3 outNormal;
+layout(location = 1) out vec3 outColor;
+layout(location = 2) out vec2 outUV;
 
 struct Vertex {
     vec3 position;
@@ -34,7 +34,7 @@ void main() {
     // transform to clip space
     gl_Position = myScene.proj * myScene.view * pc.render_matrix * vec4(v.position, 1.0);
 
-    mat3 normalMatrix = transpose(inverse(mat3(pc.render_matrix )));
+    mat3 normalMatrix = transpose(inverse(mat3(pc.render_matrix)));
     outNormal = normalize(normalMatrix * v.normal);
 
     // pass varying
