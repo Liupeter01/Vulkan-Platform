@@ -7,8 +7,8 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <pipeline/ComputePipeline.hpp>
-#include <pipeline/GraphicPipeline.hpp>
+#include <pipeline/ComputePipelinePacked.hpp>
+#include <pipeline/GraphicPipelinePacked.hpp>
 #include <string>
 #include <vector>
 
@@ -130,8 +130,8 @@ private:
   VkCommandPool immCommandPool_;
 
   // Compute Pipeline
-  std::shared_ptr<PipelineBasic> computeEffect = nullptr; // Compute Pipeline
-  std::shared_ptr<PipelineBasic> graphicEffect = nullptr; // Graphic Pipeline
+  std::shared_ptr<ComputePipelinePacked> computeEffect = nullptr; // Compute Pipeline
+  std::shared_ptr<GraphicPipelinePacked> graphicEffect = nullptr; // Graphic Pipeline
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_

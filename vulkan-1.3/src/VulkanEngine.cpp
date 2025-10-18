@@ -40,32 +40,22 @@ void VulkanEngine::init() {
   graphicEffect =
       std::make_shared<graphic::GraphicPipelinePacked>(device_, allocator_);
 
-  if (!computeEffect)
-    throw std::runtime_error("ComputePipelinePacked Allocated Error!");
-
-  auto computeHandle =
-      std::dynamic_pointer_cast<compute::ComputePipelinePacked>(computeEffect);
-
-  auto graphicHandle =
-      std::dynamic_pointer_cast<graphic::GraphicPipelinePacked>(graphicEffect);
-
-  if (!computeHandle || !graphicHandle)
-    throw std::runtime_error("computeEffect/graphicEffect is not of type "
-                             "ComputePipelinePacked/GraphicPipelinePacked!");
+  if (graphicEffect || computeEffect)
+            std::runtime_error("Init Graphic/Compute Pipeline Packed Error!");
 
   if (auto mesh = MeshAsset::loadGltfMeshes(
           device_, allocator_, CONFIG_HOME "assets/gltf/basicmesh.glb");
       mesh) {
-    graphicHandle->load_asset(std::move(mesh.value()));
+            graphicEffect->load_asset(std::move(mesh.value()));
   }
 
   computeEffect->init();
   graphicEffect->init();
 
-  imm_command_submit(graphicHandle->getMeshFunctor());
-  imm_command_submit(graphicHandle->getColorFunctor());
+  imm_command_submit(graphicEffect->getMeshFunctor());
+  imm_command_submit(graphicEffect->getColorFunctor());
 
-  graphicHandle->flushUpload(immFence_);
+  graphicEffect->flushUpload(immFence_);
 
   init_imgui();
 }
