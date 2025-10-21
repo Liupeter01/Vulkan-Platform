@@ -3,6 +3,7 @@
 #define _NODE_BASE_HPP_
 #include <memory>
 #include <vector>
+#include <string>
 #include <vulkan/vulkan.hpp>
 
 #define GLM_FORCE_RADIANS // no degresss
@@ -42,6 +43,8 @@ struct BaseNode : public IRenderable {
 
   glm::mat4 localTransform{1.f};
   glm::mat4 worldTransform{1.f};
+
+  std::string node_name{};
 
 protected:
   // parent pointer must be a weak pointer to avoid circular dependencies
