@@ -47,7 +47,7 @@ target_include_directories(${PROJECT_NAME}
                            PUBLIC include ${fastgltf_SOURCE_DIR}/include)
 target_link_libraries(
   ${PROJECT_NAME} PUBLIC glm tinyobjloader vk-bootstrap::vk-bootstrap
-                         VulkanMemoryAllocator imgui fastgltf)
+                         VulkanMemoryAllocator imgui fastgltf spdlog::spdlog)
 
 target_compile_definitions(${PROJECT_NAME}
                            PUBLIC CONFIG_HOME="${CMAKE_SOURCE_DIR}/")
