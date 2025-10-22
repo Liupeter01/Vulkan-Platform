@@ -12,7 +12,10 @@
 
 namespace engine {
 struct MaterialInstance;
-class Scene;
+
+namespace node {
+          struct NodeManager;
+}
 
 struct RenderObject {
   uint32_t indexCount;
@@ -20,6 +23,8 @@ struct RenderObject {
   VkBuffer indexBuffer;
 
   MaterialInstance *material;
+
+  std::string mesh_name;
 
   glm::mat4 transform;
   VkDeviceAddress vertexBufferAddress;
@@ -35,16 +40,17 @@ struct IRenderable {
 };
 
 struct BaseNode : public IRenderable {
-  friend class Scene;
+  friend struct node::NodeManager;
   BaseNode(std::shared_ptr<BaseNode> base = nullptr);
 
-  virtual void Draw(const glm::mat4 &parentMatrix, DrawContext &ctx) override;
+  void Draw(const glm::mat4 &parentMatrix, DrawContext &ctx) override;
   void refreshTransform(const glm::mat4 &parentMatrix);
 
   glm::mat4 localTransform{1.f};
   glm::mat4 worldTransform{1.f};
 
   std::string node_name{};
+  std::string node_path{};
 
 protected:
   // parent pointer must be a weak pointer to avoid circular dependencies

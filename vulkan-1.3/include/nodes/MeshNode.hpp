@@ -9,7 +9,7 @@ namespace node {
 struct MeshNode : public BaseNode {
   MeshNode(std::shared_ptr<BaseNode> base = nullptr);
 
-  virtual void Draw(const glm::mat4 &topMatrix, DrawContext &ctx) override;
+  void Draw(const glm::mat4 &topMatrix, DrawContext &ctx) override;
 
   std::shared_ptr<MeshAsset> mesh_{};
 };
