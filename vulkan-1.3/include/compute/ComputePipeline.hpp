@@ -13,6 +13,8 @@ struct ComputePipeline {
   virtual ~ComputePipeline() { destroy(); }
 
   void create(const std::vector<VkDescriptorSetLayout> &layouts) {
+
+            if (isinit_) return;
     VkPushConstantRange pushConstant{};
     pushConstant.offset = 0;
     pushConstant.size = sizeof(ComputeShaderPushConstants);
@@ -27,8 +29,9 @@ struct ComputePipeline {
     computeLayout.pPushConstantRanges = &pushConstant;
 
     vkCreatePipelineLayout(device_, &computeLayout, nullptr, &pipelineLayout_);
-
     create_default_pipeline();
+
+    isinit_ = true;
   }
   void destroy() {
     if (isinit_) {
