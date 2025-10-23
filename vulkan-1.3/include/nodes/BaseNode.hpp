@@ -2,8 +2,8 @@
 #ifndef _NODE_BASE_HPP_
 #define _NODE_BASE_HPP_
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 
 #define GLM_FORCE_RADIANS // no degresss
@@ -14,7 +14,7 @@ namespace engine {
 struct MaterialInstance;
 
 namespace node {
-          struct NodeManager;
+struct NodeManager;
 }
 
 struct RenderObject {
@@ -31,12 +31,12 @@ struct RenderObject {
 };
 
 struct TransformComponent {
-          glm::vec3 translation{ 0.f };
-          glm::vec3 scale{ 1.f };
-          glm::vec3 rotation{};
+  glm::vec3 translation{0.f};
+  glm::vec3 scale{1.f};
+  glm::vec3 rotation{};
 
-          glm::mat4 mat4()const;
-          glm::mat3 normalMatrix()const;
+  glm::mat4 mat4() const;
+  glm::mat3 normalMatrix() const;
 };
 
 struct DrawContext {
@@ -54,11 +54,11 @@ struct BaseNode : public IRenderable {
 
   void Draw(const glm::mat4 &parentMatrix, DrawContext &ctx) override;
   void refreshTransform(const glm::mat4 &parentMatrix);
-  void setupTransform(const TransformComponent& Model);
+  void setupTransform(const TransformComponent &Model);
 
   TransformComponent localTransform;
 
-  //glm::mat4 localTransform{1.f};
+  // glm::mat4 localTransform{1.f};
   glm::mat4 worldTransform{1.f};
 
   std::string node_name{};

@@ -14,7 +14,8 @@ struct ComputePipeline {
 
   void create(const std::vector<VkDescriptorSetLayout> &layouts) {
 
-            if (isinit_) return;
+    if (isinit_)
+      return;
     VkPushConstantRange pushConstant{};
     pushConstant.offset = 0;
     pushConstant.size = sizeof(ComputeShaderPushConstants);

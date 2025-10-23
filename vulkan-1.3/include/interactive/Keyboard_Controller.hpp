@@ -1,8 +1,8 @@
 #pragma once
 #ifndef _KEYBOARD_CONTROLLER_HPP_
 #define _KEYBOARD_CONTROLLER_HPP_
-#include <nodes/BaseNode.hpp>
 #include <Window.hpp>
+#include <nodes/BaseNode.hpp>
 
 namespace engine {
 struct KeyBoardController {
@@ -23,7 +23,8 @@ public:
   float moveSpeed = {3.f};
   float lookSpeed = {1.5f};
 
-  void movePlaneYXZ(GLFWwindow *win, float dt, std::shared_ptr<node::BaseNode> &obj);
+  void movePlaneYXZ(GLFWwindow *win, float dt,
+                    std::shared_ptr<node::BaseNode> &obj);
 };
 } // namespace engine
 
