@@ -30,6 +30,15 @@ struct RenderObject {
   VkDeviceAddress vertexBufferAddress;
 };
 
+struct TransformComponent {
+          glm::vec3 translation{ 0.f };
+          glm::vec3 scale{ 1.f };
+          glm::vec3 rotation{};
+
+          glm::mat4 mat4()const;
+          glm::mat3 normalMatrix()const;
+};
+
 struct DrawContext {
   std::vector<RenderObject> OpaqueSurfaces;
 };
@@ -45,8 +54,11 @@ struct BaseNode : public IRenderable {
 
   void Draw(const glm::mat4 &parentMatrix, DrawContext &ctx) override;
   void refreshTransform(const glm::mat4 &parentMatrix);
+  void setupTransform(const TransformComponent& Model);
 
-  glm::mat4 localTransform{1.f};
+  TransformComponent localTransform;
+
+  //glm::mat4 localTransform{1.f};
   glm::mat4 worldTransform{1.f};
 
   std::string node_name{};
