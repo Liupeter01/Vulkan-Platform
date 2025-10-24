@@ -21,15 +21,13 @@ public:
   GraphicPipelinePacked(const GraphicPipelinePacked &) = delete;
   GraphicPipelinePacked &operator=(const GraphicPipelinePacked &) = delete;
 
-  void init();
+  void init(VkDescriptorSetLayout sceneDescriptorSetLayout_ = nullptr);
   void destroy();
   void draw(VkExtent2D drawExtent, AllocatedImage &offscreen_draw,
             AllocatedImage &offscreen_depth, FrameData &curr_frame);
 
-  void load_asset(const std::string &name, std::vector<Vertex> &&vertices,
-                  std::vector<uint32_t> &&indices);
   void load_asset(std::shared_ptr<MeshAsset> asset);
-  void load_asset(std::vector<std::shared_ptr<MeshAsset>> &&assets);
+  void load_asset(const std::vector<std::shared_ptr<MeshAsset>> &assets);
 
   void submitMesh(VkCommandBuffer cmd);
   void submitColorImage(VkCommandBuffer cmd);
@@ -64,7 +62,7 @@ private:
   VkSampler defaultSamplerNearest_;
 
   GPUSceneData sceneData_{};
-  VkDescriptorSetLayout sceneDescriptorSetLayout_;
+  VkDescriptorSetLayout sceneDescriptorSetLayout_{};
   GLTFMetallic_Roughness metalRoughMaterial;
 
   bool isInit_ = false;

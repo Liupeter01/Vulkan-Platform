@@ -12,7 +12,7 @@ GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device,
 
 GraphicPipelinePacked::~GraphicPipelinePacked() { destroy(); }
 
-void GraphicPipelinePacked::init() {
+void GraphicPipelinePacked::init(VkDescriptorSetLayout sceneDescriptorSetLayout) {
   if (isInit_)
     return;
 
@@ -208,18 +208,6 @@ VkDescriptorSetLayout GraphicPipelinePacked::create_ubo_layout() {
              VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
 }
 
-void GraphicPipelinePacked::load_asset(const std::string &name,
-                                       std::vector<Vertex> &&vertices,
-                                       std::vector<uint32_t> &&indices) {
-
-  std::shared_ptr<MeshAsset> ptr =
-      std::make_shared<MeshAsset>(device_, allocator_);
-  ptr->meshName = name;
-  ptr->createAsset(std::move(vertices), std::move(indices));
-
-  load_asset(ptr);
-}
-
 void GraphicPipelinePacked::load_asset(std::shared_ptr<MeshAsset> asset) {
 
   if (!asset)
@@ -232,7 +220,7 @@ void GraphicPipelinePacked::load_asset(std::shared_ptr<MeshAsset> asset) {
 }
 
 void GraphicPipelinePacked::load_asset(
-    std::vector<std::shared_ptr<MeshAsset>> &&assets) {
+          const std::vector<std::shared_ptr<MeshAsset>>& assets) {
 
   std::for_each(
       assets.begin(), assets.end(),
