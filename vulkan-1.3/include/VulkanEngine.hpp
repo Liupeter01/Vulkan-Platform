@@ -2,15 +2,15 @@
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
 #include <FrameData.hpp>
+#include <GlobalDef.hpp>
+#include <Window.hpp>
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <GlobalDef.hpp>
-#include <Window.hpp>
+#include <nodes/CameraNode.hpp>
 #include <scene/Scene.hpp>
 #include <string>
 #include <vector>
-#include <nodes/CameraNode.hpp>
 
 // IMGUI Support
 #define GLFW_INCLUDE_VULKAN
@@ -21,12 +21,12 @@
 
 namespace engine {
 
-          class Scene;
-          struct FrameData;
+class Scene;
+struct FrameData;
 
 class VulkanEngine {
-          friend class Scene;
-          friend  struct FrameData;
+  friend class Scene;
+  friend struct FrameData;
 
 public:
   using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;

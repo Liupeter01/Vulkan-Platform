@@ -8,8 +8,8 @@
 
 namespace engine {
 
-          class VulkanEngine;
-          struct AllocatedImage;
+class VulkanEngine;
+struct AllocatedImage;
 
 struct DeletionQueue {
   void push_function(std::function<void()> &&function);
@@ -23,7 +23,7 @@ private:
 constexpr unsigned int FRAMES_IN_FLIGHT = 2;
 
 struct FrameData {
-  FrameData(VulkanEngine* eng);
+  FrameData(VulkanEngine *eng);
   virtual ~FrameData();
 
   void destroy_sync();
@@ -61,7 +61,7 @@ struct FrameData {
 private:
   bool isCommandInit = false;
   bool isSyncInit = false;
-  VulkanEngine* engine_;
+  VulkanEngine *engine_;
   VkExtent3D oldExtent_{};
 };
 } // namespace engine

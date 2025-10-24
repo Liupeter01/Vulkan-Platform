@@ -12,7 +12,8 @@ GraphicPipelinePacked::GraphicPipelinePacked(VkDevice device,
 
 GraphicPipelinePacked::~GraphicPipelinePacked() { destroy(); }
 
-void GraphicPipelinePacked::init(VkDescriptorSetLayout sceneDescriptorSetLayout) {
+void GraphicPipelinePacked::init(
+    VkDescriptorSetLayout sceneDescriptorSetLayout) {
   if (isInit_)
     return;
 
@@ -220,7 +221,7 @@ void GraphicPipelinePacked::load_asset(std::shared_ptr<MeshAsset> asset) {
 }
 
 void GraphicPipelinePacked::load_asset(
-          const std::vector<std::shared_ptr<MeshAsset>>& assets) {
+    const std::vector<std::shared_ptr<MeshAsset>> &assets) {
 
   std::for_each(
       assets.begin(), assets.end(),

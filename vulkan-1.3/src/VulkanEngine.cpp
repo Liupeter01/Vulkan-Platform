@@ -47,10 +47,10 @@ void VulkanEngine::init() {
     graphicEffect->load_asset(mesh.value());
 
     /*
-    *                    root
-    *             /        |           \
-    *      meshA meshB meshC
-    */
+     *                    root
+     *             /        |           \
+     *      meshA meshB meshC
+     */
     scene_->attachChildrens("/root", mesh.value());
   }
 
@@ -64,8 +64,8 @@ void VulkanEngine::init() {
 
 void VulkanEngine::destroy() {
 
-          destroy_camera();
-          destroy_scene();
+  destroy_camera();
+  destroy_scene();
 
   destroy_imgui();
 
@@ -127,16 +127,15 @@ void VulkanEngine::run() {
 
     if (ImGui::Begin("background")) {
 
-      auto& data = scene_->getComputeData();
+      auto &data = scene_->getComputeData();
 
-      ImGui::InputFloat4("topLeft", (float *)&data.topLeft,
-                         "%.3f", ImGuiInputTextFlags_ElideLeft);
-      ImGui::InputFloat4("topRight", (float *)&data.topRight,
-                         "%.3f", ImGuiInputTextFlags_ElideLeft);
-      ImGui::InputFloat4("bottomLeft", (float *)&data.bottomLeft,
-                         "%.3f", ImGuiInputTextFlags_ElideLeft);
-      ImGui::InputFloat4("bottomRight",
-                         (float *)&data.bottomRight);
+      ImGui::InputFloat4("topLeft", (float *)&data.topLeft, "%.3f",
+                         ImGuiInputTextFlags_ElideLeft);
+      ImGui::InputFloat4("topRight", (float *)&data.topRight, "%.3f",
+                         ImGuiInputTextFlags_ElideLeft);
+      ImGui::InputFloat4("bottomLeft", (float *)&data.bottomLeft, "%.3f",
+                         ImGuiInputTextFlags_ElideLeft);
+      ImGui::InputFloat4("bottomRight", (float *)&data.bottomRight);
       ImGui::SliderFloat("Render Scale", &renderScale, 0.3f, 1.f, "%.3f",
                          ImGuiInputTextFlags_ElideLeft);
     }
@@ -149,7 +148,7 @@ void VulkanEngine::run() {
 
     if (resize_requested) {
 
-              vkDeviceWaitIdle(device_);
+      vkDeviceWaitIdle(device_);
       resize_swapchain();
       resize_frames();
     }
@@ -168,17 +167,14 @@ void VulkanEngine::resize_swapchain() {
 
 void VulkanEngine::resize_frames() {
 
-          VkExtent3D extent = {
-                  window_.getExtent().width,
-                  window_.getExtent().height,
-                  1
-          };
+  VkExtent3D extent = {window_.getExtent().width, window_.getExtent().height,
+                       1};
 
-          for (auto& frame : frames_) {
-                    if (frame) {
-                              frame->reset_images(extent);
-                    }
-          }
+  for (auto &frame : frames_) {
+    if (frame) {
+      frame->reset_images(extent);
+    }
+  }
 }
 
 void VulkanEngine::draw_background(VkCommandBuffer cmd, VkImage image) {
@@ -243,10 +239,12 @@ void VulkanEngine::draw() {
       VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
   drawExtent_.height = static_cast<uint32_t>(
-      std::min(swapchainExtent_.height, currentFrame.drawImage_->imageExtent.height) *
+      std::min(swapchainExtent_.height,
+               currentFrame.drawImage_->imageExtent.height) *
       renderScale);
   drawExtent_.width = static_cast<uint32_t>(
-      std::min(swapchainExtent_.width, currentFrame.drawImage_->imageExtent.width) *
+      std::min(swapchainExtent_.width,
+               currentFrame.drawImage_->imageExtent.width) *
       renderScale);
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
@@ -275,7 +273,8 @@ void VulkanEngine::draw() {
   util::transition_image(cmd, depth_image, VK_IMAGE_LAYOUT_UNDEFINED,
                          VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-  graphicEffect->draw(drawExtent_, *currentFrame.drawImage_, *currentFrame.depthImage_, currentFrame);
+  graphicEffect->draw(drawExtent_, *currentFrame.drawImage_,
+                      *currentFrame.depthImage_, currentFrame);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
@@ -547,23 +546,21 @@ void VulkanEngine::init_imgui() {
 }
 
 void VulkanEngine::init_scene() {
-          scene_.reset();
-          scene_ = std::make_unique<Scene>(this);
-          scene_->init();
+  scene_.reset();
+  scene_ = std::make_unique<Scene>(this);
+  scene_->init();
 }
 
-void  VulkanEngine::init_camera() {
-          camera_.reset();
-          camera_ = std::make_unique<node::CameraNode>();
+void VulkanEngine::init_camera() {
+  camera_.reset();
+  camera_ = std::make_unique<node::CameraNode>();
 }
 
-void  VulkanEngine::destroy_camera() {
-          camera_.reset();
-}
+void VulkanEngine::destroy_camera() { camera_.reset(); }
 
 void VulkanEngine::destroy_scene() {
-          scene_->destroy();
-          scene_.reset();
+  scene_->destroy();
+  scene_.reset();
 }
 
 void VulkanEngine::destroy_imgui() {
@@ -615,11 +612,8 @@ void VulkanEngine::init_frames(
   VkCommandPoolCreateInfo commandPoolInfo = tools::command_pool_create_info(
       graphicsQueueFamily_, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
-  VkExtent3D extent = {
-          window_.getExtent().width,
-          window_.getExtent().height,
-          1
-  };
+  VkExtent3D extent = {window_.getExtent().width, window_.getExtent().height,
+                       1};
 
   std::generate(frames_.begin(), frames_.end(),
                 [this, commandPoolInfo, semaphoreCreateInfo, fenceCreateInfo,

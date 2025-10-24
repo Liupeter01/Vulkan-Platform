@@ -1,12 +1,12 @@
 #pragma once
 #ifndef _SCENE_HPP_
 #define _SCENE_HPP_
-#include <memory>
-#include <nodes/MeshNode.hpp>
-#include <nodes/NodeManager.hpp>
 #include <Descriptors.hpp>
 #include <GlobalDef.hpp>
 #include <compute/Compute_ImageAttachment.hpp>
+#include <memory>
+#include <nodes/MeshNode.hpp>
+#include <nodes/NodeManager.hpp>
 #include <pipeline/GraphicPipelinePacked.hpp>
 #include <tuple>
 
@@ -27,7 +27,7 @@ public:
   void update_scene();
 
   void render(VkCommandBuffer cmd, FrameData &frame);
-  void compute(VkCommandBuffer cmd, FrameData& frame);
+  void compute(VkCommandBuffer cmd, FrameData &frame);
 
   bool attachChildren(const std::string &parentName,
                       std::shared_ptr<MeshAsset> asset);
@@ -40,14 +40,14 @@ public:
   attachChildrens(const std::string &parentName,
                   const std::vector<std::shared_ptr<MeshAsset>> &childrens);
 
-  ComputeShaderPushConstants& getComputeData();
+  ComputeShaderPushConstants &getComputeData();
 
 protected:
   // Material
   void init_material();
   void destroy_material();
 
-  //Compute
+  // Compute
   void init_compute();
   void destroy_compute();
 

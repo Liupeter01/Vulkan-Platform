@@ -1,5 +1,5 @@
-#include <Tools.hpp>
 #include <Descriptors.hpp>
+#include <Tools.hpp>
 #include <VulkanEngine.hpp>
 #include <scene/Scene.hpp>
 
@@ -139,14 +139,15 @@ void Scene::destroy_material() {
 }
 
 void Scene::init_compute() {
-          imageAttachmentCompute.reset();
-          imageAttachmentCompute = std::make_unique<Compute_ImageAttachment>(engine->device_);
-          imageAttachmentCompute->init();
+  imageAttachmentCompute.reset();
+  imageAttachmentCompute =
+      std::make_unique<Compute_ImageAttachment>(engine->device_);
+  imageAttachmentCompute->init();
 }
 
-void Scene::destroy_compute(){
-          imageAttachmentCompute->destory();
-          imageAttachmentCompute.reset();
+void Scene::destroy_compute() {
+  imageAttachmentCompute->destory();
+  imageAttachmentCompute.reset();
 }
 
 VkDescriptorSetLayout Scene::create_ubo_layout() {
@@ -239,11 +240,11 @@ void Scene::render(VkCommandBuffer cmd, FrameData &frame) {
   auto drawExtent = frame.getExtent2D();
 
   auto colorAttachmentInfo =
-            tools::color_attachment_info(frame.drawImage_->imageView);
+      tools::color_attachment_info(frame.drawImage_->imageView);
   auto depthAttachmentInfo =
-            tools::depth_attachment_info(frame.depthImage_->imageView);
+      tools::depth_attachment_info(frame.depthImage_->imageView);
   auto renderInfo = tools::rendering_info(drawExtent, &colorAttachmentInfo,
-            &depthAttachmentInfo);
+                                          &depthAttachmentInfo);
 
   vkCmdBeginRendering(cmd, &renderInfo);
 
@@ -307,30 +308,30 @@ void Scene::render(VkCommandBuffer cmd, FrameData &frame) {
   vkCmdEndRendering(cmd);
 }
 
-void Scene::compute(VkCommandBuffer cmd, FrameData& frame) {
+void Scene::compute(VkCommandBuffer cmd, FrameData &frame) {
 
-          auto drawExtent = frame.getExtent2D();
-          ComputeResources res{ frame.drawImage_->imageView };
+  auto drawExtent = frame.getExtent2D();
+  ComputeResources res{frame.drawImage_->imageView};
 
-          auto ins = imageAttachmentCompute->generate_instance(
-                    res, frame._frameDescriptor);
+  auto ins =
+      imageAttachmentCompute->generate_instance(res, frame._frameDescriptor);
 
-          vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
+  vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
                     ins.pipeline->getPipeline());
 
-          vkCmdPushConstants(cmd, ins.pipeline->getPipelineLayout(),
-                    VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                    sizeof(ComputeShaderPushConstants), &myScene.computeShaderData);
+  vkCmdPushConstants(
+      cmd, ins.pipeline->getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0,
+      sizeof(ComputeShaderPushConstants), &myScene.computeShaderData);
 
-          // bind the descriptor set containing the draw image for the compute pipeline
-          vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-                    ins.pipeline->getPipelineLayout(), 0, 1,
-                    &ins.computeSet, 0, nullptr);
+  // bind the descriptor set containing the draw image for the compute pipeline
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                          ins.pipeline->getPipelineLayout(), 0, 1,
+                          &ins.computeSet, 0, nullptr);
 
-          // execute the compute pipeline dispatch. We are using 16x16 workgroup size so
-          // we need to divide by it
-          vkCmdDispatch(cmd, static_cast<uint32_t>(std::ceil(drawExtent.width / 16.0f)),
-                    static_cast<uint32_t>(std::ceil(drawExtent.height / 16.0f)), 1);
+  // execute the compute pipeline dispatch. We are using 16x16 workgroup size so
+  // we need to divide by it
+  vkCmdDispatch(cmd, static_cast<uint32_t>(std::ceil(drawExtent.width / 16.0f)),
+                static_cast<uint32_t>(std::ceil(drawExtent.height / 16.0f)), 1);
 }
 
 bool Scene::attachChildren(const std::string &parentName,
@@ -352,8 +353,8 @@ bool Scene::attachChildrens(
   return node_mgr.attachChildrens(parentName, childrens);
 }
 
-ComputeShaderPushConstants& Scene::getComputeData() {
-          return myScene.computeShaderData;
+ComputeShaderPushConstants &Scene::getComputeData() {
+  return myScene.computeShaderData;
 }
 
 } // namespace engine
