@@ -4,7 +4,9 @@
 #include <memory>
 #include <nodes/MeshNode.hpp>
 #include <nodes/NodeManager.hpp>
-#include <pipeline/ComputePipelinePacked.hpp>
+#include <Descriptors.hpp>
+#include <GlobalDef.hpp>
+#include <compute/Compute_ImageAttachment.hpp>
 #include <pipeline/GraphicPipelinePacked.hpp>
 #include <tuple>
 
@@ -23,7 +25,9 @@ public:
   void init(const std::string &root_name = "/root");
   void destroy();
   void update_scene();
-  void execute(VkCommandBuffer cmd, FrameData &pool);
+
+  void render(VkCommandBuffer cmd, FrameData &frame);
+  void compute(VkCommandBuffer cmd, FrameData& frame);
 
   bool attachChildren(const std::string &parentName,
                       std::shared_ptr<MeshAsset> asset);
@@ -36,10 +40,16 @@ public:
   attachChildrens(const std::string &parentName,
                   const std::vector<std::shared_ptr<MeshAsset>> &childrens);
 
+  ComputeShaderPushConstants& getComputeData();
+
 protected:
   // Material
   void init_material();
   void destroy_material();
+
+  //Compute
+  void init_compute();
+  void destroy_compute();
 
   // Scene Data
   void init_scene_layout();
@@ -71,6 +81,7 @@ private:
 
   /*  Scene Control System (set = 0, binding = 0 ) */
   struct SceneControl {
+    ComputeShaderPushConstants computeShaderData{};
     GPUSceneData globalSceneData{}; // Scene Data For this scene only
     VkDescriptorSetLayout sceneDescriptorSetLayout_{};
   } myScene{};
@@ -79,6 +90,7 @@ private:
   node::NodeManager node_mgr;
 
   std::unique_ptr<GLTFMetallic_Roughness> metalRoughMaterial;
+  std::unique_ptr<Compute_ImageAttachment> imageAttachmentCompute;
 
   // Default Color => Default Materal
   std::unique_ptr<AllocatedTexture> white_{};

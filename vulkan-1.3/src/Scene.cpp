@@ -1,3 +1,4 @@
+#include <Tools.hpp>
 #include <Descriptors.hpp>
 #include <VulkanEngine.hpp>
 #include <scene/Scene.hpp>
@@ -12,6 +13,7 @@ void Scene::init(const std::string &root_name) {
     return;
   init_scene_layout();
   init_material();
+  init_compute();
   init_default_color();
   init_default_sampler();
 
@@ -26,6 +28,7 @@ void Scene::destroy() {
     destroy_default_color();
     destroy_default_sampler();
     destroy_scene_layout();
+    destroy_compute();
     destroy_material();
     isInit = false;
   }
@@ -135,6 +138,17 @@ void Scene::destroy_material() {
   metalRoughMaterial.reset();
 }
 
+void Scene::init_compute() {
+          imageAttachmentCompute.reset();
+          imageAttachmentCompute = std::make_unique<Compute_ImageAttachment>(engine->device_);
+          imageAttachmentCompute->init();
+}
+
+void Scene::destroy_compute(){
+          imageAttachmentCompute->destory();
+          imageAttachmentCompute.reset();
+}
+
 VkDescriptorSetLayout Scene::create_ubo_layout() {
   return DescriptorLayoutBuilder{engine->device_}
       .add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
@@ -207,7 +221,7 @@ Scene::createDefaultMaterialInstance(FrameData &frame) {
           materialBuffer};
 }
 
-void Scene::execute(VkCommandBuffer cmd, FrameData &frame) {
+void Scene::render(VkCommandBuffer cmd, FrameData &frame) {
 
   std::string last_mesh;
 
@@ -221,6 +235,32 @@ void Scene::execute(VkCommandBuffer cmd, FrameData &frame) {
     sceneDataBuffer->destroy();
     materialBuffer->destroy();
   });
+
+  auto drawExtent = frame.getExtent2D();
+
+  auto colorAttachmentInfo =
+            tools::color_attachment_info(frame.drawImage_->imageView);
+  auto depthAttachmentInfo =
+            tools::depth_attachment_info(frame.depthImage_->imageView);
+  auto renderInfo = tools::rendering_info(drawExtent, &colorAttachmentInfo,
+            &depthAttachmentInfo);
+
+  vkCmdBeginRendering(cmd, &renderInfo);
+
+  // set dynamic viewport and scissor
+  VkViewport viewport = {};
+  viewport.width = static_cast<float>(drawExtent.width);
+  viewport.height = static_cast<float>(drawExtent.height);
+  viewport.minDepth = 0.f;
+  viewport.maxDepth = 1.f;
+
+  vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+  VkRect2D scissor = {};
+  scissor.extent.width = drawExtent.width;
+  scissor.extent.height = drawExtent.height;
+
+  vkCmdSetScissor(cmd, 0, 1, &scissor);
 
   for (auto &surface : ctx.OpaqueSurfaces) {
 
@@ -263,6 +303,34 @@ void Scene::execute(VkCommandBuffer cmd, FrameData &frame) {
 
     vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
   }
+
+  vkCmdEndRendering(cmd);
+}
+
+void Scene::compute(VkCommandBuffer cmd, FrameData& frame) {
+
+          auto drawExtent = frame.getExtent2D();
+          ComputeResources res{ frame.drawImage_->imageView };
+
+          auto ins = imageAttachmentCompute->generate_instance(
+                    res, frame._frameDescriptor);
+
+          vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
+                    ins.pipeline->getPipeline());
+
+          vkCmdPushConstants(cmd, ins.pipeline->getPipelineLayout(),
+                    VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                    sizeof(ComputeShaderPushConstants), &myScene.computeShaderData);
+
+          // bind the descriptor set containing the draw image for the compute pipeline
+          vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                    ins.pipeline->getPipelineLayout(), 0, 1,
+                    &ins.computeSet, 0, nullptr);
+
+          // execute the compute pipeline dispatch. We are using 16x16 workgroup size so
+          // we need to divide by it
+          vkCmdDispatch(cmd, static_cast<uint32_t>(std::ceil(drawExtent.width / 16.0f)),
+                    static_cast<uint32_t>(std::ceil(drawExtent.height / 16.0f)), 1);
 }
 
 bool Scene::attachChildren(const std::string &parentName,
@@ -282,6 +350,10 @@ bool Scene::attachChildrens(
     const std::string &parentName,
     const std::vector<std::shared_ptr<MeshAsset>> &childrens) {
   return node_mgr.attachChildrens(parentName, childrens);
+}
+
+ComputeShaderPushConstants& Scene::getComputeData() {
+          return myScene.computeShaderData;
 }
 
 } // namespace engine
