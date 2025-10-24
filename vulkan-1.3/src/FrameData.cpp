@@ -153,4 +153,8 @@ void FrameData::reset_images(VkExtent3D newExtent) {
           init_images(newExtent);
 }
 
+VkExtent2D FrameData::getExtent2D() const {
+          return { oldExtent_.width, oldExtent_.height };
+}
+
 } // namespace engine

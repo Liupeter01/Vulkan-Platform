@@ -46,6 +46,8 @@ struct FrameData {
 
   void reset_images(VkExtent3D newExtent);
 
+  VkExtent2D getExtent2D() const;
+
   VkFence _renderFinishedFence;
   VkSemaphore _swapChainWait, _renderPresentKHRSignal;
   VkCommandPool _commandPool;
