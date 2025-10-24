@@ -1,16 +1,16 @@
 #pragma once
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
-#include <Descriptors.hpp>
-#include <GlobalDef.hpp>
-#include <Window.hpp>
+#include <FrameData.hpp>
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <pipeline/ComputePipelinePacked.hpp>
-#include <pipeline/GraphicPipelinePacked.hpp>
+#include <GlobalDef.hpp>
+#include <Window.hpp>
+#include <scene/Scene.hpp>
 #include <string>
 #include <vector>
+#include <nodes/CameraNode.hpp>
 
 // IMGUI Support
 #define GLFW_INCLUDE_VULKAN
@@ -20,7 +20,14 @@
 #include <imgui.h>
 
 namespace engine {
+
+          class Scene;
+          struct FrameData;
+
 class VulkanEngine {
+          friend class Scene;
+          friend  struct FrameData;
+
 public:
   using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
   VulkanEngine(Window &win, bool enableValidationLayer = true);
@@ -52,11 +59,13 @@ private:
   void init_immediate_commands();
   void init_immediate_sync();
   void init_vma_allocator();
-  void init_custom_image();
   void init_imgui();
+  void init_scene();
+  void init_camera();
 
+  void destroy_camera();
+  void destroy_scene();
   void destroy_imgui();
-  void destroy_custom_image();
   void destroy_vma_allocator();
   void destroy_frames();
   void destroy_immediate_sync();
@@ -66,6 +75,7 @@ private:
 
 private:
   void resize_swapchain();
+  void resize_frames();
   void draw_background(VkCommandBuffer cmd, VkImage image);
   void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
                   VkImageView imageView = VK_NULL_HANDLE);
@@ -118,8 +128,6 @@ private:
   uint32_t graphicsQueueFamily_;
 
   VkExtent2D drawExtent_;
-  std::unique_ptr<AllocatedImage> drawImage_ = nullptr;
-  std::unique_ptr<AllocatedImage> depthImage_ = nullptr;
   float renderScale = 1.f;
 
   VmaAllocator allocator_;
@@ -129,11 +137,11 @@ private:
   VkCommandBuffer immCommandBuffer_;
   VkCommandPool immCommandPool_;
 
-  // Compute Pipeline
-  std::shared_ptr<ComputePipelinePacked> computeEffect =
-      nullptr; // Compute Pipeline
   std::shared_ptr<GraphicPipelinePacked> graphicEffect =
       nullptr; // Graphic Pipeline
+
+  std::unique_ptr<Scene> scene_ = nullptr;
+  std::shared_ptr<node::CameraNode> camera_ = nullptr;
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_
