@@ -4,10 +4,10 @@
 #include <Descriptors.hpp>
 #include <GlobalDef.hpp>
 #include <compute/Compute_ImageAttachment.hpp>
+#include <material/GLTFMetallic_Roughness.hpp>
 #include <memory>
 #include <nodes/MeshNode.hpp>
 #include <nodes/NodeManager.hpp>
-#include <pipeline/GraphicPipelinePacked.hpp>
 #include <tuple>
 
 namespace engine {
@@ -42,6 +42,8 @@ public:
 
   ComputeShaderPushConstants &getComputeData();
 
+  void submit();
+
 protected:
   // Material
   void init_material();
@@ -64,6 +66,10 @@ protected:
   void destroy_default_sampler();
 
 private:
+          void submitMesh(VkCommandBuffer cmd);
+          void submitColorImage(VkCommandBuffer cmd);
+          void flushUpload(VkFence fence);
+
   [[nodiscard]]
   std::tuple<VkDescriptorSet, std::shared_ptr<AllocatedBuffer>>
   createSceneSet(FrameData &frame);
@@ -74,6 +80,7 @@ private:
 
 private:
   bool isInit = false;
+  std::string last_mesh;
 
   VulkanEngine *engine{};
 
