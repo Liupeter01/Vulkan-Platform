@@ -6,6 +6,7 @@
 #include <exception>
 #include <numeric>
 #include <stdexcept>
+#include <spdlog/spdlog.h>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -32,19 +33,9 @@ void VulkanEngine::init() {
   init_scene();
   init_camera();
 
-  // Load Graphic Shader
-  graphicEffect.reset();
-  graphicEffect =
-      std::make_shared<graphic::GraphicPipelinePacked>(device_, allocator_);
-
-  if (!graphicEffect)
-    throw std::runtime_error("Init Graphic Pipeline Packed Error!");
-
   if (auto mesh = MeshAsset::loadGltfMeshes(
           device_, allocator_, CONFIG_HOME "assets/gltf/basicmesh.glb");
       mesh) {
-
-    graphicEffect->load_asset(mesh.value());
 
     /*
      *                    root
@@ -53,13 +44,7 @@ void VulkanEngine::init() {
      */
     scene_->attachChildrens("/root", mesh.value());
   }
-
-  graphicEffect->init();
-
-  imm_command_submit(graphicEffect->getMeshFunctor());
-  imm_command_submit(graphicEffect->getColorFunctor());
-
-  graphicEffect->flushUpload(immFence_);
+  scene_->submit();
 }
 
 void VulkanEngine::destroy() {
@@ -68,10 +53,6 @@ void VulkanEngine::destroy() {
   destroy_scene();
 
   destroy_imgui();
-
-  // Do it before vkdevice being removed!
-  graphicEffect->destroy();
-  graphicEffect.reset();
 
   // HAS TO BE DONE BEFORE REMOVE VMA!!!
   destroy_frames();
@@ -273,8 +254,7 @@ void VulkanEngine::draw() {
   util::transition_image(cmd, depth_image, VK_IMAGE_LAYOUT_UNDEFINED,
                          VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-  graphicEffect->draw(drawExtent_, *currentFrame.drawImage_,
-                      *currentFrame.depthImage_, currentFrame);
+  scene_->render(cmd, currentFrame);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
@@ -452,6 +432,14 @@ void VulkanEngine::init_vulkan() {
   graphicsQueue_ = vkbDevice.get_queue(vkb::QueueType::graphics).value();
   graphicsQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+
+  transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
+  transferQueueFamily_ =
+            vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
+
+  if (transferQueueFamily_ == graphicsQueueFamily_) {
+            spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue ¡ª using graphics queue instead ");
+  }
 
   isInit = true;
 }

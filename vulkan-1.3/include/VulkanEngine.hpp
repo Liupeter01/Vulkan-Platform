@@ -127,6 +127,9 @@ private:
   VkQueue graphicsQueue_;
   uint32_t graphicsQueueFamily_;
 
+  VkQueue transferQueue_;
+  uint32_t transferQueueFamily_;
+
   VkExtent2D drawExtent_;
   float renderScale = 1.f;
 
@@ -136,9 +139,6 @@ private:
   VkFence immFence_;
   VkCommandBuffer immCommandBuffer_;
   VkCommandPool immCommandPool_;
-
-  std::shared_ptr<GraphicPipelinePacked> graphicEffect =
-      nullptr; // Graphic Pipeline
 
   std::unique_ptr<Scene> scene_ = nullptr;
   std::shared_ptr<node::CameraNode> camera_ = nullptr;
