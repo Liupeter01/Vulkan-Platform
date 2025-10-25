@@ -24,7 +24,7 @@ public:
   float lookSpeed = {1.5f};
 
   void movePlaneYXZ(GLFWwindow *win, float dt,
-                    std::shared_ptr<node::BaseNode> &obj);
+                    std::shared_ptr<node::BaseNode> obj);
 };
 } // namespace engine
 

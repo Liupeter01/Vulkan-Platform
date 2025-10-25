@@ -6,7 +6,7 @@
 
 namespace engine {
 void KeyBoardController::movePlaneYXZ(GLFWwindow *win, float dt,
-                                      std::shared_ptr<node::BaseNode> &obj) {
+                                      std::shared_ptr<node::BaseNode> obj) {
 
   if (!obj) {
     spdlog::error(
