@@ -7,6 +7,7 @@
 #include <numeric>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <interactive/Keyboard_Controller.hpp>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -91,8 +92,15 @@ void VulkanEngine::imm_command_submit(
 
 void VulkanEngine::run() {
 
+  KeyBoardController keyboard_controller;
   auto currTime = std::chrono::high_resolution_clock::now();
 
+  camera_->setViewTarget(glm::vec3{ 0.f, 0.f, -1.f }, glm::vec3(0.f, 0.f, 0.f));
+  camera_->setPerspectiveProjection(glm::radians(45.f),
+            swapchainExtent_.width /
+            swapchainExtent_.height, 0.1f, 100.f);
+
+  //camera_
   while (!window_.shouldClose()) {
     glfwPollEvents();
 
@@ -101,6 +109,10 @@ void VulkanEngine::run() {
                          nowTime - currTime)
                          .count();
     currTime = nowTime;
+
+    keyboard_controller.movePlaneYXZ(window_.getGLFWWindow(), timeFrame, camera_);
+    camera_->setYXZ(camera_->localTransform.translation,
+              camera_->localTransform.rotation);
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -433,14 +445,14 @@ void VulkanEngine::init_vulkan() {
   graphicsQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
-  transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
-  transferQueueFamily_ =
-      vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
+  //transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
+  //transferQueueFamily_ =
+  //    vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
 
-  if (transferQueueFamily_ == graphicsQueueFamily_) {
-    spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue "
-                 "¡ª using graphics queue instead ");
-  }
+  //if (transferQueueFamily_ == graphicsQueueFamily_) {
+  //  spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue "
+  //               "¡ª using graphics queue instead ");
+  //}
 
   isInit = true;
 }
