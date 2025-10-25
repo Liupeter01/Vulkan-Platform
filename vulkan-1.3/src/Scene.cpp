@@ -198,9 +198,9 @@ void Scene::update_scene() {
 
   ctx.OpaqueSurfaces.clear();
 
-  for (float x = -0.6f; x <= 0.6f; x += 0.6f) {
+  for (float x = 0.f; x < 0.6f; x += 0.6f) {
 
-    glm::mat4 scale = glm::scale(glm::mat4{1.f}, glm::vec3{0.35f});
+    glm::mat4 scale = glm::scale(glm::mat4{1.f}, glm::vec3{0.3f});
     glm::mat4 translation = glm::translate(glm::mat4{1.f}, glm::vec3{x, 0, 0});
 
     // Execute Draw Command From Root Node!
