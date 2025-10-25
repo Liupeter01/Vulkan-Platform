@@ -146,11 +146,11 @@ void FrameData::destroy_images() {
 
 void FrameData::reset_images(VkExtent3D newExtent) {
 
-  if (newExtent.depth * newExtent.height * newExtent.width <=
-      oldExtent_.depth * oldExtent_.height * oldExtent_.width) {
+  //if (newExtent.depth * newExtent.height * newExtent.width <=
+  //    oldExtent_.depth * oldExtent_.height * oldExtent_.width) {
 
-    return;
-  }
+  //  return;
+  //}
 
   spdlog::info(
       "[FrameData]: Windows Resize width = {}, height = {}, depth = {}",
