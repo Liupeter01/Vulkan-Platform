@@ -5,8 +5,8 @@
 #include <chrono>
 #include <exception>
 #include <numeric>
-#include <stdexcept>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -435,10 +435,11 @@ void VulkanEngine::init_vulkan() {
 
   transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
   transferQueueFamily_ =
-            vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
+      vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
 
   if (transferQueueFamily_ == graphicsQueueFamily_) {
-            spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue ¡ª using graphics queue instead ");
+    spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue "
+                 "¡ª using graphics queue instead ");
   }
 
   isInit = true;

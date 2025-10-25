@@ -35,12 +35,12 @@ void Scene::destroy() {
 }
 
 void Scene::submit() {
-          engine->imm_command_submit([this](VkCommandBuffer cmd) {
-                    submitColorImage(cmd);
-                    submitMesh(cmd);
-                    });
+  engine->imm_command_submit([this](VkCommandBuffer cmd) {
+    submitColorImage(cmd);
+    submitMesh(cmd);
+  });
 
-          flushUpload(engine->immFence_);
+  flushUpload(engine->immFence_);
 }
 
 void Scene::init_scene_layout() {
@@ -168,43 +168,43 @@ VkDescriptorSetLayout Scene::create_ubo_layout() {
 
 void Scene::submitMesh(VkCommandBuffer cmd) {
 
-          if (auto mesh = node_mgr.findMesh("Suzanne"); mesh) {
-                    (*mesh)->submitMesh(cmd);
-          }
+  if (auto mesh = node_mgr.findMesh("Suzanne"); mesh) {
+    (*mesh)->submitMesh(cmd);
+  }
 }
 
 void Scene::submitColorImage(VkCommandBuffer cmd) {
-          black_->uploadBufferToImage(cmd);
-          white_->uploadBufferToImage(cmd);
-          grey_->uploadBufferToImage(cmd);
-          magenta_->uploadBufferToImage(cmd);
-          loaderrorImage_->uploadBufferToImage(cmd);
+  black_->uploadBufferToImage(cmd);
+  white_->uploadBufferToImage(cmd);
+  grey_->uploadBufferToImage(cmd);
+  magenta_->uploadBufferToImage(cmd);
+  loaderrorImage_->uploadBufferToImage(cmd);
 }
 
 void Scene::flushUpload(VkFence fence) {
 
-          black_->flushUpload(fence);
-          white_->flushUpload(fence);
-          grey_->flushUpload(fence);
-          magenta_->flushUpload(fence);
-          loaderrorImage_->flushUpload(fence);
+  black_->flushUpload(fence);
+  white_->flushUpload(fence);
+  grey_->flushUpload(fence);
+  magenta_->flushUpload(fence);
+  loaderrorImage_->flushUpload(fence);
 
-          if (auto mesh = node_mgr.findMesh("Suzanne"); mesh) {
-                    (*mesh)->flushUpload(fence);
-          }
+  if (auto mesh = node_mgr.findMesh("Suzanne"); mesh) {
+    (*mesh)->flushUpload(fence);
+  }
 }
 
 void Scene::update_scene() {
 
   ctx.OpaqueSurfaces.clear();
 
-  for (float x = -0.6f; x <= 0.6f; x+=0.6f) {
+  for (float x = -0.6f; x <= 0.6f; x += 0.6f) {
 
-            glm::mat4 scale = glm::scale(glm::mat4{ 1.f } , glm::vec3{ 0.35f });
-            glm::mat4 translation = glm::translate(glm::mat4{ 1.f }, glm::vec3{ x, 0, 0 });
+    glm::mat4 scale = glm::scale(glm::mat4{1.f}, glm::vec3{0.35f});
+    glm::mat4 translation = glm::translate(glm::mat4{1.f}, glm::vec3{x, 0, 0});
 
-            // Execute Draw Command From Root Node!
-            node_mgr.draw(translation * scale, ctx);
+    // Execute Draw Command From Root Node!
+    node_mgr.draw(translation * scale, ctx);
   }
 
   // Update Camera
@@ -306,13 +306,13 @@ void Scene::render(VkCommandBuffer cmd, FrameData &frame) {
 
   for (auto &surface : ctx.OpaqueSurfaces) {
 
-            // No Material Exist!
-            if (!surface.material) {
-                      // setup default material
-                      surface.material = &defaultMateral;
-            }
+    // No Material Exist!
+    if (!surface.material) {
+      // setup default material
+      surface.material = &defaultMateral;
+    }
 
-            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       surface.material->pipeline->getPipeline());
 
     // Its different from last mesh! So we should resubmit the vertices!
@@ -320,18 +320,20 @@ void Scene::render(VkCommandBuffer cmd, FrameData &frame) {
       last_mesh = surface.mesh_name;
 
       if (auto mesh = node_mgr.findMesh(surface.mesh_name); mesh) {
-        vkCmdBindIndexBuffer(cmd, (*mesh)->meshBuffers.indexBuffer.buffer, 0, tools::getIndexType<
-                  decltype((*mesh)->meshBuffers.indicies_[0])>());
+        vkCmdBindIndexBuffer(
+            cmd, (*mesh)->meshBuffers.indexBuffer.buffer, 0,
+            tools::getIndexType<decltype((*mesh)->meshBuffers.indicies_[0])>());
       }
     }
 
-    std::vector<VkDescriptorSet> descriptorSets{ sceneSet, surface.material->materialSet };
+    std::vector<VkDescriptorSet> descriptorSets{sceneSet,
+                                                surface.material->materialSet};
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-              surface.material->pipeline->getPipelineLayout(), 0,
-              static_cast<uint32_t>(descriptorSets.size()),
-              descriptorSets.data(), 0, nullptr);
-    
+                            surface.material->pipeline->getPipelineLayout(), 0,
+                            static_cast<uint32_t>(descriptorSets.size()),
+                            descriptorSets.data(), 0, nullptr);
+
     GPUGeoPushConstants constants{};
     constants.matrix = surface.transform;
     constants.vertexBuffer = surface.vertexBufferAddress;

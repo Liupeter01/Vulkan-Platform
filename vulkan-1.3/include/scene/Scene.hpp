@@ -66,9 +66,9 @@ protected:
   void destroy_default_sampler();
 
 private:
-          void submitMesh(VkCommandBuffer cmd);
-          void submitColorImage(VkCommandBuffer cmd);
-          void flushUpload(VkFence fence);
+  void submitMesh(VkCommandBuffer cmd);
+  void submitColorImage(VkCommandBuffer cmd);
+  void flushUpload(VkFence fence);
 
   [[nodiscard]]
   std::tuple<VkDescriptorSet, std::shared_ptr<AllocatedBuffer>>
