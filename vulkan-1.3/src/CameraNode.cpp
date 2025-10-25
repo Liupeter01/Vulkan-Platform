@@ -13,6 +13,11 @@ void CameraNode::Draw(const glm::mat4 &parentMatrix, DrawContext &ctx) {
   viewMatrix_ = glm::inverse(worldTransform);
 }
 
+void CameraNode::update() {
+          worldTransform = localTransform.mat4();
+          viewMatrix_ = glm::inverse(worldTransform);
+}
+
 void CameraNode::setOrthoProjection(float left, float right, float top,
                                     float bottom, float near, float far) {
   projectionMatrix_ = glm::mat4{1.f};

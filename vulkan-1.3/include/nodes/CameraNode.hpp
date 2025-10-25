@@ -35,6 +35,7 @@ public:
   const glm::mat4 &getViewMatrix() const;
   const glm::mat4 &getInverseViewMatrix() const;
   glm::vec3 getCameraPosition() const;
+  void update();
 
 private:
   glm::mat4 projectionMatrix_{1.f};
