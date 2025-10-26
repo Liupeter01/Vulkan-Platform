@@ -24,9 +24,14 @@ namespace engine {
 class Scene;
 struct FrameData;
 
+          namespace node {
+                    class NodesPackedCreator;
+          }
+
 class VulkanEngine {
   friend class Scene;
   friend struct FrameData;
+  friend class node::NodesPackedCreator;
 
 public:
   using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
@@ -62,6 +67,13 @@ private:
   void init_imgui();
   void init_scene();
   void init_camera();
+
+  // default color & default material
+  void init_default_color();
+  void init_default_sampler();
+
+  void destroy_default_color();
+  void destroy_default_sampler();
 
   void destroy_camera();
   void destroy_scene();
@@ -142,6 +154,17 @@ private:
 
   std::unique_ptr<Scene> scene_ = nullptr;
   std::shared_ptr<node::CameraNode> camera_ = nullptr;
+
+
+  // Default Color => Default Materal
+  std::unique_ptr<AllocatedTexture> white_{};
+  std::unique_ptr<AllocatedTexture> grey_{};
+  std::unique_ptr<AllocatedTexture> black_{};
+  std::unique_ptr<AllocatedTexture> magenta_{};
+  std::unique_ptr<AllocatedTexture> loaderrorImage_{};
+
+  VkSampler defaultSamplerLinear_;
+  VkSampler defaultSamplerNearest_;
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_

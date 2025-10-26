@@ -58,13 +58,6 @@ protected:
   void destroy_scene_layout();
   [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
 
-  // default color & default material
-  void init_default_color();
-  void init_default_sampler();
-
-  void destroy_default_color();
-  void destroy_default_sampler();
-
 private:
   void submitMesh(VkCommandBuffer cmd);
   void submitColorImage(VkCommandBuffer cmd);
@@ -98,16 +91,6 @@ private:
 
   std::unique_ptr<GLTFMetallic_Roughness> metalRoughMaterial;
   std::unique_ptr<Compute_ImageAttachment> imageAttachmentCompute;
-
-  // Default Color => Default Materal
-  std::unique_ptr<AllocatedTexture> white_{};
-  std::unique_ptr<AllocatedTexture> grey_{};
-  std::unique_ptr<AllocatedTexture> black_{};
-  std::unique_ptr<AllocatedTexture> magenta_{};
-  std::unique_ptr<AllocatedTexture> loaderrorImage_{};
-
-  VkSampler defaultSamplerLinear_;
-  VkSampler defaultSamplerNearest_;
 };
 } // namespace engine
 

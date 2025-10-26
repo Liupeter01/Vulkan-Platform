@@ -16,8 +16,6 @@ void Scene::init(const std::string &root_name) {
   init_scene_layout();
   init_material();
   init_compute();
-  init_default_color();
-  init_default_sampler();
   node_mgr.init();
   isInit = true;
 }
@@ -25,8 +23,6 @@ void Scene::init(const std::string &root_name) {
 void Scene::destroy() {
   if (isInit) {
     node_mgr.destroy();
-    destroy_default_color();
-    destroy_default_sampler();
     destroy_scene_layout();
     destroy_compute();
     destroy_material();
@@ -45,89 +41,6 @@ void Scene::submit() {
 
 void Scene::init_scene_layout() {
   myScene.sceneDescriptorSetLayout_ = create_ubo_layout();
-}
-
-void Scene::init_default_color() {
-  white_.reset();
-  grey_.reset();
-  black_.reset();
-  magenta_.reset();
-  loaderrorImage_.reset();
-
-  white_ =
-      std::make_unique<AllocatedTexture>(engine->device_, engine->allocator_);
-  grey_ =
-      std::make_unique<AllocatedTexture>(engine->device_, engine->allocator_);
-  black_ =
-      std::make_unique<AllocatedTexture>(engine->device_, engine->allocator_);
-  magenta_ =
-      std::make_unique<AllocatedTexture>(engine->device_, engine->allocator_);
-  loaderrorImage_ =
-      std::make_unique<AllocatedTexture>(engine->device_, engine->allocator_);
-
-  uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
-  uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
-  uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 1));
-  uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
-
-  std::array<uint32_t, 16 * 16> pixels; // for 16x16 checkerboard texture
-
-  for (int x = 0; x < 16; x++) {
-    for (int y = 0; y < 16; y++) {
-      pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
-    }
-  }
-
-  white_->createBuffer(reinterpret_cast<void *>(&white), VkExtent3D{1, 1, 1},
-                       VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
-
-  grey_->createBuffer(reinterpret_cast<void *>(&grey), VkExtent3D{1, 1, 1},
-                      VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
-
-  black_->createBuffer(reinterpret_cast<void *>(&black), VkExtent3D{1, 1, 1},
-                       VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
-
-  magenta_->createBuffer(reinterpret_cast<void *>(&magenta),
-                         VkExtent3D{1, 1, 1}, VK_FORMAT_R8G8B8A8_UNORM,
-                         VK_IMAGE_USAGE_SAMPLED_BIT);
-
-  loaderrorImage_->createBuffer(reinterpret_cast<void *>(pixels.data()),
-                                VkExtent3D{16, 16, 1}, VK_FORMAT_R8G8B8A8_UNORM,
-                                VK_IMAGE_USAGE_SAMPLED_BIT);
-}
-
-void Scene::init_default_sampler() {
-  VkSamplerCreateInfo samplerInfo{};
-  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  samplerInfo.magFilter = VK_FILTER_NEAREST;
-  samplerInfo.minFilter = VK_FILTER_NEAREST;
-  vkCreateSampler(engine->device_, &samplerInfo, nullptr,
-                  &defaultSamplerNearest_);
-
-  samplerInfo.magFilter = VK_FILTER_LINEAR;
-  samplerInfo.minFilter = VK_FILTER_LINEAR;
-  vkCreateSampler(engine->device_, &samplerInfo, nullptr,
-                  &defaultSamplerLinear_);
-}
-
-void Scene::destroy_default_sampler() {
-  vkDestroySampler(engine->device_, defaultSamplerNearest_, nullptr);
-  vkDestroySampler(engine->device_, defaultSamplerLinear_, nullptr);
-}
-
-void Scene::destroy_default_color() {
-
-  white_->destroy();
-  grey_->destroy();
-  black_->destroy();
-  magenta_->destroy();
-  loaderrorImage_->destroy();
-
-  white_.reset();
-  grey_.reset();
-  black_.reset();
-  magenta_.reset();
-  loaderrorImage_.reset();
 }
 
 void Scene::destroy_scene_layout() {
@@ -174,20 +87,20 @@ void Scene::submitMesh(VkCommandBuffer cmd) {
 }
 
 void Scene::submitColorImage(VkCommandBuffer cmd) {
-  black_->uploadBufferToImage(cmd);
-  white_->uploadBufferToImage(cmd);
-  grey_->uploadBufferToImage(cmd);
-  magenta_->uploadBufferToImage(cmd);
-  loaderrorImage_->uploadBufferToImage(cmd);
+          engine->black_->uploadBufferToImage(cmd);
+          engine->white_->uploadBufferToImage(cmd);
+          engine->grey_->uploadBufferToImage(cmd);
+          engine->magenta_->uploadBufferToImage(cmd);
+          engine->loaderrorImage_->uploadBufferToImage(cmd);
 }
 
 void Scene::flushUpload(VkFence fence) {
 
-  black_->flushUpload(fence);
-  white_->flushUpload(fence);
-  grey_->flushUpload(fence);
-  magenta_->flushUpload(fence);
-  loaderrorImage_->flushUpload(fence);
+  engine->black_->flushUpload(fence);
+  engine->white_->flushUpload(fence);
+  engine->grey_->flushUpload(fence);
+  engine->magenta_->flushUpload(fence);
+  engine->loaderrorImage_->flushUpload(fence);
 
   if (auto mesh = node_mgr.findMesh("Suzanne"); mesh) {
     (*mesh)->flushUpload(fence);
@@ -254,10 +167,10 @@ Scene::createDefaultMaterialInstance(FrameData &frame) {
   materialBuffer->unmap();
 
   MaterialResources materialResources;
-  materialResources.colorImage = white_->getImageView();
-  materialResources.colorSampler = defaultSamplerLinear_;
-  materialResources.metalRoughImage = white_->getImageView();
-  materialResources.metalRoughSampler = defaultSamplerLinear_;
+  materialResources.colorImage = engine->white_->getImageView();
+  materialResources.colorSampler = engine->defaultSamplerLinear_;
+  materialResources.metalRoughImage = engine->white_->getImageView();
+  materialResources.metalRoughSampler = engine->defaultSamplerLinear_;
   materialResources.materialConstantsData = materialBuffer->buffer;
 
   return {metalRoughMaterial->generate_instance(
