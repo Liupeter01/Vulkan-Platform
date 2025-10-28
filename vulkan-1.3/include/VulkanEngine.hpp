@@ -72,6 +72,10 @@ private:
   void init_default_color();
   void init_default_sampler();
 
+  // Scene Data
+  void init_scene_layout();
+  void destroy_scene_layout();
+
   void destroy_default_color();
   void destroy_default_sampler();
 
@@ -86,6 +90,7 @@ private:
   void destroy_vulkan();
 
 private:
+          [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
   void resize_swapchain();
   void resize_frames();
   void draw_background(VkCommandBuffer cmd, VkImage image);
@@ -155,13 +160,14 @@ private:
   std::unique_ptr<Scene> scene_ = nullptr;
   std::shared_ptr<node::CameraNode> camera_ = nullptr;
 
+  VkDescriptorSetLayout sceneDescriptorSetLayout_{};
 
   // Default Color => Default Materal
-  std::unique_ptr<AllocatedTexture> white_{};
-  std::unique_ptr<AllocatedTexture> grey_{};
-  std::unique_ptr<AllocatedTexture> black_{};
-  std::unique_ptr<AllocatedTexture> magenta_{};
-  std::unique_ptr<AllocatedTexture> loaderrorImage_{};
+  std::shared_ptr<AllocatedTexture> white_{};
+  std::shared_ptr<AllocatedTexture> grey_{};
+  std::shared_ptr<AllocatedTexture> black_{};
+  std::shared_ptr<AllocatedTexture> magenta_{};
+  std::shared_ptr<AllocatedTexture> loaderrorImage_{};
 
   VkSampler defaultSamplerLinear_;
   VkSampler defaultSamplerNearest_;

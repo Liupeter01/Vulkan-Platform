@@ -33,6 +33,7 @@ void VulkanEngine::init() {
   init_imgui();
   init_default_color();
   init_default_sampler();
+  init_scene_layout();
   init_scene();
   init_camera();
 
@@ -54,6 +55,7 @@ void VulkanEngine::destroy() {
 
   destroy_camera();
   destroy_scene();
+  destroy_scene_layout();
   destroy_default_color();
   destroy_default_sampler();
 
@@ -155,6 +157,13 @@ void VulkanEngine::run() {
   }
 
   vkDeviceWaitIdle(device_);
+}
+
+VkDescriptorSetLayout VulkanEngine::create_ubo_layout() {
+          return DescriptorLayoutBuilder{ device_ }
+                    .add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                    .build(VK_SHADER_STAGE_VERTEX_BIT |
+                              VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
 }
 
 void VulkanEngine::resize_swapchain() {
@@ -571,15 +580,15 @@ void VulkanEngine::init_default_color() {
           loaderrorImage_.reset();
 
           white_ =
-                    std::make_unique<AllocatedTexture>(device_, allocator_);
+                    std::make_shared<AllocatedTexture>(device_, allocator_);
           grey_ =
-                    std::make_unique<AllocatedTexture>(device_, allocator_);
+                    std::make_shared<AllocatedTexture>(device_, allocator_);
           black_ =
-                    std::make_unique<AllocatedTexture>(device_, allocator_);
+                    std::make_shared<AllocatedTexture>(device_, allocator_);
           magenta_ =
-                    std::make_unique<AllocatedTexture>(device_, allocator_);
+                    std::make_shared<AllocatedTexture>(device_, allocator_);
           loaderrorImage_ =
-                    std::make_unique<AllocatedTexture>(device_, allocator_);
+                    std::make_shared<AllocatedTexture>(device_, allocator_);
 
           uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
           uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
@@ -624,6 +633,15 @@ void VulkanEngine::init_default_sampler() {
           samplerInfo.minFilter = VK_FILTER_LINEAR;
           vkCreateSampler(device_, &samplerInfo, nullptr,
                     &defaultSamplerLinear_);
+}
+
+void VulkanEngine::init_scene_layout() {
+          sceneDescriptorSetLayout_ = create_ubo_layout();
+}
+
+void VulkanEngine::destroy_scene_layout() {
+          vkDestroyDescriptorSetLayout(device_,
+                  sceneDescriptorSetLayout_, nullptr);
 }
 
 void VulkanEngine::destroy_default_sampler() {
