@@ -61,5 +61,7 @@ void KeyBoardController::movePlaneYXZ(GLFWwindow *win, float dt,
     obj->localTransform.translation +=
         moveSpeed * dt * glm::normalize(move_direction);
   }
+
+  obj->localTransform.update();
 }
 } // namespace engine
