@@ -14,6 +14,7 @@ void CameraNode::Draw(const glm::mat4 &parentMatrix, DrawContext &ctx) {
 }
 
 void CameraNode::update() {
+          localTransform.update();
   worldTransform = localTransform.mat4();
   viewMatrix_ = glm::inverse(worldTransform);
 }
