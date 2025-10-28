@@ -10,11 +10,16 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
+
 namespace engine {
 struct MaterialInstance;
+struct KeyBoardController;
 
 namespace node {
 struct NodeManager;
+class NodesPackedCreator;
 }
 
 struct RenderObject {
@@ -31,12 +36,29 @@ struct RenderObject {
 };
 
 struct TransformComponent {
-  glm::vec3 translation{0.f};
-  glm::vec3 scale{1.f};
+          struct KeyBoardController;
+          friend class node::NodesPackedCreator;
+
+          enum class RotationControll {
+                    Quat,
+                    EularAngle
+          };
+
+  void setRotation(const glm::vec3& euler);
+  void setQuaternion(const glm::quat& q);
+
+  glm::mat4 mat4(RotationControll ctrl = RotationControll::EularAngle) const noexcept;
+  void update();
+
+  glm::vec3 scale{ 1.f };
+  glm::vec3 translation{ 0.f };
   glm::vec3 rotation{};
 
-  glm::mat4 mat4() const;
-  glm::mat3 normalMatrix() const;
+protected:
+          //could be disabled at the begining stage
+          mutable glm::mat4 localMatrix{ 1.f };
+          mutable bool dirty = true;
+          glm::quat quat{};
 };
 
 struct DrawContext {
@@ -50,6 +72,8 @@ struct IRenderable {
 
 struct BaseNode : public IRenderable {
   friend struct node::NodeManager;
+  friend class node::NodesPackedCreator;
+
   BaseNode(std::shared_ptr<BaseNode> base = nullptr);
 
   void Draw(const glm::mat4 &parentMatrix, DrawContext &ctx) override;

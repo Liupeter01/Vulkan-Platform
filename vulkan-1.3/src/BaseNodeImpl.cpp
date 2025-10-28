@@ -1,21 +1,46 @@
 #include <nodes/MeshNode.hpp>
-
 #include <glm/gtc/matrix_transform.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
 
 namespace engine {
 
-glm::mat4 TransformComponent::mat4() const {
-  const auto T = glm::translate(glm::one<glm::mat4>(), translation);
-  const auto R = glm::eulerAngleYXZ(rotation.y, rotation.x, rotation.z);
-  return T * R * glm::scale(glm::one<glm::mat4>(), scale);
+          void TransformComponent::setRotation(const glm::vec3& euler) {
+                    rotation = euler;
+                    quat = glm::quat(euler);
+                    update();
+          }
+
+          void TransformComponent::setQuaternion(const glm::quat& q) {
+                    quat = q;
+                    rotation = glm::eulerAngles(q);
+                    update();
+          }
+
+glm::mat4 TransformComponent::mat4(RotationControll ctrl) const noexcept{
+
+          if (!dirty) return localMatrix;
+
+          const auto T = glm::translate(glm::one<glm::mat4>(), translation);
+          const auto S = glm::scale(glm::one<glm::mat4>(), scale);
+          glm::mat4 R{ 1.f };
+
+          if (ctrl == RotationControll::Quat) {
+                    //quat
+                    R = glm::toMat4(quat);
+          }
+          else {
+                    //euler
+                    R = glm::eulerAngleYXZ(rotation.y, rotation.x, rotation.z);
+          }
+
+          localMatrix = T * R * S;
+          dirty = false;
+          return localMatrix;
 }
 
-glm::mat3 TransformComponent::normalMatrix() const {
-  const auto inv_S = glm::inverse(glm::scale(glm::one<glm::mat4>(), scale));
-  const auto R = glm::eulerAngleYXZ(rotation.y, rotation.x, rotation.z);
-  return {R * inv_S};
+void TransformComponent::update() {
+          dirty = true;
 }
 
 namespace node {
