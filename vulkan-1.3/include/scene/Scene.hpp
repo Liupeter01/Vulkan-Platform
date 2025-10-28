@@ -53,11 +53,6 @@ protected:
   void init_compute();
   void destroy_compute();
 
-  // Scene Data
-  void init_scene_layout();
-  void destroy_scene_layout();
-  [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
-
 private:
   void submitMesh(VkCommandBuffer cmd);
   void submitColorImage(VkCommandBuffer cmd);

@@ -13,7 +13,7 @@ Scene::~Scene() { destroy(); }
 void Scene::init(const std::string &root_name) {
   if (isInit)
     return;
-  init_scene_layout();
+  myScene.sceneDescriptorSetLayout_ = engine->sceneDescriptorSetLayout_;
   init_material();
   init_compute();
   node_mgr.init();
@@ -23,7 +23,7 @@ void Scene::init(const std::string &root_name) {
 void Scene::destroy() {
   if (isInit) {
     node_mgr.destroy();
-    destroy_scene_layout();
+    myScene.sceneDescriptorSetLayout_ = VK_NULL_HANDLE;
     destroy_compute();
     destroy_material();
     isInit = false;
@@ -37,15 +37,6 @@ void Scene::submit() {
   });
 
   flushUpload(engine->immFence_);
-}
-
-void Scene::init_scene_layout() {
-  myScene.sceneDescriptorSetLayout_ = create_ubo_layout();
-}
-
-void Scene::destroy_scene_layout() {
-  vkDestroyDescriptorSetLayout(engine->device_,
-                               myScene.sceneDescriptorSetLayout_, nullptr);
 }
 
 void Scene::init_material() {
@@ -70,13 +61,6 @@ void Scene::init_compute() {
 void Scene::destroy_compute() {
   imageAttachmentCompute->destory();
   imageAttachmentCompute.reset();
-}
-
-VkDescriptorSetLayout Scene::create_ubo_layout() {
-  return DescriptorLayoutBuilder{engine->device_}
-      .add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-      .build(VK_SHADER_STAGE_VERTEX_BIT |
-             VK_SHADER_STAGE_FRAGMENT_BIT); // add bindings
 }
 
 void Scene::submitMesh(VkCommandBuffer cmd) {
