@@ -24,9 +24,9 @@ namespace engine {
 class Scene;
 struct FrameData;
 
-          namespace node {
-                    class NodesPackedCreator;
-          }
+namespace node {
+class NodesPackedCreator;
+}
 
 class VulkanEngine {
   friend class Scene;
@@ -90,7 +90,7 @@ private:
   void destroy_vulkan();
 
 private:
-          [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
+  [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
   void resize_swapchain();
   void resize_frames();
   void draw_background(VkCommandBuffer cmd, VkImage image);

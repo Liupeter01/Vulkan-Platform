@@ -20,7 +20,7 @@ struct KeyBoardController;
 namespace node {
 struct NodeManager;
 class NodesPackedCreator;
-}
+} // namespace node
 
 struct RenderObject {
   uint32_t indexCount;
@@ -36,29 +36,27 @@ struct RenderObject {
 };
 
 struct TransformComponent {
-          struct KeyBoardController;
-          friend class node::NodesPackedCreator;
+  struct KeyBoardController;
+  friend class node::NodesPackedCreator;
 
-          enum class RotationControll {
-                    Quat,
-                    EularAngle
-          };
+  enum class RotationControll { Quat, EularAngle };
 
-  void setRotation(const glm::vec3& euler);
-  void setQuaternion(const glm::quat& q);
+  void setRotation(const glm::vec3 &euler);
+  void setQuaternion(const glm::quat &q);
 
-  glm::mat4 mat4(RotationControll ctrl = RotationControll::EularAngle) const noexcept;
+  glm::mat4
+  mat4(RotationControll ctrl = RotationControll::EularAngle) const noexcept;
   void update();
 
-  glm::vec3 scale{ 1.f };
-  glm::vec3 translation{ 0.f };
+  glm::vec3 scale{1.f};
+  glm::vec3 translation{0.f};
   glm::vec3 rotation{};
 
 protected:
-          //could be disabled at the begining stage
-          mutable glm::mat4 localMatrix{ 1.f };
-          mutable bool dirty = true;
-          glm::quat quat{};
+  // could be disabled at the begining stage
+  mutable glm::mat4 localMatrix{1.f};
+  mutable bool dirty = true;
+  glm::quat quat{};
 };
 
 struct DrawContext {

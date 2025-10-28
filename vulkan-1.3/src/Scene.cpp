@@ -71,11 +71,11 @@ void Scene::submitMesh(VkCommandBuffer cmd) {
 }
 
 void Scene::submitColorImage(VkCommandBuffer cmd) {
-          engine->black_->uploadBufferToImage(cmd);
-          engine->white_->uploadBufferToImage(cmd);
-          engine->grey_->uploadBufferToImage(cmd);
-          engine->magenta_->uploadBufferToImage(cmd);
-          engine->loaderrorImage_->uploadBufferToImage(cmd);
+  engine->black_->uploadBufferToImage(cmd);
+  engine->white_->uploadBufferToImage(cmd);
+  engine->grey_->uploadBufferToImage(cmd);
+  engine->magenta_->uploadBufferToImage(cmd);
+  engine->loaderrorImage_->uploadBufferToImage(cmd);
 }
 
 void Scene::flushUpload(VkFence fence) {
