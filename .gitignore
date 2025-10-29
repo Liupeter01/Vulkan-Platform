@@ -6,3 +6,4 @@
 /out/build
 /CMakeSettings.json
 *.spv
+/out/install/x64-Debug
