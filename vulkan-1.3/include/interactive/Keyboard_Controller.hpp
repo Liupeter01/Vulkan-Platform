@@ -2,7 +2,7 @@
 #ifndef _KEYBOARD_CONTROLLER_HPP_
 #define _KEYBOARD_CONTROLLER_HPP_
 #include <Window.hpp>
-#include <nodes/BaseNode.hpp>
+#include <nodes/core/BaseNode.hpp>
 
 namespace engine {
 struct KeyBoardController {
