@@ -2,10 +2,10 @@
 #ifndef _NODE_MANAGER_HPP_
 #define _NODE_MANAGER_HPP_
 #include <memory>
+#include <mesh/MeshLoader.hpp>
 #include <nodes/core/BaseNode.hpp>
 #include <optional>
 #include <string>
-#include <mesh/MeshLoader.hpp>
 #include <unordered_map>
 
 namespace engine {
@@ -15,7 +15,7 @@ struct NodeManager : public node::IRenderable {
 
   void init(const std::string &root_name = "/root");
   void destroy();
-  void Draw(const glm::mat4& topMatrix, DrawContext& ctx) override;
+  void Draw(const glm::mat4 &topMatrix, DrawContext &ctx) override;
 
   // CRUD
   bool attachChildren(const std::string &parentName,
@@ -39,8 +39,8 @@ protected:
   bool insert(std::shared_ptr<node::BaseNode> parent,
               std::shared_ptr<node::BaseNode> child); // push_back +
 
-  bool insert_to_lookup_table(std::shared_ptr<node::BaseNode>& node,
-            std::string_view parentPath);
+  bool insert_to_lookup_table(std::shared_ptr<node::BaseNode> &node,
+                              std::string_view parentPath);
 
   void create_root(const std::string &root_name = "/root");
 
@@ -53,7 +53,7 @@ protected:
   std::unordered_map<std::string, std::shared_ptr<node::BaseNode>> nodes_;
 
 private:
-          bool isinit = false;
+  bool isinit = false;
 };
 } // namespace engine
 
