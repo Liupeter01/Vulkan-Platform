@@ -40,7 +40,7 @@ class SceneNode : public NodeManager {
    */
 
 public:
-  friend struct SceneNodeBuilder;
+  friend struct engine::SceneNodeBuilder;
   SceneNode(VulkanEngine *eng);
   virtual ~SceneNode();
 

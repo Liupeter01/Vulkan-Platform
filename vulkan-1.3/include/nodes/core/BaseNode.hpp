@@ -33,8 +33,8 @@ struct RenderObject {
 };
 
 struct TransformComponent {
-  friend struct KeyBoardController;
-  friend struct SceneNodeBuilder;
+  friend struct engine::KeyBoardController;
+  friend struct engine::SceneNodeBuilder;
 
   enum class RotationControll { Quat, EularAngle };
 
@@ -68,9 +68,9 @@ struct IRenderable {
 };
 
 struct BaseNode : public IRenderable {
-  friend struct NodeManager;
-  friend struct SceneNodeBuilder;
-  friend class SceneNode;
+  friend struct engine::NodeManager;
+  friend struct engine::SceneNodeBuilder;
+  friend class engine::node::SceneNode;
 
   BaseNode(std::shared_ptr<BaseNode> base = nullptr);
 
