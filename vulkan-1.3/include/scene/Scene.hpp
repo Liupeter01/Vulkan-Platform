@@ -6,8 +6,8 @@
 #include <compute/Compute_ImageAttachment.hpp>
 #include <material/GLTFMetallic_Roughness.hpp>
 #include <memory>
-#include <nodes/MeshNode.hpp>
-#include <nodes/NodeManager.hpp>
+#include <nodes/mesh/MeshNode.hpp>
+#include <nodes/ScenesManager.hpp>
 #include <tuple>
 
 namespace engine {
@@ -81,8 +81,8 @@ private:
     VkDescriptorSetLayout sceneDescriptorSetLayout_{};
   } myScene{};
 
-  // Node System(MeshNode, ...)
-  node::NodeManager node_mgr;
+  // Node System(MeshNode, ...) or Scene Mgr
+  NodeManager node_mgr;
 
   std::unique_ptr<GLTFMetallic_Roughness> metalRoughMaterial;
   std::unique_ptr<Compute_ImageAttachment> imageAttachmentCompute;

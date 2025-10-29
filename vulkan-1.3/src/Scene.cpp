@@ -101,7 +101,7 @@ void Scene::update_scene() {
     glm::mat4 translation = glm::translate(glm::mat4{1.f}, glm::vec3{x, 0, 0});
 
     // Execute Draw Command From Root Node!
-    node_mgr.draw(translation * scale, ctx);
+    node_mgr.Draw(translation * scale, ctx);
   }
 
   // Update Camera
