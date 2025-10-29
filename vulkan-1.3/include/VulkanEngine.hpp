@@ -7,7 +7,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <nodes/CameraNode.hpp>
+#include <nodes/camera/CameraNode.hpp>
 #include <scene/Scene.hpp>
 #include <string>
 #include <vector>
@@ -23,15 +23,19 @@ namespace engine {
 
 class Scene;
 struct FrameData;
+struct SceneNodeBuilder;
+class ScenesNodesManager;
 
 namespace node {
-class NodesPackedCreator;
+          class SceneNode;
 }
 
 class VulkanEngine {
   friend class Scene;
   friend struct FrameData;
-  friend class node::NodesPackedCreator;
+  friend struct SceneNodeBuilder;
+  friend class node::SceneNode;
+  friend class ScenesManager;
 
 public:
   using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
