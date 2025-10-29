@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _CAMERA_HPP_
 #define _CAMERA_HPP_
-#include <nodes/BaseNode.hpp>
+#include <nodes/core/BaseNode.hpp>
 
 #define GLM_FORCE_RADIANS // no degresss
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

@@ -1,5 +1,5 @@
 #include <glm/gtc/matrix_transform.hpp>
-#include <nodes/MeshNode.hpp>
+#include <nodes/mesh/MeshNode.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
 

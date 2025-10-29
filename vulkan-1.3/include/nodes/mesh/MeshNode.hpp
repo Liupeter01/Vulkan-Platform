@@ -2,7 +2,7 @@
 #ifndef _MESH_NODE_HPP_
 #define _MESH_NODE_HPP_
 #include <mesh/MeshLoader.hpp>
-#include <nodes/BaseNode.hpp>
+#include <nodes/core/BaseNode.hpp>
 
 namespace engine {
 namespace node {

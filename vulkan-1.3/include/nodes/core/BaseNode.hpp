@@ -16,11 +16,8 @@
 namespace engine {
 struct MaterialInstance;
 struct KeyBoardController;
-
-namespace node {
+struct SceneNodeBuilder;
 struct NodeManager;
-class NodesPackedCreator;
-} // namespace node
 
 struct RenderObject {
   uint32_t indexCount;
@@ -36,8 +33,8 @@ struct RenderObject {
 };
 
 struct TransformComponent {
-  struct KeyBoardController;
-  friend class node::NodesPackedCreator;
+  friend struct KeyBoardController;
+  friend struct SceneNodeBuilder;
 
   enum class RotationControll { Quat, EularAngle };
 
@@ -64,13 +61,16 @@ struct DrawContext {
 };
 
 namespace node {
+          class SceneNode;
+
 struct IRenderable {
   virtual void Draw(const glm::mat4 &topMatrix, DrawContext &ctx) = 0;
 };
 
 struct BaseNode : public IRenderable {
-  friend struct node::NodeManager;
-  friend class node::NodesPackedCreator;
+  friend struct NodeManager;
+  friend struct SceneNodeBuilder;
+  friend class SceneNode;
 
   BaseNode(std::shared_ptr<BaseNode> base = nullptr);
 
