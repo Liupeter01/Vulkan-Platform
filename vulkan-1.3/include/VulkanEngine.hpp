@@ -27,7 +27,7 @@ struct SceneNodeBuilder;
 class ScenesNodesManager;
 
 namespace node {
-          class SceneNode;
+class SceneNode;
 }
 
 class VulkanEngine {

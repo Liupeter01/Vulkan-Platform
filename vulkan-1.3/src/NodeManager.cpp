@@ -1,6 +1,6 @@
-#include <spdlog/spdlog.h>
 #include <nodes/mesh/MeshNode.hpp>
 #include <nodes/scene/NodeManager.hpp>
+#include <spdlog/spdlog.h>
 
 namespace engine {
 
@@ -29,7 +29,7 @@ void NodeManager::destroy() {
 void NodeManager::create_root(const std::string &root_name) {
   if (sceneRoot_) {
     spdlog::warn("[NodeManager Info]: Replacing existing root node '{}'",
-              sceneRoot_->node_name);
+                 sceneRoot_->node_name);
     remove_nodes(sceneRoot_);
   }
 
@@ -40,31 +40,32 @@ void NodeManager::create_root(const std::string &root_name) {
   nodes_.clear();
   auto [_, status] = nodes_.try_emplace(root_name, sceneRoot_);
   if (status) {
-            spdlog::info("[NodeManager Info]: Scene root node created as '{}'", root_name);
+    spdlog::info("[NodeManager Info]: Scene root node created as '{}'",
+                 root_name);
+  } else {
+    spdlog::error("[NodeManager Error]: Scene root node created FAILED!");
+    throw std::runtime_error("Create Scene Root Failed!");
   }
-  else {
-            spdlog::error("[NodeManager Error]: Scene root node created FAILED!");
-            throw std::runtime_error("Create Scene Root Failed!");
-  }      
 }
 
-bool NodeManager::insert_to_lookup_table(std::shared_ptr<node::BaseNode>& node,
-          std::string_view parentPath) {
+bool NodeManager::insert_to_lookup_table(std::shared_ptr<node::BaseNode> &node,
+                                         std::string_view parentPath) {
 
-          if (node != sceneRoot_) {
-                    std::string fullPath = fmt::format("{}/{}", parentPath, node->node_name);
-                    node->node_path = fullPath;
+  if (node != sceneRoot_) {
+    std::string fullPath = fmt::format("{}/{}", parentPath, node->node_name);
+    node->node_path = fullPath;
 
-                    if (!nodes_.try_emplace(fullPath, node).second)
-                              return false;
-          }
+    if (!nodes_.try_emplace(fullPath, node).second)
+      return false;
+  }
 
-          for (auto& child : node->children) {
-                    if (!insert_to_lookup_table(child, node->node_path)) {
-                              spdlog::warn("[NodePackedCreator Warn]: Emplace std::shared_ptr<BaseNode> to unordered_map Already Exist!");
-                    }
-          }
-          return true;
+  for (auto &child : node->children) {
+    if (!insert_to_lookup_table(child, node->node_path)) {
+      spdlog::warn("[NodePackedCreator Warn]: Emplace "
+                   "std::shared_ptr<BaseNode> to unordered_map Already Exist!");
+    }
+  }
+  return true;
 }
 
 // remove all tree recursively!
@@ -78,8 +79,8 @@ void NodeManager::remove_nodes(std::shared_ptr<node::BaseNode> root) {
   root.reset();
 }
 
-void NodeManager::Draw(const glm::mat4& topMatrix, DrawContext& ctx) {
-          sceneRoot_->Draw(topMatrix, ctx);
+void NodeManager::Draw(const glm::mat4 &topMatrix, DrawContext &ctx) {
+  sceneRoot_->Draw(topMatrix, ctx);
 }
 
 bool NodeManager::attachChildren(const std::string &parentName,

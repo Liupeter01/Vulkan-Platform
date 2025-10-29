@@ -102,9 +102,10 @@ void VulkanEngine::run() {
   auto currTime = std::chrono::high_resolution_clock::now();
 
   camera_->setViewTarget(glm::vec3{0.f, 0.f, -1.f}, glm::vec3(0.f, 0.f, 0.f));
-  camera_->setPerspectiveProjection(
-      glm::radians(45.f), static_cast<float>(swapchainExtent_.width) / swapchainExtent_.height,
-      0.1f, 100.f);
+  camera_->setPerspectiveProjection(glm::radians(45.f),
+                                    static_cast<float>(swapchainExtent_.width) /
+                                        swapchainExtent_.height,
+                                    0.1f, 100.f);
 
   // camera_
   while (!window_.shouldClose()) {
