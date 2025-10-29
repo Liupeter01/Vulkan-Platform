@@ -1,6 +1,7 @@
 #include <VulkanEngine.hpp>
 #include <builder/SceneNodeBuilder.hpp>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
@@ -369,8 +370,8 @@ void SceneNodeBuilder::processNodes(fastgltf::Asset &gltf) {
                sizeof(BaseType));
         newNode->localTransform.dirty = false;
       } else {
-        spdlog::warn("[NodesPackedCreator Warn]: No TRS Provided!");
-        newNode->localTransform = glm::mat4(1.f);
+        spdlog::error("[NodesPackedCreator Error]: No TRS Provided!");
+        throw std::runtime_error("NO TRS Provided!");
       }
     };
 
