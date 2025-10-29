@@ -1,10 +1,9 @@
-#include <mesh/MeshLoader.hpp>
-#include <nodes/MeshNode.hpp>
-#include <nodes/NodeManager.hpp>
 #include <spdlog/spdlog.h>
+#include <nodes/mesh/MeshNode.hpp>
+#include <nodes/scene/NodeManager.hpp>
 
 namespace engine {
-namespace node {
+
 NodeManager::~NodeManager() {}
 
 void NodeManager::init(const std::string &root_name) {
@@ -19,29 +18,53 @@ void NodeManager::init(const std::string &root_name) {
 
 void NodeManager::destroy() {
   if (isinit) {
-    remove_nodes(scene_root_);
-    scene_root_.reset();
-    lookup_mesh.clear();
-    lookup_path.clear();
+    remove_nodes(sceneRoot_);
+    sceneRoot_.reset();
+    meshes_.clear();
+    nodes_.clear();
     isinit = false;
   }
 }
 
 void NodeManager::create_root(const std::string &root_name) {
-  if (scene_root_) {
-    spdlog::warn("[Scene Warn]: Replacing existing root node '{}'",
-                 scene_root_->node_name);
-    remove_nodes(scene_root_);
+  if (sceneRoot_) {
+    spdlog::warn("[NodeManager Info]: Replacing existing root node '{}'",
+              sceneRoot_->node_name);
+    remove_nodes(sceneRoot_);
   }
 
-  scene_root_ = std::make_shared<node::BaseNode>();
-  scene_root_->node_name = root_name;
-  scene_root_->node_path = root_name;
+  sceneRoot_ = std::make_shared<node::BaseNode>();
+  sceneRoot_->node_name = root_name;
+  sceneRoot_->node_path = root_name;
 
-  lookup_path.clear();
-  lookup_path.try_emplace(root_name, scene_root_);
+  nodes_.clear();
+  auto [_, status] = nodes_.try_emplace(root_name, sceneRoot_);
+  if (status) {
+            spdlog::info("[NodeManager Info]: Scene root node created as '{}'", root_name);
+  }
+  else {
+            spdlog::error("[NodeManager Error]: Scene root node created FAILED!");
+            throw std::runtime_error("Create Scene Root Failed!");
+  }      
+}
 
-  spdlog::info("[Scene Info]: Scene root node created as '{}'", root_name);
+bool NodeManager::insert_to_lookup_table(std::shared_ptr<node::BaseNode>& node,
+          std::string_view parentPath) {
+
+          if (node != sceneRoot_) {
+                    std::string fullPath = fmt::format("{}/{}", parentPath, node->node_name);
+                    node->node_path = fullPath;
+
+                    if (!nodes_.try_emplace(fullPath, node).second)
+                              return false;
+          }
+
+          for (auto& child : node->children) {
+                    if (!insert_to_lookup_table(child, node->node_path)) {
+                              spdlog::warn("[NodePackedCreator Warn]: Emplace std::shared_ptr<BaseNode> to unordered_map Already Exist!");
+                    }
+          }
+          return true;
 }
 
 // remove all tree recursively!
@@ -55,8 +78,8 @@ void NodeManager::remove_nodes(std::shared_ptr<node::BaseNode> root) {
   root.reset();
 }
 
-void NodeManager::draw(const glm::mat4 &parentMatrix, DrawContext &ctx) {
-  scene_root_->Draw(parentMatrix, ctx);
+void NodeManager::Draw(const glm::mat4& topMatrix, DrawContext& ctx) {
+          sceneRoot_->Draw(topMatrix, ctx);
 }
 
 bool NodeManager::attachChildren(const std::string &parentName,
@@ -121,7 +144,7 @@ bool NodeManager::attachChildrens(
       continue;
     }
 
-    auto [_, inserted] = lookup_mesh.try_emplace(node->meshName, node);
+    auto [_, inserted] = meshes_.try_emplace(node->meshName, node);
     if (!inserted)
       spdlog::warn("[Scene Warn]: Mesh: {} Already Exist!", node->meshName);
 
@@ -141,32 +164,18 @@ bool NodeManager::attachChildrens(
 
 std::optional<std::shared_ptr<node::BaseNode>>
 NodeManager::findNode(const std::string &name) const {
-  auto it = lookup_path.find(name);
-  if (it != lookup_path.end())
+  auto it = nodes_.find(name);
+  if (it != nodes_.end())
     return it->second;
   return std::nullopt;
 }
 
 std::optional<std::shared_ptr<MeshAsset>>
 NodeManager::findMesh(const std::string &name) const {
-  auto it = lookup_mesh.find(name);
-  if (it != lookup_mesh.end())
+  auto it = meshes_.find(name);
+  if (it != meshes_.end())
     return it->second;
   return std::nullopt;
-}
-
-bool NodeManager::insert_to_lookup(std::shared_ptr<node::BaseNode> node,
-                                   const std::string &parentPath) {
-  std::string fullPath = fmt::format("{}/{}", parentPath, node->node_name);
-  node->node_path = fullPath;
-
-  auto [_, inserted] = lookup_path.try_emplace(fullPath, node);
-  if (!inserted)
-    return false;
-
-  for (auto &child : node->children)
-    insert_to_lookup(child, fullPath);
-  return true;
 }
 
 bool NodeManager::insert(std::shared_ptr<node::BaseNode> parent,
@@ -179,12 +188,11 @@ bool NodeManager::insert(std::shared_ptr<node::BaseNode> parent,
   parent->children.push_back(child);
   child->parent_ = parent;
 
-  if (!insert_to_lookup(child, parent->node_path)) {
+  if (!insert_to_lookup_table(child, parent->node_path)) {
     spdlog::warn("[Scene Warn]: Node {} already exists in lookup.",
                  child->node_path);
     return false;
   }
   return true;
 }
-} // namespace node
 } // namespace engine

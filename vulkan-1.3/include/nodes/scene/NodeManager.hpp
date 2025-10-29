@@ -2,24 +2,20 @@
 #ifndef _NODE_MANAGER_HPP_
 #define _NODE_MANAGER_HPP_
 #include <memory>
-#include <nodes/BaseNode.hpp>
+#include <nodes/core/BaseNode.hpp>
 #include <optional>
 #include <string>
+#include <mesh/MeshLoader.hpp>
 #include <unordered_map>
 
 namespace engine {
 
-namespace mesh {
-struct MeshAsset;
-}
-
-namespace node {
-struct NodeManager {
+struct NodeManager : public node::IRenderable {
   virtual ~NodeManager();
 
   void init(const std::string &root_name = "/root");
   void destroy();
-  void draw(const glm::mat4 &parentMatrix, DrawContext &ctx);
+  void Draw(const glm::mat4& topMatrix, DrawContext& ctx) override;
 
   // CRUD
   bool attachChildren(const std::string &parentName,
@@ -42,24 +38,23 @@ protected:
   // Node Query System(automatically recurse all the children nodes)
   bool insert(std::shared_ptr<node::BaseNode> parent,
               std::shared_ptr<node::BaseNode> child); // push_back +
-  bool insert_to_lookup(std::shared_ptr<node::BaseNode> node,
-                        const std::string &parentPath);
+
+  bool insert_to_lookup_table(std::shared_ptr<node::BaseNode>& node,
+            std::string_view parentPath);
 
   void create_root(const std::string &root_name = "/root");
 
   // remove all tree recursively!
   void remove_nodes(std::shared_ptr<node::BaseNode> root);
 
-private:
-  bool isinit = false;
+protected:
+  std::shared_ptr<node::BaseNode> sceneRoot_ = nullptr;
+  std::unordered_map<std::string, std::shared_ptr<MeshAsset>> meshes_;
+  std::unordered_map<std::string, std::shared_ptr<node::BaseNode>> nodes_;
 
-  std::shared_ptr<node::BaseNode> scene_root_ = nullptr;
-  std::unordered_map</*path = */ std::string, std::shared_ptr<node::BaseNode>>
-      lookup_path;
-  std::unordered_map</*mesh_name = */ std::string, std::shared_ptr<MeshAsset>>
-      lookup_mesh;
+private:
+          bool isinit = false;
 };
-} // namespace node
 } // namespace engine
 
 #endif //_NODE_MANAGER_HPP_
