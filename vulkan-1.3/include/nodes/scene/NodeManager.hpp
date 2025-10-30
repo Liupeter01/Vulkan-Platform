@@ -11,6 +11,7 @@
 namespace engine {
 
 struct NodeManager : public node::IRenderable {
+          std::string name;
   virtual ~NodeManager();
 
   void init(const std::string &root_name = "/root");
