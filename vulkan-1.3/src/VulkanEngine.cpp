@@ -8,6 +8,7 @@
 #include <numeric>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <builder/SceneNodeBuilder.hpp>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -48,6 +49,21 @@ void VulkanEngine::init() {
      */
     scene_->attachChildrens("/root", mesh.value());
     scene_->submit();
+  }
+
+  node::SceneNodeConf conf;
+  conf.globalSceneLayout = sceneDescriptorSetLayout_;
+
+  if (auto mesh = SceneNodeBuilder{ this }
+            .set_config(conf)
+            .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
+            .set_options()
+            .build();
+            mesh) {
+
+            (*mesh)->name = "default";
+            sceneMgr->addScene((*mesh));
+            sceneMgr->submit();
   }
 }
 
@@ -566,6 +582,10 @@ void VulkanEngine::init_scene() {
   scene_.reset();
   scene_ = std::make_unique<Scene>(this);
   scene_->init();
+
+  sceneMgr.reset();
+  sceneMgr = std::make_unique<ScenesManager>(this);
+  sceneMgr->init();
 }
 
 void VulkanEngine::init_camera() {
@@ -662,6 +682,9 @@ void VulkanEngine::destroy_camera() { camera_.reset(); }
 void VulkanEngine::destroy_scene() {
   scene_->destroy();
   scene_.reset();
+
+  sceneMgr->destroy();
+  sceneMgr.reset();
 }
 
 void VulkanEngine::destroy_imgui() {

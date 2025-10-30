@@ -9,6 +9,7 @@
 #include <memory>
 #include <nodes/camera/CameraNode.hpp>
 #include <scene/Scene.hpp>
+#include <scene/ScenesManager.hpp>
 #include <string>
 #include <vector>
 
@@ -162,6 +163,7 @@ private:
   VkCommandPool immCommandPool_;
 
   std::unique_ptr<Scene> scene_ = nullptr;
+  std::unique_ptr<ScenesManager> sceneMgr = nullptr;
   std::shared_ptr<node::CameraNode> camera_ = nullptr;
 
   VkDescriptorSetLayout sceneDescriptorSetLayout_{};
