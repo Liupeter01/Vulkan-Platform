@@ -27,6 +27,7 @@ void SceneNode::destroy() {
     destroy_material();
     destroy_allocator();
     destroy_sampler();
+    destroy_images();
     NodeManager::destroy();
     isinit = false;
   }
@@ -45,6 +46,17 @@ void SceneNode::destroy_sampler() {
   samplers.clear();
 }
 
+void SceneNode::destroy_images() {
+
+          for (auto& [k, v] : images_) {
+
+                    //we ignore the system default image!
+                    if (v != engine_->loaderrorImage_) {
+                              v->destroy();
+                    }
+          }
+}
+
 void SceneNode::init_material(VkDescriptorSetLayout globalSceneLayout) {
   metalRoughMaterial.reset();
   metalRoughMaterial =
@@ -55,6 +67,8 @@ void SceneNode::init_material(VkDescriptorSetLayout globalSceneLayout) {
 void SceneNode::destroy_material() {
   metalRoughMaterial->destory();
   metalRoughMaterial.reset();
+
+  materialBuffer->destroy();
 }
 
 bool SceneNode::insert_to_lookup_table(std::shared_ptr<node::BaseNode> &node,

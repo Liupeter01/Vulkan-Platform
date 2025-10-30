@@ -25,8 +25,12 @@ namespace node {
 
 struct SceneNodeConf {
   std::string sceneRootName = "__custom_scene__";
-  uint32_t setCount;
-  std::vector<PoolSizeRatio> poolSizeRatio;
+  uint32_t setCount = 1;
+  std::vector<PoolSizeRatio> poolSizeRatio {
+    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3},
+    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
+    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1} };
+
   VkDescriptorSetLayout globalSceneLayout;
 };
 
@@ -59,16 +63,12 @@ protected:
   void destroy_material();
   void destroy_allocator();
   void destroy_sampler();
+  void destroy_images();
 
   bool insert_to_lookup_table(std::shared_ptr<node::BaseNode> &node,
                               std::string_view parentPath);
 
 private:
-  inline static const std::vector<PoolSizeRatio> sizes = {
-      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3},
-      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
-      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}};
-
   bool isinit = false;
   VulkanEngine *engine_;
   DescriptorPoolAllocator pool_;
