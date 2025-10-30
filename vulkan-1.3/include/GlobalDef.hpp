@@ -69,6 +69,8 @@ struct AllocatedTexture {
   VkImageView &getImageView() const;
   void uploadBufferToImage(VkCommandBuffer cmd);
   void flushUpload(VkFence fence);
+  void invalid();
+  bool isValid() const;
   void destroy();
 
 private:
