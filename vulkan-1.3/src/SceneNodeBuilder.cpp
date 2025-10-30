@@ -3,6 +3,9 @@
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
@@ -76,6 +79,8 @@ std::optional<std::shared_ptr<node::SceneNode>> SceneNodeBuilder::build() {
     gltf = std::move(load_gltf.get());
   }
 
+
+  conf_.value().setCount = gltf.materials.size();
   scene.reset();
   scene = std::make_shared<node::SceneNode>(engine_);
   scene->init(conf_.value());
@@ -83,6 +88,7 @@ std::optional<std::shared_ptr<node::SceneNode>> SceneNodeBuilder::build() {
   // Load Sampler & LOD
   processSamplers(gltf);
 
+  //Loading Images
   processImages(gltf);
 
   // Loading Material(processMaterials)
@@ -131,6 +137,104 @@ SceneNodeBuilder::extract_mipmap_mode(fastgltf::Filter filter) {
   }
 }
 
+std::optional<std::shared_ptr<AllocatedTexture>> 
+SceneNodeBuilder::extract_image(fastgltf::Asset& gltf, fastgltf::Image& image) {
+
+          int width, height, nrChannels;
+          std::shared_ptr<AllocatedTexture> ret{nullptr};
+
+          auto uri = [&](fastgltf::sources::URI& filePath) {
+                    assert(filePath.fileByteOffset == 0); // We don't support offsets with stbi.
+                    assert(filePath.uri.isLocalPath()); // We're only capable of loading local files.
+
+                    const std::string path(filePath.uri.path().begin(), filePath.uri.path().end());
+                    unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrChannels, 4);
+                    if (data) {
+                              VkExtent3D imagesize;
+                              imagesize.width = width;
+                              imagesize.height = height;
+                              imagesize.depth = 1;
+
+                              ret.reset();
+                              ret = std::make_shared<AllocatedTexture>(engine_->device_, engine_->allocator_);
+                              ret->createBuffer(data, imagesize, 
+                                        VK_FORMAT_R8G8B8A8_UNORM, 
+                                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | 
+                                        VK_IMAGE_USAGE_SAMPLED_BIT);
+                              stbi_image_free(data);
+                    }
+                    };
+
+          auto vector = [&](fastgltf::sources::Vector& vector) {
+                    unsigned char* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(vector.bytes.data()), static_cast<int>(vector.bytes.size()),
+                              &width, &height, &nrChannels, 4);
+                    if (data) {
+                              VkExtent3D imagesize;
+                              imagesize.width = width;
+                              imagesize.height = height;
+                              imagesize.depth = 1;
+
+                              ret.reset();
+                              ret = std::make_shared<AllocatedTexture>(engine_->device_, engine_->allocator_);
+                              ret->createBuffer(data, imagesize,
+                                        VK_FORMAT_R8G8B8A8_UNORM,
+                                        VK_IMAGE_USAGE_SAMPLED_BIT);
+
+                              stbi_image_free(data);
+                    }
+                    };
+
+          auto bufferview = [&](fastgltf::sources::BufferView& view) {
+                    auto& bufferView = gltf.bufferViews[view.bufferViewIndex];
+                    auto& buffer = gltf.buffers[bufferView.bufferIndex];
+                    std::visit([&](auto&& vector) {
+                              if constexpr(std::is_same_v<std::decay_t<decltype(vector)>, fastgltf::sources::Vector>) {
+
+                                        unsigned char* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(vector.bytes.data()) + bufferView.byteOffset,
+                                                  static_cast<int>(bufferView.byteLength),
+                                                  &width, &height, &nrChannels, 4);
+                                        if (data) {
+                                                  VkExtent3D imagesize;
+                                                  imagesize.width = width;
+                                                  imagesize.height = height;
+                                                  imagesize.depth = 1;
+
+                                                  ret.reset();
+                                                  ret = std::make_shared<AllocatedTexture>(engine_->device_, engine_->allocator_);
+                                                  ret->createBuffer(data, imagesize,
+                                                            VK_FORMAT_R8G8B8A8_UNORM,
+                                                            VK_IMAGE_USAGE_SAMPLED_BIT);
+
+                                                  stbi_image_free(data);
+                                        }
+                              }
+                              }, buffer.data);
+           };
+
+          std::visit([uri, vector, bufferview](auto&& args) {
+                    using ArgsType = std::decay_t<decltype(args)>;
+                    if constexpr (std::is_same_v<ArgsType, fastgltf::sources::URI>) {
+                              uri(args);
+                    }
+                    else if constexpr(std::is_same_v<ArgsType, fastgltf::sources::Vector>){
+                              vector(args);
+                    }
+                    else if constexpr (std::is_same_v<ArgsType, fastgltf::sources::BufferView>) {
+                              bufferview(args);
+                    }
+                    else {
+                              spdlog::error("[SceneNodeBuilder Error]: Unsupported fastgltf::Image source type '{}'. Aborting.",
+                                        typeid(ArgsType).name());
+                              std::abort();
+                    }
+                    }, image.data);
+
+          if (!ret) {
+                    return {};
+          }
+          return ret;
+}
+
 void SceneNodeBuilder::processSamplers(fastgltf::Asset &gltf) {
   for (fastgltf::Sampler &sampler : gltf.samplers) {
     VkSamplerCreateInfo sampl{};
@@ -152,13 +256,15 @@ void SceneNodeBuilder::processSamplers(fastgltf::Asset &gltf) {
 void SceneNodeBuilder::processImages(fastgltf::Asset &gltf) {
   for (fastgltf::Image &i : gltf.images) {
 
-    // Current There is no texture loaded
-    //
-    // Using default checkerboard
-    images_.push_back(engine_->loaderrorImage_);
-    auto [_, status] =
-        scene->images_.try_emplace(i.name.c_str(), engine_->loaderrorImage_);
-    if (!status) {
+            auto status = extract_image(gltf, i);
+
+            // Current There is no texture loaded, using default checkerboard
+            auto image = status.has_value() ? status.value() : engine_->loaderrorImage_;
+
+    images_.push_back(image);
+    auto [_, isInserted] =
+        scene->images_.try_emplace(i.name.c_str(), image);
+    if (!isInserted) {
       spdlog::warn("[SceneNodeBuilder Warn]: Try Emplace AllocatedTexture to "
                    "unordered_map Exist!");
     }
