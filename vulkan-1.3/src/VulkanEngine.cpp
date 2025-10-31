@@ -2,13 +2,13 @@
 #include <Util.hpp>
 #include <VkBootstrap.h>
 #include <VulkanEngine.hpp>
+#include <builder/SceneNodeBuilder.hpp>
 #include <chrono>
 #include <exception>
 #include <interactive/Keyboard_Controller.hpp>
 #include <numeric>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
-#include <builder/SceneNodeBuilder.hpp>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -54,16 +54,16 @@ void VulkanEngine::init() {
   node::SceneNodeConf conf;
   conf.globalSceneLayout = sceneDescriptorSetLayout_;
 
-  if (auto mesh = SceneNodeBuilder{ this }
-            .set_config(conf)
-            .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
-            .set_options()
-            .build();
-            mesh) {
+  if (auto mesh = SceneNodeBuilder{this}
+                      .set_config(conf)
+                      .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
+                      .set_options()
+                      .build();
+      mesh) {
 
-            (*mesh)->name = "default";
-            sceneMgr->addScene((*mesh));
-            sceneMgr->submit();
+    (*mesh)->name = "default";
+    sceneMgr->addScene((*mesh));
+    sceneMgr->submit();
   }
 }
 
@@ -114,13 +114,14 @@ void VulkanEngine::imm_command_submit(
 
 void VulkanEngine::run() {
 
-          auto& data = scene_->getComputeData();
+  auto &data = scene_->getComputeData();
 
   KeyBoardController keyboard_controller;
   auto frameTimeStart = std::chrono::high_resolution_clock::now();
   auto frameTimeDuration =
-            std::chrono::duration<float, std::chrono::microseconds::period>(
-                      std::chrono::high_resolution_clock::now() - frameTimeStart).count();
+      std::chrono::duration<float, std::chrono::microseconds::period>(
+          std::chrono::high_resolution_clock::now() - frameTimeStart)
+          .count();
 
   camera_->setViewTarget(glm::vec3{0.f, 0.f, -1.f}, glm::vec3(0.f, 0.f, 0.f));
   camera_->setPerspectiveProjection(glm::radians(45.f),
@@ -144,21 +145,24 @@ void VulkanEngine::run() {
     ImGui::Render();
 
     keyboard_controller.movePlaneYXZ(window_.getGLFWWindow(), stats.frametime,
-              camera_);
+                                     camera_);
     camera_->setYXZ(camera_->localTransform.translation,
-              camera_->localTransform.rotation);
+                    camera_->localTransform.rotation);
 
-    //draw meshes!
+    // draw meshes!
     draw();
 
     auto drawEnd = std::chrono::high_resolution_clock::now();
-    auto drawTimeFrame = std::chrono::duration<float, std::chrono::microseconds::period>(
-              drawEnd - frameTimeStart)
-              .count();
+    auto drawTimeFrame =
+        std::chrono::duration<float, std::chrono::microseconds::period>(
+            drawEnd - frameTimeStart)
+            .count();
 
     auto frameTimeEnd = std::chrono::high_resolution_clock::now();
-    frameTimeDuration = std::chrono::duration<float, std::chrono::microseconds::period>(
-              frameTimeEnd - frameTimeStart).count();
+    frameTimeDuration =
+        std::chrono::duration<float, std::chrono::microseconds::period>(
+            frameTimeEnd - frameTimeStart)
+            .count();
 
     stats.mesh_draw_time = drawTimeFrame / 1000.f;
     stats.frametime = frameTimeDuration / 1000.f;
@@ -231,33 +235,33 @@ void VulkanEngine::draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
   vkCmdEndRendering(cmd);
 }
 
-void VulkanEngine::show_compute_background(ComputeShaderPushConstants& data) {
+void VulkanEngine::show_compute_background(ComputeShaderPushConstants &data) {
 
-          if (ImGui::Begin("background")) {
-                    ImGui::InputFloat4("topLeft", (float*)&data.topLeft, "%.3f",
-                              ImGuiInputTextFlags_ElideLeft);
-                    ImGui::InputFloat4("topRight", (float*)&data.topRight, "%.3f",
-                              ImGuiInputTextFlags_ElideLeft);
-                    ImGui::InputFloat4("bottomLeft", (float*)&data.bottomLeft, "%.3f",
-                              ImGuiInputTextFlags_ElideLeft);
-                    ImGui::InputFloat4("bottomRight", (float*)&data.bottomRight);
-                    ImGui::SliderFloat("Render Scale", &renderScale, 0.3f, 1.f, "%.3f",
-                              ImGuiInputTextFlags_ElideLeft);
-                    //ImGui::End();
-          }
-          ImGui::End();
+  if (ImGui::Begin("background")) {
+    ImGui::InputFloat4("topLeft", (float *)&data.topLeft, "%.3f",
+                       ImGuiInputTextFlags_ElideLeft);
+    ImGui::InputFloat4("topRight", (float *)&data.topRight, "%.3f",
+                       ImGuiInputTextFlags_ElideLeft);
+    ImGui::InputFloat4("bottomLeft", (float *)&data.bottomLeft, "%.3f",
+                       ImGuiInputTextFlags_ElideLeft);
+    ImGui::InputFloat4("bottomRight", (float *)&data.bottomRight);
+    ImGui::SliderFloat("Render Scale", &renderScale, 0.3f, 1.f, "%.3f",
+                       ImGuiInputTextFlags_ElideLeft);
+    // ImGui::End();
+  }
+  ImGui::End();
 }
 
-void VulkanEngine::show_states(const EngineStats &stats){
-          if (ImGui::Begin("Stats")) {
-                    ImGui::Text("frametime %f ms", stats.frametime);
-                    ImGui::Text("draw time %f ms", stats.mesh_draw_time);
-                    ImGui::Text("update time %f ms", stats.scene_update_time);
-                    ImGui::Text("triangles %i", stats.triangle_count);
-                    ImGui::Text("draws %i", stats.drawcall_count);
-                   /* ImGui::End();*/
-          }
-          ImGui::End();
+void VulkanEngine::show_states(const EngineStats &stats) {
+  if (ImGui::Begin("Stats")) {
+    ImGui::Text("frametime %f ms", stats.frametime);
+    ImGui::Text("draw time %f ms", stats.mesh_draw_time);
+    ImGui::Text("update time %f ms", stats.scene_update_time);
+    ImGui::Text("triangles %i", stats.triangle_count);
+    ImGui::Text("draws %i", stats.drawcall_count);
+    /* ImGui::End();*/
+  }
+  ImGui::End();
 }
 
 void VulkanEngine::draw() {
@@ -512,16 +516,18 @@ void VulkanEngine::init_vulkan() {
   auto queue = vkbDevice.get_queue(vkb::QueueType::transfer);
   auto family = vkbDevice.get_queue_index(vkb::QueueType::transfer);
   if (!queue.has_value() || !family.has_value()) {
-            isTransferQueueSupported = false;
+    isTransferQueueSupported = false;
+    return;
   }
 
-   transferQueue_ = queue.value();
-   transferQueueFamily_ = family.value();
+  transferQueue_ = queue.value();
+  transferQueueFamily_ = family.value();
 
-   if (transferQueueFamily_ == graphicsQueueFamily_) {
-     spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue ¡ª using graphics queue instead ");
-     isTransferQueueSupported = false;
-   }
+  if (transferQueueFamily_ == graphicsQueueFamily_) {
+    spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue "
+                 "¡ª using graphics queue instead ");
+    isTransferQueueSupported = false;
+  }
 }
 
 void VulkanEngine::init_swapchain() {

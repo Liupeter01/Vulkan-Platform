@@ -1,9 +1,9 @@
 #include <Descriptors.hpp>
 #include <Tools.hpp>
 #include <VulkanEngine.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <scene/Scene.hpp>
 #include <spdlog/spdlog.h>
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace engine {
 Scene::Scene(VulkanEngine *pointer) : engine(pointer) {}
@@ -164,9 +164,9 @@ Scene::createDefaultMaterialInstance(FrameData &frame) {
 
 void Scene::render(VkCommandBuffer cmd, FrameData &frame) {
 
-          MeshAsset* last_mesh{};
-          MaterialInstance* last_material{};
-          MaterialPipeline* last_pipeline{};
+  MeshAsset *last_mesh{};
+  MaterialInstance *last_material{};
+  MaterialPipeline *last_pipeline{};
 
   /*set = 0, binding = 0*/
   auto [sceneSet, sceneDataBuffer] = createSceneSet(frame);
@@ -205,54 +205,51 @@ void Scene::render(VkCommandBuffer cmd, FrameData &frame) {
 
   vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-  for (auto& surface : ctx.OpaqueSurfaces) {
+  for (auto &surface : ctx.OpaqueSurfaces) {
 
-            // No Material Set, Then use default
-            if (!surface.material) {
-                      // setup default material
-                      surface.material = &defaultMateral;
-            }
+    // No Material Set, Then use default
+    if (!surface.material) {
+      // setup default material
+      surface.material = &defaultMateral;
+    }
 
-            auto pipeline = surface.material->pipeline->getPipeline();
-            auto layout = surface.material->pipeline->getPipelineLayout();
+    auto pipeline = surface.material->pipeline->getPipeline();
+    auto layout = surface.material->pipeline->getPipelineLayout();
 
-            if (last_pipeline != surface.material->pipeline) {
-                      last_pipeline = surface.material->pipeline;
-                      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-                      vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                layout, 0,
-                                static_cast<uint32_t>(1),
-                                &sceneSet, 0, nullptr);
-            }
+    if (last_pipeline != surface.material->pipeline) {
+      last_pipeline = surface.material->pipeline;
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+      vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0,
+                              static_cast<uint32_t>(1), &sceneSet, 0, nullptr);
+    }
 
-            if (last_material != surface.material) {
-                      last_material = surface.material;
-                      vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                layout, 1,
-                                static_cast<uint32_t>(1),
-                                &surface.material->materialSet, 0, nullptr);
-            }
+    if (last_material != surface.material) {
+      last_material = surface.material;
+      vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1,
+                              static_cast<uint32_t>(1),
+                              &surface.material->materialSet, 0, nullptr);
+    }
 
-            // Its different from last mesh! So we should resubmit the vertices!
-            if (last_mesh != surface.parent) {
-                      last_mesh = surface.parent;
+    // Its different from last mesh! So we should resubmit the vertices!
+    if (last_mesh != surface.parent) {
+      last_mesh = surface.parent;
 
-                      if (auto mesh = node_mgr.findMesh(surface.mesh_name); mesh) {
-                                vkCmdBindIndexBuffer(
-                                          cmd, (*mesh)->meshBuffers.indexBuffer.buffer, 0,
-                                          tools::getIndexType<decltype((*mesh)->meshBuffers.indicies_[0])>());
-                      }
-            }
+      if (auto mesh = node_mgr.findMesh(surface.mesh_name); mesh) {
+        vkCmdBindIndexBuffer(
+            cmd, (*mesh)->meshBuffers.indexBuffer.buffer, 0,
+            tools::getIndexType<decltype((*mesh)->meshBuffers.indicies_[0])>());
+      }
+    }
 
-            GPUGeoPushConstants constants{};
-            constants.matrix = surface.transform;
-            constants.vertexBuffer = surface.vertexBufferAddress;
+    GPUGeoPushConstants constants{};
+    constants.matrix = surface.transform;
+    constants.vertexBuffer = surface.vertexBufferAddress;
 
-            vkCmdPushConstants(cmd, surface.material->pipeline->getPipelineLayout(),
-                      VK_SHADER_STAGE_VERTEX_BIT, 0,
-                      sizeof(GPUGeoPushConstants), &constants);
+    vkCmdPushConstants(cmd, surface.material->pipeline->getPipelineLayout(),
+                       VK_SHADER_STAGE_VERTEX_BIT, 0,
+                       sizeof(GPUGeoPushConstants), &constants);
 
-            vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+    vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
   }
 
   vkCmdEndRendering(cmd);

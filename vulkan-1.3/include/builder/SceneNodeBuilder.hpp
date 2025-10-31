@@ -1,8 +1,8 @@
 #pragma once
 #ifndef _SCENE_NODE_BUILDER_HPP_
 #define _SCENE_NODE_BUILDER_HPP_
-#include <filesystem>
 #include <GlobalDef.hpp>
+#include <filesystem>
 #include <nodes/scene/SceneNode.hpp>
 
 namespace engine {
@@ -24,8 +24,8 @@ protected:
   static VkFilter extract_filter(fastgltf::Filter filter);
   static VkSamplerMipmapMode extract_mipmap_mode(fastgltf::Filter filter);
 
-  [[nodiscard]] std::optional<std::shared_ptr<AllocatedTexture>> 
-  extract_image(fastgltf::Asset& gltf, fastgltf::Image& image);
+  [[nodiscard]] std::optional<std::shared_ptr<AllocatedTexture>>
+  extract_image(fastgltf::Asset &gltf, fastgltf::Image &image);
 
   void processSamplers(fastgltf::Asset &gltf);
   void processImages(fastgltf::Asset &gltf);

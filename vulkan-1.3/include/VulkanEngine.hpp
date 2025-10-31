@@ -102,8 +102,8 @@ private:
   void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
                   VkImageView imageView = VK_NULL_HANDLE);
 
-  void show_compute_background(ComputeShaderPushConstants& data);
-  void show_states(const EngineStats& stats);
+  void show_compute_background(ComputeShaderPushConstants &data);
+  void show_states(const EngineStats &stats);
 
 private:
   bool isInit = false;

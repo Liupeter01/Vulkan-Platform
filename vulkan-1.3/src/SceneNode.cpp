@@ -48,13 +48,13 @@ void SceneNode::destroy_sampler() {
 
 void SceneNode::destroy_images() {
 
-          for (auto& [k, v] : images_) {
+  for (auto &[k, v] : images_) {
 
-                    //we ignore the system default image!
-                    if (v != engine_->loaderrorImage_) {
-                              v->destroy();
-                    }
-          }
+    // we ignore the system default image!
+    if (v != engine_->loaderrorImage_) {
+      v->destroy();
+    }
+  }
 }
 
 void SceneNode::init_material(VkDescriptorSetLayout globalSceneLayout) {

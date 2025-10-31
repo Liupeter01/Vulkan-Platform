@@ -26,10 +26,10 @@ namespace node {
 struct SceneNodeConf {
   std::string sceneRootName = "__custom_scene__";
   uint32_t setCount = 1;
-  std::vector<PoolSizeRatio> poolSizeRatio {
-    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3},
-    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
-    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1} };
+  std::vector<PoolSizeRatio> poolSizeRatio{
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}};
 
   VkDescriptorSetLayout globalSceneLayout;
 };

@@ -183,13 +183,11 @@ void AllocatedTexture::uploadBufferToImage(VkCommandBuffer cmd) {
 }
 
 void AllocatedTexture::invalid() {
-          destroy();
-          pendingUpload_ = false;
+  destroy();
+  pendingUpload_ = false;
 }
 
-bool AllocatedTexture::isValid() const {
-          return isinit;
-}
+bool AllocatedTexture::isValid() const { return isinit; }
 
 void AllocatedTexture::flushUpload(VkFence fence) {
   if (!pendingUpload_)
@@ -198,7 +196,7 @@ void AllocatedTexture::flushUpload(VkFence fence) {
   vkWaitForFences(device_, 1, &fence, true,
                   std::numeric_limits<uint64_t>::max());
 
-  //srcBuffer_.destroy();
+  // srcBuffer_.destroy();
   pendingUpload_ = false;
 }
 

@@ -6,8 +6,8 @@
 #include <compute/Compute_ImageAttachment.hpp>
 #include <material/GLTFMetallic_Roughness.hpp>
 #include <memory>
-#include <nodes/scene/NodeManager.hpp>
 #include <nodes/mesh/MeshNode.hpp>
+#include <nodes/scene/NodeManager.hpp>
 #include <tuple>
 
 namespace engine {
