@@ -102,6 +102,9 @@ private:
   void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
                   VkImageView imageView = VK_NULL_HANDLE);
 
+  void show_compute_background(ComputeShaderPushConstants& data);
+  void show_states(const EngineStats& stats);
+
 private:
   bool isInit = false;
   bool resize_requested = false;
@@ -137,6 +140,8 @@ private:
   // CommandBuffer Part
   unsigned int frameNumber_ = 0;
 
+  EngineStats stats;
+
   const uint32_t setCount_ = 1000;
   const std::vector<PoolSizeRatio> frame_sizes = {
       {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
@@ -146,9 +151,11 @@ private:
   };
 
   std::vector<std::unique_ptr<FrameData>> frames_;
+
   VkQueue graphicsQueue_;
   uint32_t graphicsQueueFamily_;
 
+  bool isTransferQueueSupported = true;
   VkQueue transferQueue_;
   uint32_t transferQueueFamily_;
 

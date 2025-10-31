@@ -114,8 +114,13 @@ void VulkanEngine::imm_command_submit(
 
 void VulkanEngine::run() {
 
+          auto& data = scene_->getComputeData();
+
   KeyBoardController keyboard_controller;
-  auto currTime = std::chrono::high_resolution_clock::now();
+  auto frameTimeStart = std::chrono::high_resolution_clock::now();
+  auto frameTimeDuration =
+            std::chrono::duration<float, std::chrono::microseconds::period>(
+                      std::chrono::high_resolution_clock::now() - frameTimeStart).count();
 
   camera_->setViewTarget(glm::vec3{0.f, 0.f, -1.f}, glm::vec3(0.f, 0.f, 0.f));
   camera_->setPerspectiveProjection(glm::radians(45.f),
@@ -125,43 +130,40 @@ void VulkanEngine::run() {
 
   // camera_
   while (!window_.shouldClose()) {
+
     glfwPollEvents();
-
-    auto nowTime = std::chrono::high_resolution_clock::now();
-    auto timeFrame = std::chrono::duration<float, std::chrono::seconds::period>(
-                         nowTime - currTime)
-                         .count();
-    currTime = nowTime;
-
-    keyboard_controller.movePlaneYXZ(window_.getGLFWWindow(), timeFrame,
-                                     camera_);
-    camera_->setYXZ(camera_->localTransform.translation,
-                    camera_->localTransform.rotation);
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    if (ImGui::Begin("background")) {
-
-      auto &data = scene_->getComputeData();
-
-      ImGui::InputFloat4("topLeft", (float *)&data.topLeft, "%.3f",
-                         ImGuiInputTextFlags_ElideLeft);
-      ImGui::InputFloat4("topRight", (float *)&data.topRight, "%.3f",
-                         ImGuiInputTextFlags_ElideLeft);
-      ImGui::InputFloat4("bottomLeft", (float *)&data.bottomLeft, "%.3f",
-                         ImGuiInputTextFlags_ElideLeft);
-      ImGui::InputFloat4("bottomRight", (float *)&data.bottomRight);
-      ImGui::SliderFloat("Render Scale", &renderScale, 0.3f, 1.f, "%.3f",
-                         ImGuiInputTextFlags_ElideLeft);
-    }
-    ImGui::End();
+    show_compute_background(data);
+    show_states(stats);
 
     // make imgui calculate internal draw structures
     ImGui::Render();
 
+    keyboard_controller.movePlaneYXZ(window_.getGLFWWindow(), stats.frametime,
+              camera_);
+    camera_->setYXZ(camera_->localTransform.translation,
+              camera_->localTransform.rotation);
+
+    //draw meshes!
     draw();
+
+    auto drawEnd = std::chrono::high_resolution_clock::now();
+    auto drawTimeFrame = std::chrono::duration<float, std::chrono::microseconds::period>(
+              drawEnd - frameTimeStart)
+              .count();
+
+    auto frameTimeEnd = std::chrono::high_resolution_clock::now();
+    frameTimeDuration = std::chrono::duration<float, std::chrono::microseconds::period>(
+              frameTimeEnd - frameTimeStart).count();
+
+    stats.mesh_draw_time = drawTimeFrame / 1000.f;
+    stats.frametime = frameTimeDuration / 1000.f;
+
+    frameTimeStart = frameTimeEnd;
 
     if (resize_requested) {
 
@@ -227,6 +229,35 @@ void VulkanEngine::draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 
   vkCmdEndRendering(cmd);
+}
+
+void VulkanEngine::show_compute_background(ComputeShaderPushConstants& data) {
+
+          if (ImGui::Begin("background")) {
+                    ImGui::InputFloat4("topLeft", (float*)&data.topLeft, "%.3f",
+                              ImGuiInputTextFlags_ElideLeft);
+                    ImGui::InputFloat4("topRight", (float*)&data.topRight, "%.3f",
+                              ImGuiInputTextFlags_ElideLeft);
+                    ImGui::InputFloat4("bottomLeft", (float*)&data.bottomLeft, "%.3f",
+                              ImGuiInputTextFlags_ElideLeft);
+                    ImGui::InputFloat4("bottomRight", (float*)&data.bottomRight);
+                    ImGui::SliderFloat("Render Scale", &renderScale, 0.3f, 1.f, "%.3f",
+                              ImGuiInputTextFlags_ElideLeft);
+                    //ImGui::End();
+          }
+          ImGui::End();
+}
+
+void VulkanEngine::show_states(const EngineStats &stats){
+          if (ImGui::Begin("Stats")) {
+                    ImGui::Text("frametime %f ms", stats.frametime);
+                    ImGui::Text("draw time %f ms", stats.mesh_draw_time);
+                    ImGui::Text("update time %f ms", stats.scene_update_time);
+                    ImGui::Text("triangles %i", stats.triangle_count);
+                    ImGui::Text("draws %i", stats.drawcall_count);
+                   /* ImGui::End();*/
+          }
+          ImGui::End();
 }
 
 void VulkanEngine::draw() {
@@ -476,17 +507,21 @@ void VulkanEngine::init_vulkan() {
   graphicsQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
-  // transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
-  // transferQueueFamily_ =
-  //     vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
-
-  // if (transferQueueFamily_ == graphicsQueueFamily_) {
-  //   spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue
-  //   "
-  //                "¡ª using graphics queue instead ");
-  // }
-
   isInit = true;
+
+  auto queue = vkbDevice.get_queue(vkb::QueueType::transfer);
+  auto family = vkbDevice.get_queue_index(vkb::QueueType::transfer);
+  if (!queue.has_value() || !family.has_value()) {
+            isTransferQueueSupported = false;
+  }
+
+   transferQueue_ = queue.value();
+   transferQueueFamily_ = family.value();
+
+   if (transferQueueFamily_ == graphicsQueueFamily_) {
+     spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue ¡ª using graphics queue instead ");
+     isTransferQueueSupported = false;
+   }
 }
 
 void VulkanEngine::init_swapchain() {
