@@ -20,8 +20,8 @@ public:
     int lookDown = GLFW_KEY_DOWN;
   } keys;
 
-  float moveSpeed = {3.f};
-  float lookSpeed = {1.5f};
+  float moveSpeed = {0.001f};
+  float lookSpeed = {0.002f};
 
   void movePlaneYXZ(GLFWwindow *win, float dt,
                     std::shared_ptr<node::BaseNode> obj);
