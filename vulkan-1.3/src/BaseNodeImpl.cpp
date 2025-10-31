@@ -75,6 +75,7 @@ void MeshNode::Draw(const glm::mat4 &topMatrix, DrawContext &ctx) {
     object.vertexBufferAddress = mesh_->meshBuffers.vertexBufferAddress;
     object.material = surface.material.get();
     object.mesh_name = this->node_name;
+    object.parent = mesh_.get();
     ctx.OpaqueSurfaces.push_back(std::move(object));
   }
 
