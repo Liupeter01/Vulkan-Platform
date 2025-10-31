@@ -174,6 +174,10 @@ ScenesManager::createDefaultMaterialInstance(FrameData& frame) {
 
 void ScenesManager::render(VkCommandBuffer cmd, FrameData& frame) {
 
+          MeshAsset* last_mesh{};
+          MaterialInstance* last_material{};
+          MaterialPipeline* last_pipeline{};
+
           /*set = 0, binding = 0*/
           auto [sceneSet, sceneDataBuffer] = createSceneSet(frame);
 
@@ -213,18 +217,35 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData& frame) {
 
           for (auto& surface : ctx.OpaqueSurfaces) {
 
-                    // No Material Exist!
+                    // No Material Set, Then use default
                     if (!surface.material) {
                               // setup default material
                               surface.material = &defaultMateral;
                     }
 
-                    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              surface.material->pipeline->getPipeline());
+                    auto pipeline = surface.material->pipeline->getPipeline();
+                    auto layout = surface.material->pipeline->getPipelineLayout();
+
+                    if (last_pipeline != surface.material->pipeline) {
+                              last_pipeline = surface.material->pipeline;
+                              vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                              vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        layout, 0,
+                                        static_cast<uint32_t>(1),
+                                        &sceneSet, 0, nullptr);
+                    }
+
+                    if (last_material != surface.material) {
+                              last_material = surface.material;
+                              vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        layout, 1,
+                                        static_cast<uint32_t>(1),
+                                        &surface.material->materialSet, 0, nullptr);
+                    }
 
                     // Its different from last mesh! So we should resubmit the vertices!
-                    if (last_mesh != surface.mesh_name) {
-                              last_mesh = surface.mesh_name;
+                    if (last_mesh != surface.parent) {
+                              last_mesh = surface.parent;
 
                               if (auto mesh = loadedScenes_.find("default")->second->findMesh("Suzanne"); mesh) {
                                         vkCmdBindIndexBuffer(
@@ -232,14 +253,6 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData& frame) {
                                                   tools::getIndexType<decltype((*mesh)->meshBuffers.indicies_[0])>());
                               }
                     }
-
-                    std::vector<VkDescriptorSet> descriptorSets{ sceneSet,
-                                                                surface.material->materialSet };
-
-                    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              surface.material->pipeline->getPipelineLayout(), 0,
-                              static_cast<uint32_t>(descriptorSets.size()),
-                              descriptorSets.data(), 0, nullptr);
 
                     GPUGeoPushConstants constants{};
                     constants.matrix = surface.transform;

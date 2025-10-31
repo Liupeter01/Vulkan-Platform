@@ -61,8 +61,6 @@ protected:
 
 private:
           bool isinit = false;
-          std::string last_mesh;
-
   VulkanEngine *engine_{};
 
   DrawContext ctx{}; // Export ALL subsurfaces
