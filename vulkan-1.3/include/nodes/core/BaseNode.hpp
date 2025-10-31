@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.hpp>
+#include <mesh/MeshLoader.hpp>
 
 #define GLM_FORCE_RADIANS // no degresss
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -30,6 +31,8 @@ struct RenderObject {
 
   glm::mat4 transform;
   VkDeviceAddress vertexBufferAddress;
+
+  mesh::MeshAsset* parent{};
 };
 
 struct TransformComponent {
