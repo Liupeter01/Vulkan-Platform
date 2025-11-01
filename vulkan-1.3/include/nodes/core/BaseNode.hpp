@@ -1,11 +1,12 @@
 #pragma once
 #ifndef _NODE_BASE_HPP_
 #define _NODE_BASE_HPP_
-#include <memory>
-#include <mesh/MeshLoader.hpp>
 #include <string>
 #include <vector>
+#include <memory>
 #include <vulkan/vulkan.hpp>
+#include <bvh/Bounds3.hpp>
+#include <mesh/MeshLoader.hpp>
 
 #define GLM_FORCE_RADIANS // no degresss
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -33,6 +34,7 @@ struct RenderObject {
   VkDeviceAddress vertexBufferAddress;
 
   mesh::MeshAsset *parent{};
+  Bounds3 bounds{};
 };
 
 struct TransformComponent {
