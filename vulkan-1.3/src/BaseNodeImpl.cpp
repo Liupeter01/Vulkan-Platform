@@ -5,6 +5,24 @@
 
 namespace engine {
 
+          bool  RenderObject::isVisible(const glm::mat4& ProjView) {
+                    const auto PVM = ProjView * this->transform;
+
+                    glm::vec3 max{ std::numeric_limits<float>::infinity() };
+                    glm::vec3 min{ -std::numeric_limits<float>::infinity() };
+
+                    for (std::size_t i = 0; i < 8; ++i) {
+                              glm::vec3 res = glm::vec3(PVM * glm::vec4(bounds.getCorner(static_cast<Bounds3::CornerType>(i)), 1.f));
+                              min = glm::min(res, min);
+                              max = glm::max(res, max);
+                    }
+
+                    if (min.z < 0.f || min.z > 1.f || min.x > 1.f || max.x < -1.f || min.y > 1.f || max.y < -1.f) {
+                              return false;
+                    }
+                    return true;
+          }
+
 void TransformComponent::setRotation(const glm::vec3 &euler) {
   rotation = euler;
   quat = glm::quat(euler);

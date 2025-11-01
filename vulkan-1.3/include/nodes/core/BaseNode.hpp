@@ -35,6 +35,8 @@ struct RenderObject {
 
   mesh::MeshAsset *parent{};
   Bounds3 bounds{};
+
+  bool isVisible(const glm::mat4& ProjView);
 };
 
 struct TransformComponent {
