@@ -1,11 +1,11 @@
 #pragma once
 #ifndef _MESH_LOADER_HPP_
 #define _MESH_LOADER_HPP_
+#include <bvh/Bounds3.hpp>
 #include <filesystem>
 #include <material/GLTFPBR_Material.hpp>
 #include <mesh/MeshBuffers.hpp>
 #include <optional>
-#include <bvh/Bounds3.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>

@@ -141,8 +141,7 @@ void VulkanEngine::run() {
     show_compute_background(data);
     show_states(stats);
 
-    stats.drawcall_count = 
-              stats.triangle_count = 0;
+    stats.drawcall_count = stats.triangle_count = 0;
 
     // make imgui calculate internal draw structures
     ImGui::Render();

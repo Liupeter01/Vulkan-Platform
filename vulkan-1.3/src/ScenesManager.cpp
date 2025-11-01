@@ -267,7 +267,7 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
 
     vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
 
-    //Update Satistic Info
+    // Update Satistic Info
     engine_->stats.drawcall_count += 1;
     engine_->stats.triangle_count += surface.indexCount / 3;
   }
