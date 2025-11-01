@@ -250,6 +250,10 @@ void Scene::render(VkCommandBuffer cmd, FrameData &frame) {
                        sizeof(GPUGeoPushConstants), &constants);
 
     vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+
+    //Update Satistic Info
+    engine->stats.drawcall_count += 1;
+    engine->stats.triangle_count += surface.indexCount / 3;
   }
 
   vkCmdEndRendering(cmd);
