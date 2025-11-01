@@ -2,7 +2,7 @@
 
 namespace engine {
 Bounds3::Bounds3()
-    : min(std::numeric_limits<float>::infinity()),
+    : min(-std::numeric_limits<float>::infinity()),
       max(std::numeric_limits<float>::infinity()) {}
 
 Bounds3::Bounds3(const glm::vec3 &p) : Bounds3(p, p) {}
@@ -35,6 +35,28 @@ Bounds3::ExtentType Bounds3::maxExtent() const {
   return ExtentType::Z; // z
 }
 
+glm::vec3 Bounds3::getCorner(const CornerType type) {
+          return Bounds3::getCorner(*this, type);
+}
+
+float Bounds3::sphereRadius(bool acc ) const{
+          return acc ? __sphere_radius_acc() : __sphere_radius_fast();
+}
+
+float Bounds3::__sphere_radius_acc() const{
+          return  0.5f * glm::length(max - min);
+}
+
+float Bounds3::__sphere_radius_fast() const {
+          glm::vec3 diag = max - min;
+          switch (maxExtent()) {
+          case ExtentType::X: return 0.5f * diag.x;
+          case ExtentType::Y: return 0.5f * diag.y;
+          case ExtentType::Z: return 0.5f * diag.z;
+          }
+          return 0.f;
+}
+
 double Bounds3::surfaceArea() const {
   auto d = diagonal();
   return 2.f * (d.x * d.y + d.x * d.z + d.y * d.z);
@@ -54,11 +76,16 @@ Bounds3 Bounds3::BoundsUnion(const glm::vec3 &point) const {
 
 Bounds3 Bounds3::intersect(const Bounds3 &a, const Bounds3 &b) {
 
-  const glm::vec3 min{std::fmax(a.min.x, b.min.x), std::fmax(a.min.y, b.min.y),
-                      std::fmax(a.min.z, b.min.z)};
-
-  const glm::vec3 max{std::fmax(a.max.x, b.max.x), std::fmax(a.max.y, b.max.y),
-                      std::fmax(a.max.z, b.max.z)};
+          const glm::vec3 min{
+              std::fmax(a.min.x, b.min.x),
+              std::fmax(a.min.y, b.min.y),
+              std::fmax(a.min.z, b.min.z)
+          };
+          const glm::vec3 max{
+              std::fmin(a.max.x, b.max.x),
+              std::fmin(a.max.y, b.max.y),
+              std::fmin(a.max.z, b.max.z)
+          };
 
   return {min, max};
 }
@@ -80,6 +107,23 @@ Bounds3 Bounds3::BoundsUnion(const Bounds3 &box1, const Bounds3 &box2) {
 }
 
 Bounds3 Bounds3::BoundsUnion(const Bounds3 &box, const glm::vec3 &point) {
-  return Bounds3::BoundsUnion(box, {point});
+          return { glm::min(box.min, point), glm::max(box.max, point) };
+}
+
+glm::vec3 Bounds3::getCorner(const Bounds3& box, const CornerType type) {
+          glm::vec3 min = box.min;
+          glm::vec3 max = box.max;
+
+          switch (type) {
+          case CornerType::LEFT_BOTTOM_FRONT:  return { min.x, min.y, min.z };
+          case CornerType::RIGHT_BOTTOM_FRONT: return { max.x, min.y, min.z };
+          case CornerType::LEFT_TOP_FRONT:     return { min.x, max.y, min.z };
+          case CornerType::RIGHT_TOP_FRONT:    return { max.x, max.y, min.z };
+          case CornerType::LEFT_BOTTOM_BACK:   return { min.x, min.y, max.z };
+          case CornerType::RIGHT_BOTTOM_BACK:  return { max.x, min.y, max.z };
+          case CornerType::LEFT_TOP_BACK:      return { min.x, max.y, max.z };
+          case CornerType::RIGHT_TOP_BACK:     return { max.x, max.y, max.z };
+          default:                             return glm::vec3(0.f);
+          }
 }
 } // namespace engine
