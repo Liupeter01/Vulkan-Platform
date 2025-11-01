@@ -219,13 +219,13 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
 
   vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-  for (auto &surface : ctx.OpaqueSurfaces) {
+  auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
 
-    // No Material Set, Then use default
-    if (!surface.material) {
-      // setup default material
-      surface.material = &defaultMateral;
-    }
+  for (auto& surface : ctx.OpaqueSurfaces) {
+
+            if (!surface.isVisible(PV)) {
+                      continue;
+            }
 
     auto pipeline = surface.material->pipeline->getPipeline();
     auto layout = surface.material->pipeline->getPipelineLayout();

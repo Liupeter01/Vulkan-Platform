@@ -205,7 +205,13 @@ void Scene::render(VkCommandBuffer cmd, FrameData &frame) {
 
   vkCmdSetScissor(cmd, 0, 1, &scissor);
 
+  auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
+
   for (auto &surface : ctx.OpaqueSurfaces) {
+
+            if (!surface.isVisible(PV)) {
+                      continue;
+            }
 
     // No Material Set, Then use default
     if (!surface.material) {
