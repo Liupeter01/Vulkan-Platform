@@ -79,7 +79,7 @@ std::optional<std::shared_ptr<node::SceneNode>> SceneNodeBuilder::build() {
     gltf = std::move(load_gltf.get());
   }
 
-  conf_.value().setCount = gltf.materials.size();
+  conf_.value().setCount = static_cast<uint32_t>(gltf.materials.size());
   scene.reset();
   scene = std::make_shared<node::SceneNode>(engine_);
   scene->init(conf_.value());
