@@ -446,10 +446,10 @@ void SceneNodeBuilder::processMeshes(fastgltf::Asset &gltf) {
       glm::vec3 max = min;
 
       for (std::size_t i = initial_vtx; i < vertices.size(); i++) {
-                min = glm::min(min, vertices[i].position);
-                max = glm::max(max, vertices[i].position);
+        min = glm::min(min, vertices[i].position);
+        max = glm::max(max, vertices[i].position);
       }
-      newSurface.bounds = Bounds3{ min, max };
+      newSurface.bounds = Bounds3{min, max};
 
       newMesh->meshSurfaces.push_back(newSurface);
     }

@@ -221,11 +221,11 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
 
   auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
 
-  for (auto& surface : ctx.OpaqueSurfaces) {
+  for (auto &surface : ctx.OpaqueSurfaces) {
 
-            if (!surface.isVisible(PV)) {
-                      continue;
-            }
+    if (!surface.isVisible(PV)) {
+      continue;
+    }
 
     auto pipeline = surface.material->pipeline->getPipeline();
     auto layout = surface.material->pipeline->getPipelineLayout();

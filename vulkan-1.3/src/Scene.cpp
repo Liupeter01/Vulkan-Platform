@@ -209,9 +209,9 @@ void Scene::render(VkCommandBuffer cmd, FrameData &frame) {
 
   for (auto &surface : ctx.OpaqueSurfaces) {
 
-            if (!surface.isVisible(PV)) {
-                      continue;
-            }
+    if (!surface.isVisible(PV)) {
+      continue;
+    }
 
     // No Material Set, Then use default
     if (!surface.material) {

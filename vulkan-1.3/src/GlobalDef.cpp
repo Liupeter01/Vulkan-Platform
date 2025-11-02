@@ -21,8 +21,8 @@ void AllocatedImage::create_image(VkExtent3D extent, VkFormat format,
       tools::image_create_info(imageFormat, usage, extent);
 
   if (mipmapped) {
-            rimg_info.mipLevels =
-                      static_cast<uint32_t>(util::generate_mipmap_levels({ extent.width, extent.height }));
+    rimg_info.mipLevels = static_cast<uint32_t>(
+        util::generate_mipmap_levels({extent.width, extent.height}));
   }
 
   VmaAllocationCreateInfo rimg_allocinfo = {};
@@ -168,7 +168,7 @@ void AllocatedTexture::uploadBufferToImage(VkCommandBuffer cmd) {
   copyRegion.bufferRowLength = 0;
   copyRegion.bufferImageHeight = 0;
   copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  copyRegion.imageSubresource.mipLevel = 0;       //LOD0
+  copyRegion.imageSubresource.mipLevel = 0; // LOD0
   copyRegion.imageSubresource.baseArrayLayer = 0;
   copyRegion.imageSubresource.layerCount = 1;
   copyRegion.imageExtent = extent_;
@@ -177,13 +177,13 @@ void AllocatedTexture::uploadBufferToImage(VkCommandBuffer cmd) {
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
   if (mipmapped_) {
-            util::generate_mipmaps(cmd, dstImage_.image, 
-                      { dstImage_.imageExtent.width, dstImage_.imageExtent.height });
-  }
-  else {
-            util::transition_image(cmd, dstImage_.image,
-                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    util::generate_mipmaps(
+        cmd, dstImage_.image,
+        {dstImage_.imageExtent.width, dstImage_.imageExtent.height});
+  } else {
+    util::transition_image(cmd, dstImage_.image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   }
 
   pendingUpload_ = true;
