@@ -84,6 +84,7 @@ struct AllocatedTexture {
 private:
   bool isinit = false;
   bool pendingUpload_ = false;
+  bool mipmapped_ = false;
   VkExtent3D extent_;
   mutable AllocatedImage dstImage_;
   AllocatedBuffer srcBuffer_;
