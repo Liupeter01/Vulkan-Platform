@@ -8,13 +8,13 @@ namespace engine {
 
 bool RenderObject::isVisible(const glm::mat4 &ProjView) {
 
-   bool status = false;
+  bool status = false;
   const auto PVM = ProjView * this->transform;
 
   for (std::size_t i = 0; i < 8; ++i) {
-    glm::vec3 res = 
-    tools::perspective_divded(PVM *
-              glm::vec4(bounds.getCorner(static_cast<Bounds3::CornerType>(i)), 1.f));
+    glm::vec3 res = tools::perspective_divded(
+        PVM *
+        glm::vec4(bounds.getCorner(static_cast<Bounds3::CornerType>(i)), 1.f));
 
     status |= tools::is_inside_vulkan_ndc(res);
   }

@@ -2,6 +2,7 @@
 #include <Util.hpp>
 #include <VkBootstrap.h>
 #include <VulkanEngine.hpp>
+#include <builder/NodeManagerBuiler.hpp>
 #include <builder/SceneNodeBuilder.hpp>
 #include <chrono>
 #include <exception>
@@ -9,7 +10,6 @@
 #include <numeric>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
-#include <builder/NodeManagerBuiler.hpp>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -39,32 +39,32 @@ void VulkanEngine::init() {
   init_scene();
   init_camera();
 
-  if (auto nodemgr = NodeManagerBuilder{ this }
-            .set_debug_color()
-            .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
-            .set_options()
-            .set_root("/root")
-            .build();
-            nodemgr) {
+  if (auto nodemgr = NodeManagerBuilder{this}
+                         .set_debug_color()
+                         .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
+                         .set_options()
+                         .set_root("/root")
+                         .build();
+      nodemgr) {
 
-            (*nodemgr)->name = "default";
-            sceneMgr->addScene((*nodemgr));
-            sceneMgr->submit();
+    (*nodemgr)->name = "default";
+    sceneMgr->addScene((*nodemgr));
+    sceneMgr->submit();
   }
 
-  //node::SceneNodeConf conf;
-  //conf.globalSceneLayout = sceneDescriptorSetLayout_;
-//  if (auto mesh = SceneNodeBuilder{this}
-//                      .set_config(conf)
-//                      .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
-//                      .set_options()
-//                      .build();
-//      mesh) {
-//
-//    (*mesh)->name = "default";
-//    sceneMgr->addScene((*mesh));
-//    sceneMgr->submit();
-//  }
+  // node::SceneNodeConf conf;
+  // conf.globalSceneLayout = sceneDescriptorSetLayout_;
+  //  if (auto mesh = SceneNodeBuilder{this}
+  //                      .set_config(conf)
+  //                      .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
+  //                      .set_options()
+  //                      .build();
+  //      mesh) {
+  //
+  //    (*mesh)->name = "default";
+  //    sceneMgr->addScene((*mesh));
+  //    sceneMgr->submit();
+  //  }
 }
 
 void VulkanEngine::destroy() {
@@ -114,7 +114,7 @@ void VulkanEngine::imm_command_submit(
 
 void VulkanEngine::run() {
 
-  auto& data = sceneMgr->getComputeData();
+  auto &data = sceneMgr->getComputeData();
 
   KeyBoardController keyboard_controller;
   auto frameTimeStart = std::chrono::high_resolution_clock::now();
@@ -323,8 +323,8 @@ void VulkanEngine::draw() {
   // Draw Background
   draw_background(cmd, draw_image);
 
-  //Compute Shader!
-  sceneMgr->compute(cmd, currentFrame); 
+  // Compute Shader!
+  sceneMgr->compute(cmd, currentFrame);
 
   util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_GENERAL,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -332,8 +332,8 @@ void VulkanEngine::draw() {
   util::transition_image(cmd, depth_image, VK_IMAGE_LAYOUT_UNDEFINED,
                          VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-  //Graphic Render
-  sceneMgr->render(cmd, currentFrame);                        
+  // Graphic Render
+  sceneMgr->render(cmd, currentFrame);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
@@ -367,9 +367,9 @@ void VulkanEngine::draw() {
       VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
       get_current_frame()._swapChainWait);
 
-  VkSemaphoreSubmitInfo presentKHRSignal =
-      tools::semaphore_submit_info(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-                frames_[swapchainImageIndex]->_renderPresentKHRSignal);
+  VkSemaphoreSubmitInfo presentKHRSignal = tools::semaphore_submit_info(
+      VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+      frames_[swapchainImageIndex]->_renderPresentKHRSignal);
 
   VkSubmitInfo2 info = {};
   info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
@@ -393,7 +393,8 @@ void VulkanEngine::draw() {
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = &swapchain_;
 
-  presentInfo.pWaitSemaphores = &frames_[swapchainImageIndex]->_renderPresentKHRSignal;
+  presentInfo.pWaitSemaphores =
+      &frames_[swapchainImageIndex]->_renderPresentKHRSignal;
   presentInfo.waitSemaphoreCount = 1;
 
   presentInfo.pImageIndices = &swapchainImageIndex;

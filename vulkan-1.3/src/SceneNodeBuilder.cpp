@@ -1,8 +1,8 @@
 #include <VulkanEngine.hpp>
 #include <builder/SceneNodeBuilder.hpp>
+#include <nodes/mesh/MeshNode.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
-#include <nodes/mesh/MeshNode.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

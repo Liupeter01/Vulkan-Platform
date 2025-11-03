@@ -229,8 +229,8 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
 
     // No Material Set, Then use default
     if (!surface.material) {
-              // setup default material
-              surface.material = &defaultMateral;
+      // setup default material
+      surface.material = &defaultMateral;
     }
 
     auto pipeline = surface.material->pipeline->getPipeline();
