@@ -13,7 +13,7 @@ bool RenderObject::isVisible(const glm::mat4 &ProjView) {
 
   for (std::size_t i = 0; i < 8; ++i) {
     glm::vec3 res = 
-    tools::perpective_divded(PVM *
+    tools::perspective_divded(PVM *
               glm::vec4(bounds.getCorner(static_cast<Bounds3::CornerType>(i)), 1.f));
 
     status |= tools::is_inside_vulkan_ndc(res);
