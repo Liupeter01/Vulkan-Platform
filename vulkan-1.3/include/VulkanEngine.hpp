@@ -134,7 +134,7 @@ private:
   std::vector<VkImageView> swapchainImageViews_; //
   VkExtent2D swapchainExtent_;
 
-  std::size_t FRAMES_IN_FLIGHT{ 0 };
+  std::size_t FRAMES_IN_FLIGHT{0};
 
   // Support IMGUI
   VkDescriptorPool imguiPool_ = VK_NULL_HANDLE;

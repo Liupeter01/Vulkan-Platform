@@ -770,7 +770,8 @@ void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
 
   FRAMES_IN_FLIGHT = swapchainImages_.size();
 
-  spdlog::info("[VulkanEngine Info]: Setting  FRAMES_IN_FLIGHT = {}", FRAMES_IN_FLIGHT);
+  spdlog::info("[VulkanEngine Info]: Setting  FRAMES_IN_FLIGHT = {}",
+               FRAMES_IN_FLIGHT);
 }
 
 void VulkanEngine::init_frames(
