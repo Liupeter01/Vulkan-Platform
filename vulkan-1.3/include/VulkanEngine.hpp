@@ -8,7 +8,6 @@
 #include <iostream>
 #include <memory>
 #include <nodes/camera/CameraNode.hpp>
-#include <scene/Scene.hpp>
 #include <scene/ScenesManager.hpp>
 #include <string>
 #include <vector>
@@ -25,6 +24,7 @@ namespace engine {
 class Scene;
 struct FrameData;
 struct SceneNodeBuilder;
+struct NodeManagerBuilder;
 class ScenesNodesManager;
 
 namespace node {
@@ -35,6 +35,7 @@ class VulkanEngine {
   friend class Scene;
   friend struct FrameData;
   friend struct SceneNodeBuilder;
+  friend struct NodeManagerBuilder;
   friend class node::SceneNode;
   friend class ScenesManager;
 
@@ -171,7 +172,6 @@ private:
   VkCommandBuffer immCommandBuffer_;
   VkCommandPool immCommandPool_;
 
-  std::unique_ptr<Scene> scene_ = nullptr;
   std::unique_ptr<ScenesManager> sceneMgr = nullptr;
   std::shared_ptr<node::CameraNode> camera_ = nullptr;
 

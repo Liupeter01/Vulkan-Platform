@@ -9,6 +9,7 @@
 #include <numeric>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <builder/NodeManagerBuiler.hpp>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -38,33 +39,32 @@ void VulkanEngine::init() {
   init_scene();
   init_camera();
 
-  if (auto mesh = MeshAsset::loadGltfMeshes(
-          device_, allocator_, CONFIG_HOME "assets/gltf/basicmesh.glb");
-      mesh) {
+  if (auto nodemgr = NodeManagerBuilder{ this }
+            .set_debug_color()
+            .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
+            .set_options()
+            .set_root("/root")
+            .build();
+            nodemgr) {
 
-    /*
-     *                    root
-     *             /        |           \
-     *      meshA meshB meshC
-     */
-    scene_->attachChildrens("/root", mesh.value());
-    scene_->submit();
+            (*nodemgr)->name = "default";
+            sceneMgr->addScene((*nodemgr));
+            sceneMgr->submit();
   }
 
-  node::SceneNodeConf conf;
-  conf.globalSceneLayout = sceneDescriptorSetLayout_;
-
-  if (auto mesh = SceneNodeBuilder{this}
-                      .set_config(conf)
-                      .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
-                      .set_options()
-                      .build();
-      mesh) {
-
-    (*mesh)->name = "default";
-    sceneMgr->addScene((*mesh));
-    sceneMgr->submit();
-  }
+  //node::SceneNodeConf conf;
+  //conf.globalSceneLayout = sceneDescriptorSetLayout_;
+//  if (auto mesh = SceneNodeBuilder{this}
+//                      .set_config(conf)
+//                      .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
+//                      .set_options()
+//                      .build();
+//      mesh) {
+//
+//    (*mesh)->name = "default";
+//    sceneMgr->addScene((*mesh));
+//    sceneMgr->submit();
+//  }
 }
 
 void VulkanEngine::destroy() {
@@ -114,7 +114,7 @@ void VulkanEngine::imm_command_submit(
 
 void VulkanEngine::run() {
 
-  auto &data = scene_->getComputeData();
+  auto& data = sceneMgr->getComputeData();
 
   KeyBoardController keyboard_controller;
   auto frameTimeStart = std::chrono::high_resolution_clock::now();
@@ -249,7 +249,6 @@ void VulkanEngine::show_compute_background(ComputeShaderPushConstants &data) {
     ImGui::InputFloat4("bottomRight", (float *)&data.bottomRight);
     ImGui::SliderFloat("Render Scale", &renderScale, 0.3f, 1.f, "%.3f",
                        ImGuiInputTextFlags_ElideLeft);
-    // ImGui::End();
   }
   ImGui::End();
 }
@@ -261,7 +260,6 @@ void VulkanEngine::show_states(const EngineStats &stats) {
     ImGui::Text("update time %f ms", stats.scene_update_time);
     ImGui::Text("triangles %i", stats.triangle_count);
     ImGui::Text("draws %i", stats.drawcall_count);
-    /* ImGui::End();*/
   }
   ImGui::End();
 }
@@ -269,7 +267,7 @@ void VulkanEngine::show_states(const EngineStats &stats) {
 void VulkanEngine::draw() {
   auto &currentFrame = get_current_frame();
 
-  scene_->update_scene();
+  sceneMgr->update_scene();
 
   // wait until the gpu has finished rendering the last frame.
   vkWaitForFences(device_, 1, &currentFrame._renderFinishedFence, true,
@@ -325,8 +323,8 @@ void VulkanEngine::draw() {
   // Draw Background
   draw_background(cmd, draw_image);
 
-  // compute
-  scene_->compute(cmd, currentFrame);
+  //Compute Shader!
+  sceneMgr->compute(cmd, currentFrame); 
 
   util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_GENERAL,
                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -334,7 +332,8 @@ void VulkanEngine::draw() {
   util::transition_image(cmd, depth_image, VK_IMAGE_LAYOUT_UNDEFINED,
                          VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-  scene_->render(cmd, currentFrame);
+  //Graphic Render
+  sceneMgr->render(cmd, currentFrame);                        
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
@@ -622,10 +621,6 @@ void VulkanEngine::init_imgui() {
 }
 
 void VulkanEngine::init_scene() {
-  scene_.reset();
-  scene_ = std::make_unique<Scene>(this);
-  scene_->init();
-
   sceneMgr.reset();
   sceneMgr = std::make_unique<ScenesManager>(this);
   sceneMgr->init();
@@ -723,9 +718,6 @@ void VulkanEngine::destroy_default_color() {
 void VulkanEngine::destroy_camera() { camera_.reset(); }
 
 void VulkanEngine::destroy_scene() {
-  scene_->destroy();
-  scene_.reset();
-
   sceneMgr->destroy();
   sceneMgr.reset();
 }
