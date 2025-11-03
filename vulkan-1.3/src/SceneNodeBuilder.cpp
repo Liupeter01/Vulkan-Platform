@@ -2,6 +2,7 @@
 #include <builder/SceneNodeBuilder.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <nodes/mesh/MeshNode.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -54,14 +55,14 @@ std::optional<std::shared_ptr<node::SceneNode>> SceneNodeBuilder::build() {
   fastgltf::Asset gltf;
   const auto type = fastgltf::determineGltfFileType(gltfData.get());
   if (type == fastgltf::GltfType::Invalid) {
-    spdlog::error("[NodesPackedCreator]: Invalid GLTF File Type!");
+    spdlog::error("[SceneNodeBuilder Error]: Invalid GLTF File Type!");
     return {};
   }
   if (type == fastgltf::GltfType::GLB) {
     auto load_gltf =
         parser.loadGltf(gltfData.get(), filepath_.parent_path(), options_);
     if (!load_gltf) {
-      spdlog::error("[NodesPackedCreator]: Failed to Load GLB: {}!",
+      spdlog::error("[SceneNodeBuilder Error]: Failed to Load GLB: {}!",
                     fastgltf::to_underlying(load_gltf.error()));
       return std::nullopt;
     }
@@ -71,7 +72,7 @@ std::optional<std::shared_ptr<node::SceneNode>> SceneNodeBuilder::build() {
     auto load_gltf = parser.loadGltfBinary(gltfData.get(),
                                            filepath_.parent_path(), options_);
     if (!load_gltf) {
-      spdlog::error("[NodesPackedCreator]: Failed to Load GLTF: {}!",
+      spdlog::error("[SceneNodeBuilder Error]: Failed to Load GLTF: {}!",
                     fastgltf::to_underlying(load_gltf.error()));
       return std::nullopt;
     }
