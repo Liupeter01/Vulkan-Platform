@@ -227,6 +227,12 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
       continue;
     }
 
+    // No Material Set, Then use default
+    if (!surface.material) {
+              // setup default material
+              surface.material = &defaultMateral;
+    }
+
     auto pipeline = surface.material->pipeline->getPipeline();
     auto layout = surface.material->pipeline->getPipelineLayout();
 
@@ -320,7 +326,7 @@ ComputeShaderPushConstants &ScenesManager::getComputeData() {
 
 void ScenesManager::submit() {
   engine_->imm_command_submit([this](VkCommandBuffer cmd) {
-    // submitColorImage(cmd);
+    submitColorImage(cmd);
     submitMesh(cmd);
   });
 
