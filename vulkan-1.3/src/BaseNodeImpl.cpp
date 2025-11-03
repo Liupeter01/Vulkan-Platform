@@ -1,3 +1,4 @@
+#include <Tools.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <nodes/mesh/MeshNode.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -6,24 +7,19 @@
 namespace engine {
 
 bool RenderObject::isVisible(const glm::mat4 &ProjView) {
-  const auto PVM = ProjView * this->transform;
 
-  glm::vec3 max{std::numeric_limits<float>::infinity()};
-  glm::vec3 min{-std::numeric_limits<float>::infinity()};
+   bool status = false;
+  const auto PVM = ProjView * this->transform;
 
   for (std::size_t i = 0; i < 8; ++i) {
     glm::vec3 res = glm::vec3(
         PVM *
         glm::vec4(bounds.getCorner(static_cast<Bounds3::CornerType>(i)), 1.f));
-    min = glm::min(res, min);
-    max = glm::max(res, max);
+
+    status |= tools::is_inside_vulkan_ndc(res);
   }
 
-  if (min.z < 0.f || min.z > 1.f || min.x > 1.f || max.x < -1.f ||
-      min.y > 1.f || max.y < -1.f) {
-    return false;
-  }
-  return true;
+  return status;
 }
 
 void TransformComponent::setRotation(const glm::vec3 &euler) {
