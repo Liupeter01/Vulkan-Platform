@@ -16,7 +16,7 @@ inline void hash_combine_impl(SizeT &seed, SizeT value) {
   seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
-inline static glm::vec3 perpective_divded(const glm::vec4& vec) {
+inline static glm::vec3 perspective_divded(const glm::vec4& vec) {
           assert(vec.w != 0);
           auto inv = 1.f / vec.w;
           return glm::vec3{ vec } *inv;
