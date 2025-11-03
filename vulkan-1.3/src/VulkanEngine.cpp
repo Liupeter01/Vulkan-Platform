@@ -369,7 +369,7 @@ void VulkanEngine::draw() {
 
   VkSemaphoreSubmitInfo presentKHRSignal =
       tools::semaphore_submit_info(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-                                   get_current_frame()._renderPresentKHRSignal);
+                frames_[swapchainImageIndex]->_renderPresentKHRSignal);
 
   VkSubmitInfo2 info = {};
   info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
@@ -393,7 +393,7 @@ void VulkanEngine::draw() {
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = &swapchain_;
 
-  presentInfo.pWaitSemaphores = &get_current_frame()._renderPresentKHRSignal;
+  presentInfo.pWaitSemaphores = &frames_[swapchainImageIndex]->_renderPresentKHRSignal;
   presentInfo.waitSemaphoreCount = 1;
 
   presentInfo.pImageIndices = &swapchainImageIndex;
