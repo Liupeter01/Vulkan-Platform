@@ -2,7 +2,7 @@
 #ifndef _NODE_MANAGER_HPP_
 #define _NODE_MANAGER_HPP_
 #include <memory>
-#include <mesh/MeshLoader.hpp>
+#include <mesh/MeshAsset.hpp>
 #include <nodes/core/BaseNode.hpp>
 #include <optional>
 #include <string>

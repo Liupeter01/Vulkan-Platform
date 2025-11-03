@@ -9,7 +9,6 @@
 #include <fastgltf/types.hpp>
 #include <material/GLTFMetallic_Roughness.hpp>
 #include <memory>
-#include <mesh/MeshLoader.hpp>
 #include <nodes/core/BaseNode.hpp>
 #include <nodes/scene/NodeManager.hpp>
 #include <optional>

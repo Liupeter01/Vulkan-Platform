@@ -3,7 +3,7 @@
 #define _NODE_BASE_HPP_
 #include <bvh/Bounds3.hpp>
 #include <memory>
-#include <mesh/MeshLoader.hpp>
+#include <mesh/MeshAsset.hpp>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.hpp>
