@@ -1,6 +1,6 @@
 #pragma once
-#ifndef _MESH_LOADER_HPP_
-#define _MESH_LOADER_HPP_
+#ifndef _MESH_ASSET_HPP_
+#define _MESH_ASSET_HPP_
 #include <bvh/Bounds3.hpp>
 #include <filesystem>
 #include <material/GLTFPBR_Material.hpp>
@@ -39,16 +39,8 @@ struct MeshAsset {
   std::string meshName;
   std::vector<GeoSurface> meshSurfaces;
   GPUGeoMeshBuffers meshBuffers;
-
-  /* DEBUG ONLY! display the vertex normals*/
-  static constexpr bool OverrideColors = true;
-
-  [[nodiscard]]
-  static std::optional<std::vector<std::shared_ptr<MeshAsset>>>
-  loadGltfMeshes(VkDevice device, VmaAllocator allocator,
-                 std::filesystem::path filePath);
 };
 } // namespace mesh
 } // namespace engine
 
-#endif //_MESH_LOADER_HPP_
+#endif //_MESH_ASSET_HPP_
