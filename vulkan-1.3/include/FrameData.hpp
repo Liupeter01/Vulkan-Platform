@@ -19,9 +19,6 @@ private:
   std::deque<std::function<void()>> deletors;
 };
 
-// Double Buffer
-constexpr unsigned int FRAMES_IN_FLIGHT = 2;
-
 struct FrameData {
   FrameData(VulkanEngine *eng);
   virtual ~FrameData();

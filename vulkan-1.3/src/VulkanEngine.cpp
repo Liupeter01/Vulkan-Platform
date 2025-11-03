@@ -16,7 +16,7 @@
 namespace engine {
 
 VulkanEngine::VulkanEngine(Window &win, bool enableValidationLayer)
-    : isInit(false), window_(win), frameNumber_(0), frames_(FRAMES_IN_FLIGHT),
+    : isInit(false), window_(win), frameNumber_(0),
       enableValidationLayers_(enableValidationLayer) {
 
   init();
@@ -767,6 +767,10 @@ void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
   swapchain_ = vkbSwapchain.swapchain;
   swapchainImages_ = vkbSwapchain.get_images().value();
   swapchainImageViews_ = vkbSwapchain.get_image_views().value();
+
+  FRAMES_IN_FLIGHT = swapchainImages_.size();
+
+  spdlog::info("[VulkanEngine Info]: Setting  FRAMES_IN_FLIGHT = {}", FRAMES_IN_FLIGHT);
 }
 
 void VulkanEngine::init_frames(
@@ -781,6 +785,9 @@ void VulkanEngine::init_frames(
 
   VkExtent3D extent = {window_.getExtent().width, window_.getExtent().height,
                        1};
+
+  assert(FRAMES_IN_FLIGHT != 0);
+  frames_.resize(FRAMES_IN_FLIGHT);
 
   std::generate(frames_.begin(), frames_.end(),
                 [this, commandPoolInfo, semaphoreCreateInfo, fenceCreateInfo,
