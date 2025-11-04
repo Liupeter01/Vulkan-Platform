@@ -1,6 +1,5 @@
 #include <Tools.hpp>
 #include <Util.hpp>
-#include <VkBootstrap.h>
 #include <VulkanEngine.hpp>
 #include <builder/NodeManagerBuiler.hpp>
 #include <builder/SceneNodeBuilder.hpp>
@@ -10,6 +9,7 @@
 #include <numeric>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <map>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -174,6 +174,14 @@ void VulkanEngine::run() {
     if (resize_requested) {
 
       vkDeviceWaitIdle(device_);
+
+      int width, height;
+      glfwGetFramebufferSize(window_.getGLFWWindow(), &width, &height);
+      while (!width || !height) {
+                glfwGetFramebufferSize(window_.getGLFWWindow(), &width, &height);
+                glfwWaitEvents();
+      }
+
       resize_swapchain();
       resize_frames();
     }
@@ -264,6 +272,17 @@ void VulkanEngine::show_states(const EngineStats &stats) {
   ImGui::End();
 }
 
+bool VulkanEngine::isDeviceSuitable(const vkb::PhysicalDevice& device) {
+          auto properties = device.properties;
+          auto features = device.features;
+
+          if (properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
+                    features.geometryShader) {
+                    return true;
+          }
+          return false;
+}
+
 void VulkanEngine::draw() {
   auto &currentFrame = get_current_frame();
 
@@ -285,6 +304,9 @@ void VulkanEngine::draw() {
   if (e == VK_ERROR_OUT_OF_DATE_KHR) {
     resize_requested = true;
     return;
+  }
+  else if (e != VK_SUCCESS && e != VK_SUBOPTIMAL_KHR) {
+            throw std::runtime_error("failed to acquire swap chain image!");
   }
 
   // now that we are sure that the commands finished executing, we can safely
@@ -399,9 +421,12 @@ void VulkanEngine::draw() {
 
   presentInfo.pImageIndices = &swapchainImageIndex;
 
-  e = vkQueuePresentKHR(graphicsQueue_, &presentInfo);
-  if (e == VK_ERROR_OUT_OF_DATE_KHR) {
+  e = vkQueuePresentKHR(presentQueue_, &presentInfo);
+  if (e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
     resize_requested = true;
+  }
+  else if (e != VK_SUCCESS) {
+            throw std::runtime_error("failed to present swap chain image!");
   }
 }
 
@@ -499,9 +524,10 @@ void VulkanEngine::init_vulkan() {
                         .set_required_features_13(features)
                         .set_required_features_12(features12)
                         .set_surface(surface_)
+                        //.select_devices()
                         .select();
 
-  vkb::PhysicalDevice _physicalDevice = select_ret.value();
+  vkb::PhysicalDevice _physicalDevice = pickPhysicalDevicesByUser(selector);
 
   vkb::DeviceBuilder deviceBuilder{_physicalDevice};
   vkb::Device vkbDevice = deviceBuilder.build().value();
@@ -511,25 +537,85 @@ void VulkanEngine::init_vulkan() {
 
   graphicsQueue_ = vkbDevice.get_queue(vkb::QueueType::graphics).value();
   graphicsQueueFamily_ =
-      vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+            vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+
+  presentQueue_ = vkbDevice.get_queue(vkb::QueueType::present).value();
+  presentQueueFamily_  = vkbDevice.get_queue_index(vkb::QueueType::present).value();
+
+  if (!_physicalDevice.has_separate_transfer_queue()) {
+            isTransferQueueSupported = false;
+
+            spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue "
+                      "¡ª using graphics queue instead ");
+            return;
+  }
+
+  isTransferQueueSupported = true;
+  transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
+  transferQueueFamily_ = vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
+
+  if (!_physicalDevice.has_separate_compute_queue()) {
+            isComputeQueueSupported = false;
+            spdlog::warn("[VulkanEngine Warn]:Device has no dedicated compute queue "
+                      "¡ª using graphics queue instead ");
+            return;
+  }
+
+  isComputeQueueSupported = true;
+  computeQueue_ = vkbDevice.get_queue(vkb::QueueType::compute).value();
+  computeQueueFamily_ = vkbDevice.get_queue_index(vkb::QueueType::compute).value();
 
   isInit = true;
+}
 
-  auto queue = vkbDevice.get_queue(vkb::QueueType::transfer);
-  auto family = vkbDevice.get_queue_index(vkb::QueueType::transfer);
-  if (!queue.has_value() || !family.has_value()) {
-    isTransferQueueSupported = false;
-    return;
-  }
+vkb::PhysicalDevice VulkanEngine::pickDefaultPhysicalDevice(vkb::PhysicalDeviceSelector& selector) {
+          return selector.select().value();
+}
 
-  transferQueue_ = queue.value();
-  transferQueueFamily_ = family.value();
+vkb::PhysicalDevice VulkanEngine::pickPhysicalDevicesByUser(vkb::PhysicalDeviceSelector& selector, bool enableDefault){
 
-  if (transferQueueFamily_ == graphicsQueueFamily_) {
-    spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue "
-                 "¡ª using graphics queue instead ");
-    isTransferQueueSupported = false;
-  }
+          // vulkan 1.2 features
+          VkPhysicalDeviceVulkan12Features features12{};
+          features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+          features12.bufferDeviceAddress = true;
+          features12.descriptorIndexing = true;
+
+          // vulkan 1.3 features
+          VkPhysicalDeviceVulkan13Features features{};
+          features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+          features.dynamicRendering = true;
+          features.synchronization2 = true;
+
+          selector.set_minimum_version(1, 3)
+                    .set_required_features_13(features)
+                    .set_required_features_12(features12)
+                    .set_surface(surface_);
+
+          if (enableDefault) {
+                    return pickDefaultPhysicalDevice(selector);
+          }
+
+          //get multiple devices
+          auto devices = selector.select_devices().value();
+          if (devices.empty()) {
+                    throw std::runtime_error("failed to find GPUs with Vulkan support!");
+          }
+
+          std::multimap</*score = */std::size_t,
+                    vkb::PhysicalDevice> candidates;
+
+          for (auto& device : devices) {
+                    std::size_t score = 0;
+                    
+                    score += isDeviceSuitable(device) ? 1000 : 0;
+                    score += device.properties.limits.maxImageDimension2D;
+                    candidates.insert(std::make_pair(score, device));
+          }
+
+          if (!candidates.rbegin()->first) {
+                    throw std::runtime_error("failed to find a suitable GPU!");
+          }
+          return candidates.rbegin()->second;
 }
 
 void VulkanEngine::init_swapchain() {

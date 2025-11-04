@@ -3,6 +3,7 @@
 #define _VULKAN_ENGINE_HPP_
 #include <FrameData.hpp>
 #include <GlobalDef.hpp>
+#include <VkBootstrap.h>
 #include <Window.hpp>
 #include <functional>
 #include <iostream>
@@ -61,6 +62,9 @@ protected:
   FrameData &get_current_frame();
   void switch_to_next_frame();
 
+  vkb::PhysicalDevice pickDefaultPhysicalDevice(vkb::PhysicalDeviceSelector& selector);
+  vkb::PhysicalDevice pickPhysicalDevicesByUser(vkb::PhysicalDeviceSelector& selector, bool enableDefault = true);
+
 private:
   void init_vulkan();
   void init_swapchain();
@@ -105,6 +109,8 @@ private:
 
   void show_compute_background(ComputeShaderPushConstants &data);
   void show_states(const EngineStats &stats);
+
+  bool isDeviceSuitable(const vkb::PhysicalDevice& device);
 
 private:
   bool isInit = false;
@@ -155,12 +161,20 @@ private:
 
   std::vector<std::unique_ptr<FrameData>> frames_;
 
-  VkQueue graphicsQueue_;
-  uint32_t graphicsQueueFamily_;
+  bool isComputeQueueSupported = false;
+  bool isTransferQueueSupported = false;
 
-  bool isTransferQueueSupported = true;
-  VkQueue transferQueue_;
-  uint32_t transferQueueFamily_;
+  VkQueue graphicsQueue_{  };
+  uint32_t graphicsQueueFamily_{};
+
+  VkQueue presentQueue_{  };
+  uint32_t presentQueueFamily_{};
+
+  VkQueue transferQueue_{};
+  uint32_t transferQueueFamily_{};
+
+  VkQueue computeQueue_{};
+  uint32_t computeQueueFamily_{};
 
   VkExtent2D drawExtent_;
   float renderScale = 1.f;
