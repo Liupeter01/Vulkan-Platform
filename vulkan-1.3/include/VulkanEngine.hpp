@@ -62,8 +62,11 @@ protected:
   FrameData &get_current_frame();
   void switch_to_next_frame();
 
-  vkb::PhysicalDevice pickDefaultPhysicalDevice(vkb::PhysicalDeviceSelector& selector);
-  vkb::PhysicalDevice pickPhysicalDevicesByUser(vkb::PhysicalDeviceSelector& selector, bool enableDefault = true);
+  vkb::PhysicalDevice
+  pickDefaultPhysicalDevice(vkb::PhysicalDeviceSelector &selector);
+  vkb::PhysicalDevice
+  pickPhysicalDevicesByUser(vkb::PhysicalDeviceSelector &selector,
+                            bool enableDefault = true);
 
 private:
   void init_vulkan();
@@ -110,7 +113,7 @@ private:
   void show_compute_background(ComputeShaderPushConstants &data);
   void show_states(const EngineStats &stats);
 
-  bool isDeviceSuitable(const vkb::PhysicalDevice& device);
+  bool isDeviceSuitable(const vkb::PhysicalDevice &device);
 
 private:
   bool isInit = false;
@@ -164,10 +167,10 @@ private:
   bool isComputeQueueSupported = false;
   bool isTransferQueueSupported = false;
 
-  VkQueue graphicsQueue_{  };
+  VkQueue graphicsQueue_{};
   uint32_t graphicsQueueFamily_{};
 
-  VkQueue presentQueue_{  };
+  VkQueue presentQueue_{};
   uint32_t presentQueueFamily_{};
 
   VkQueue transferQueue_{};
