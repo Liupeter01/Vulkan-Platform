@@ -31,8 +31,8 @@ void MaterialPipeline::create(
   GraphicPipelineBuilder builder{device_};
   builder.pipelineLayout_ = pipelineLayout_;
   builder
-      .set_shaders(CONFIG_HOME "shaders/pbr.vert.spv",
-                   CONFIG_HOME "shaders/pbr.frag.spv")
+      .set_shaders(GLSL_SHADER_PATH "pbr.vert.spv",
+                GLSL_SHADER_PATH "pbr.frag.spv")
       .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
       .set_polygon_mode(VK_POLYGON_MODE_FILL)
       .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)

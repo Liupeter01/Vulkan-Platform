@@ -49,7 +49,7 @@ protected:
   void create_default_pipeline() {
     // load shader
     VkShaderModule computeDrawShader;
-    util::load_shader(CONFIG_HOME "shaders/gradient.comp.spv", device_,
+    util::load_shader(GLSL_SHADER_PATH"gradient.comp.spv", device_,
                       &computeDrawShader);
 
     VkPipelineShaderStageCreateInfo stageinfo{};
