@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 include(FetchContent)
+include(cmake/glsl_shader_target.cmake)
+include(cmake/slang_shader_target.cmake)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -51,37 +53,11 @@ else()
   add_compile_definitions(ENABLE_VALIDATION_LAYERS=0)
 endif()
 
-set(SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
-find_program(GLSLC_EXECUTABLE glslc REQUIRED)
+  set(GLSL_SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/shaders/glsl)
+  add_glsl_shader_target(GLSL_Compile_Shader ${GLSL_SHADER_PATH})
 
-file(
-  GLOB
-  SHADER_SOURCES
-  "${SHADER_PATH}/*.vert"
-  "${SHADER_PATH}/*.frag"
-  "${SHADER_PATH}/*.comp"
-  "${SHADER_PATH}/*.geom"
-  "${SHADER_PATH}/*.tesc"
-  "${SHADER_PATH}/*.tese")
-
-set(SHADER_OUTPUTS "")
-foreach(SHADER ${SHADER_SOURCES})
-  get_filename_component(SHADER_NAME ${SHADER} NAME)
-  set(SPIRV ${SHADER}.spv)
-
-  add_custom_command(
-    OUTPUT ${SPIRV}
-    COMMAND ${GLSLC_EXECUTABLE} ${SHADER} -o ${SPIRV}
-    DEPENDS ${SHADER}
-    COMMENT "Compiling ${SHADER_NAME} to SPIR-V")
-
-  list(APPEND SHADER_OUTPUTS ${SPIRV})
-endforeach()
-
-add_custom_target(Compile_Shader ALL DEPENDS ${SHADER_OUTPUTS})
-
-message(STATUS "Shader sources = ${SHADER_SOURCES}")
-message(STATUS "Generated SPIR-V = ${SHADER_OUTPUTS}")
+  set(SLANG_SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/shaders/slang)
+  add_slang_shader_target(SLANG_Compile_Shader ${SLANG_SHADER_PATH})
 
 find_package(Vulkan REQUIRED)
 

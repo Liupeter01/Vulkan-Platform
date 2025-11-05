@@ -1,0 +1,53 @@
+//GLSL version to use
+#version 460
+
+//size of a workgroup for compute
+layout(local_size_x = 16, local_size_y = 16) in;
+
+//descriptor bindings for the pipeline
+layout(rgba16f, set = 0, binding = 0) uniform image2D image;
+
+layout(push_constant) uniform constants {
+    vec4 topLeft;
+    vec4 topRight;
+    vec4 bottomLeft;
+    vec4 bottomRight;
+} color_settings;
+
+void draw_example(ivec2 texelCoord, ivec2 size)
+{
+    if (texelCoord.x < size.x && texelCoord.y < size.y)
+    {
+        vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+
+        if (gl_LocalInvocationID.x != 0 && gl_LocalInvocationID.y != 0)
+        {
+            color.x = float(texelCoord.x) / (size.x);
+            color.y = float(texelCoord.y) / (size.y);
+        }
+
+        imageStore(image, texelCoord, color);
+    }
+}
+
+void bilinear(ivec2 texelCoord, ivec2 size)
+{
+    if (texelCoord.x < size.x && texelCoord.y < size.y)
+    {
+        const float horizental_blend = float(texelCoord.x) / (size.x);
+        const float vertical_blend = float(texelCoord.y) / (size.y);
+
+        vec4 topMixedColor = mix(color_settings.topLeft, color_settings.topRight, horizental_blend);
+        vec4 bottomMixedColor = mix(color_settings.bottomLeft, color_settings.bottomRight, horizental_blend);
+
+        imageStore(image, texelCoord, mix(topMixedColor, bottomMixedColor, vertical_blend));
+    }
+}
+
+void main() {
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(image);
+
+    //draw_example(texelCoord, size);
+    bilinear(texelCoord, size);
+}

@@ -41,7 +41,8 @@ target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR}
 target_link_libraries(imgui PUBLIC glfw Vulkan::Vulkan)
 
 add_executable(${PROJECT_NAME} ${sources} ${header})
-add_dependencies(${PROJECT_NAME} Compile_Shader)
+add_dependencies(${PROJECT_NAME} GLSL_Compile_Shader)
+add_dependencies(${PROJECT_NAME} SLANG_Compile_Shader)
 
 target_include_directories(${PROJECT_NAME}
                            PUBLIC include ${fastgltf_SOURCE_DIR}/include)
@@ -51,3 +52,9 @@ target_link_libraries(
 
 target_compile_definitions(${PROJECT_NAME}
                            PUBLIC CONFIG_HOME="${CMAKE_SOURCE_DIR}/")
+
+target_compile_definitions(${PROJECT_NAME}
+                           PUBLIC GLSL_SHADER_PATH="${GLSL_SHADER_PATH}/")
+
+target_compile_definitions(${PROJECT_NAME}
+                           PUBLIC SLANG_SHADER_PATH="${SLANG_SHADER_PATH}/")

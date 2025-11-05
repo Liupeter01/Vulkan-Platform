@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _MATERIAL_PIPELINE_HPP_
 #define _MATERIAL_PIPELINE_HPP_
-#include <pipeline/GraphicPipelineBuilder.hpp>
+#include <builder/GraphicPipelineBuilder.hpp>
 
 namespace engine {
 enum class MaterialPass;

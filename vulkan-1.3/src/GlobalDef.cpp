@@ -21,10 +21,8 @@ void AllocatedImage::create_image(VkExtent3D extent, VkFormat format,
       tools::image_create_info(imageFormat, usage, extent);
 
   if (mipmapped) {
-    rimg_info.mipLevels =
-        static_cast<uint32_t>(
-            std::floor(std::log2(std::max(extent.width, extent.height)))) +
-        1;
+    rimg_info.mipLevels = static_cast<uint32_t>(
+        util::generate_mipmap_levels({extent.width, extent.height}));
   }
 
   VmaAllocationCreateInfo rimg_allocinfo = {};
@@ -148,6 +146,9 @@ void AllocatedTexture::createBuffer(void *data, VkExtent3D size,
                          usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                              VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                          mipmapped, "AllocatedTexture::DstImage");
+
+  mipmapped_ = mipmapped;
+
   isinit = true;
 }
 
@@ -159,28 +160,41 @@ VkImageView &AllocatedTexture::getImageView() const {
 
 void AllocatedTexture::uploadBufferToImage(VkCommandBuffer cmd) {
 
+  util::transition_image(cmd, dstImage_.image, VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
   VkBufferImageCopy copyRegion{};
   copyRegion.bufferOffset = 0;
   copyRegion.bufferRowLength = 0;
   copyRegion.bufferImageHeight = 0;
-
   copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  copyRegion.imageSubresource.mipLevel = 0;
+  copyRegion.imageSubresource.mipLevel = 0; // LOD0
   copyRegion.imageSubresource.baseArrayLayer = 0;
   copyRegion.imageSubresource.layerCount = 1;
   copyRegion.imageExtent = extent_;
 
-  util::transition_image(cmd, dstImage_.image, VK_IMAGE_LAYOUT_UNDEFINED,
-                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
   vkCmdCopyBufferToImage(cmd, srcBuffer_.buffer, dstImage_.image,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
-  util::transition_image(cmd, dstImage_.image,
-                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  if (mipmapped_) {
+    util::generate_mipmaps(
+        cmd, dstImage_.image,
+        {dstImage_.imageExtent.width, dstImage_.imageExtent.height});
+  } else {
+    util::transition_image(cmd, dstImage_.image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  }
+
   pendingUpload_ = true;
 }
+
+void AllocatedTexture::invalid() {
+  destroy();
+  pendingUpload_ = false;
+}
+
+bool AllocatedTexture::isValid() const { return isinit; }
 
 void AllocatedTexture::flushUpload(VkFence fence) {
   if (!pendingUpload_)
@@ -189,7 +203,7 @@ void AllocatedTexture::flushUpload(VkFence fence) {
   vkWaitForFences(device_, 1, &fence, true,
                   std::numeric_limits<uint64_t>::max());
 
-  srcBuffer_.destroy();
+  // srcBuffer_.destroy();
   pendingUpload_ = false;
 }
 

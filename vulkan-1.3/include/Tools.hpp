@@ -5,11 +5,30 @@
 #include <optional>
 #include <vector>
 
+#define GLM_FORCE_RADIANS // no degresss
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+
 namespace engine {
 namespace tools {
 template <typename SizeT>
 inline void hash_combine_impl(SizeT &seed, SizeT value) {
   seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+inline static glm::vec3 perspective_divded(const glm::vec4 &vec) {
+  assert(vec.w != 0);
+  auto inv = 1.f / vec.w;
+  return glm::vec3{vec} * inv;
+}
+
+inline static bool is_inside_vulkan_ndc(const glm::vec3 &pos) {
+
+  if (pos.z < 0.f || pos.z > 1.f || pos.x > 1.f || pos.x < -1.f ||
+      pos.y > 1.f || pos.y < -1.f) {
+    return false;
+  }
+  return true;
 }
 
 [[nodiscard]]

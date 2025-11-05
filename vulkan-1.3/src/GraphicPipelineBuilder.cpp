@@ -1,5 +1,5 @@
 #include <Tools.hpp>
-#include <pipeline/GraphicPipelineBuilder.hpp>
+#include <builder/GraphicPipelineBuilder.hpp>
 
 namespace engine {
 

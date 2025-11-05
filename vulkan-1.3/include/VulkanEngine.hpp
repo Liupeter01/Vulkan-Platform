@@ -1,14 +1,15 @@
 #pragma once
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
-#include <Descriptors.hpp>
+#include <FrameData.hpp>
 #include <GlobalDef.hpp>
+#include <VkBootstrap.h>
 #include <Window.hpp>
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <pipeline/ComputePipelinePacked.hpp>
-#include <pipeline/GraphicPipelinePacked.hpp>
+#include <nodes/camera/CameraNode.hpp>
+#include <scene/ScenesManager.hpp>
 #include <string>
 #include <vector>
 
@@ -20,7 +21,25 @@
 #include <imgui.h>
 
 namespace engine {
+
+class Scene;
+struct FrameData;
+struct SceneNodeBuilder;
+struct NodeManagerBuilder;
+class ScenesNodesManager;
+
+namespace node {
+class SceneNode;
+}
+
 class VulkanEngine {
+  friend class Scene;
+  friend struct FrameData;
+  friend struct SceneNodeBuilder;
+  friend struct NodeManagerBuilder;
+  friend class node::SceneNode;
+  friend class ScenesManager;
+
 public:
   using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
   VulkanEngine(Window &win, bool enableValidationLayer = true);
@@ -43,6 +62,12 @@ protected:
   FrameData &get_current_frame();
   void switch_to_next_frame();
 
+  vkb::PhysicalDevice
+  pickDefaultPhysicalDevice(vkb::PhysicalDeviceSelector &selector);
+  vkb::PhysicalDevice
+  pickPhysicalDevicesByUser(vkb::PhysicalDeviceSelector &selector,
+                            bool enableDefault = true);
+
 private:
   void init_vulkan();
   void init_swapchain();
@@ -52,11 +77,24 @@ private:
   void init_immediate_commands();
   void init_immediate_sync();
   void init_vma_allocator();
-  void init_custom_image();
   void init_imgui();
+  void init_scene();
+  void init_camera();
 
+  // default color & default material
+  void init_default_color();
+  void init_default_sampler();
+
+  // Scene Data
+  void init_scene_layout();
+  void destroy_scene_layout();
+
+  void destroy_default_color();
+  void destroy_default_sampler();
+
+  void destroy_camera();
+  void destroy_scene();
   void destroy_imgui();
-  void destroy_custom_image();
   void destroy_vma_allocator();
   void destroy_frames();
   void destroy_immediate_sync();
@@ -65,10 +103,17 @@ private:
   void destroy_vulkan();
 
 private:
+  [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
   void resize_swapchain();
+  void resize_frames();
   void draw_background(VkCommandBuffer cmd, VkImage image);
   void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
                   VkImageView imageView = VK_NULL_HANDLE);
+
+  void show_compute_background(ComputeShaderPushConstants &data);
+  void show_states(const EngineStats &stats);
+
+  bool isDeviceSuitable(const vkb::PhysicalDevice &device);
 
 private:
   bool isInit = false;
@@ -99,11 +144,15 @@ private:
   std::vector<VkImageView> swapchainImageViews_; //
   VkExtent2D swapchainExtent_;
 
+  std::size_t FRAMES_IN_FLIGHT{0};
+
   // Support IMGUI
   VkDescriptorPool imguiPool_ = VK_NULL_HANDLE;
 
   // CommandBuffer Part
   unsigned int frameNumber_ = 0;
+
+  EngineStats stats;
 
   const uint32_t setCount_ = 1000;
   const std::vector<PoolSizeRatio> frame_sizes = {
@@ -114,12 +163,23 @@ private:
   };
 
   std::vector<std::unique_ptr<FrameData>> frames_;
-  VkQueue graphicsQueue_;
-  uint32_t graphicsQueueFamily_;
+
+  bool isComputeQueueSupported = false;
+  bool isTransferQueueSupported = false;
+
+  VkQueue graphicsQueue_{};
+  uint32_t graphicsQueueFamily_{};
+
+  VkQueue presentQueue_{};
+  uint32_t presentQueueFamily_{};
+
+  VkQueue transferQueue_{};
+  uint32_t transferQueueFamily_{};
+
+  VkQueue computeQueue_{};
+  uint32_t computeQueueFamily_{};
 
   VkExtent2D drawExtent_;
-  std::unique_ptr<AllocatedImage> drawImage_ = nullptr;
-  std::unique_ptr<AllocatedImage> depthImage_ = nullptr;
   float renderScale = 1.f;
 
   VmaAllocator allocator_;
@@ -129,11 +189,20 @@ private:
   VkCommandBuffer immCommandBuffer_;
   VkCommandPool immCommandPool_;
 
-  // Compute Pipeline
-  std::shared_ptr<ComputePipelinePacked> computeEffect =
-      nullptr; // Compute Pipeline
-  std::shared_ptr<GraphicPipelinePacked> graphicEffect =
-      nullptr; // Graphic Pipeline
+  std::unique_ptr<ScenesManager> sceneMgr = nullptr;
+  std::shared_ptr<node::CameraNode> camera_ = nullptr;
+
+  VkDescriptorSetLayout sceneDescriptorSetLayout_{};
+
+  // Default Color => Default Materal
+  std::shared_ptr<AllocatedTexture> white_{};
+  std::shared_ptr<AllocatedTexture> grey_{};
+  std::shared_ptr<AllocatedTexture> black_{};
+  std::shared_ptr<AllocatedTexture> magenta_{};
+  std::shared_ptr<AllocatedTexture> loaderrorImage_{};
+
+  VkSampler defaultSamplerLinear_;
+  VkSampler defaultSamplerNearest_;
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_
