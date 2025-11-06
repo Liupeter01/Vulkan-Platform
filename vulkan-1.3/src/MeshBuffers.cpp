@@ -7,27 +7,23 @@ GPUGeoMeshBuffers::GPUGeoMeshBuffers(VkDevice device, VmaAllocator allocator)
     : device_{device}, allocator_(allocator), indexBuffer{allocator},
       vertexBuffer{allocator}, staging{allocator}, isinit(false) {}
 
-GPUGeoMeshBuffers::~GPUGeoMeshBuffers() {
-          destroy();
-}
+GPUGeoMeshBuffers::~GPUGeoMeshBuffers() { destroy(); }
 
 void GPUGeoMeshBuffers::destroy() {
-          if (isinit) {
-                    indexBuffer.destroy();
-                    vertexBuffer.destroy();
-                    staging.destroy();
-                    isinit = false;
-          }
+  if (isinit) {
+    indexBuffer.destroy();
+    vertexBuffer.destroy();
+    staging.destroy();
+    isinit = false;
+  }
 }
 
 void GPUGeoMeshBuffers::invalid() {
-          destroy();
-          pendingUpload_ = false;
+  destroy();
+  pendingUpload_ = false;
 }
 
-bool GPUGeoMeshBuffers::isValid() const {
-          return isinit;
-}
+bool GPUGeoMeshBuffers::isValid() const { return isinit; }
 
 void GPUGeoMeshBuffers::createMesh(std::vector<Vertex> &&vertices,
                                    std::vector<uint32_t> &&indices) {
@@ -130,7 +126,7 @@ void GPUGeoMeshBuffers::flushUpload(VkFence fence) {
   vkWaitForFences(device_, 1, &fence, true,
                   std::numeric_limits<uint64_t>::max());
 
-  //staging.destroy();
+  // staging.destroy();
   pendingUpload_ = false;
 }
 } // namespace mesh

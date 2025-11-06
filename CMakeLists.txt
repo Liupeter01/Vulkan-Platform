@@ -53,11 +53,11 @@ else()
   add_compile_definitions(ENABLE_VALIDATION_LAYERS=0)
 endif()
 
-  set(GLSL_SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/shaders/glsl)
-  add_glsl_shader_target(GLSL_Compile_Shader ${GLSL_SHADER_PATH})
+set(GLSL_SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/shaders/glsl)
+add_glsl_shader_target(GLSL_Compile_Shader ${GLSL_SHADER_PATH})
 
-  set(SLANG_SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/shaders/slang)
-  add_slang_shader_target(SLANG_Compile_Shader ${SLANG_SHADER_PATH})
+set(SLANG_SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/shaders/slang)
+add_slang_shader_target(SLANG_Compile_Shader ${SLANG_SHADER_PATH})
 
 find_package(Vulkan REQUIRED)
 

@@ -1,10 +1,10 @@
 #pragma once
 #ifndef _UTIL_HPP_
 #define _UTIL_HPP_
+#include <builder/BarrierBuilder.hpp>
 #include <fstream>
 #include <vector>
 #include <vulkan/vulkan_core.h>
-#include <builder/BarrierBuilder.hpp>
 
 namespace engine {
 namespace util {
@@ -67,16 +67,14 @@ static inline void generate_mipmaps(VkCommandBuffer cmd, VkImage image,
     VkExtent2D currSize{std::max(imageSize.width >> 1, 1u),
                         std::max(imageSize.height >> 1, 1u)};
 
-    auto imageBarrier = ImageBarrierBuilder{ image }
-              .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
-              .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-              .to(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
-              .withRange(static_cast<uint32_t>(perviousLevel), 1)
-              .build();
+    auto imageBarrier = ImageBarrierBuilder{image}
+                            .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+                            .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+                            .to(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+                            .withRange(static_cast<uint32_t>(perviousLevel), 1)
+                            .build();
 
-    BarrierBuilder{}
-              .add(imageBarrier)
-              .createBarrier(cmd);
+    BarrierBuilder{}.add(imageBarrier).createBarrier(cmd);
 
     VkImageBlit2 blitRegion{};
     blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
@@ -107,15 +105,13 @@ static inline void generate_mipmaps(VkCommandBuffer cmd, VkImage image,
     imageSize = currSize;
   }
 
-  auto mipmapBarrier = ImageBarrierBuilder{ image }
-            .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
-            .from(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
-            .to(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-            .build();
+  auto mipmapBarrier = ImageBarrierBuilder{image}
+                           .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+                           .from(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+                           .to(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+                           .build();
 
-  BarrierBuilder{}
-            .add(mipmapBarrier)
-            .createBarrier(cmd);
+  BarrierBuilder{}.add(mipmapBarrier).createBarrier(cmd);
 }
 
 static inline void copy_image_to_image(VkCommandBuffer cmd, VkImage source,
