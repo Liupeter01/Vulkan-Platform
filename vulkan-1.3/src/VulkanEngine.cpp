@@ -3,6 +3,7 @@
 #include <VulkanEngine.hpp>
 #include <builder/NodeManagerBuiler.hpp>
 #include <builder/SceneNodeBuilder.hpp>
+#include <builder/BarrierBuilder.hpp>
 #include <chrono>
 #include <exception>
 #include <interactive/Keyboard_Controller.hpp>
@@ -339,8 +340,16 @@ void VulkanEngine::draw() {
 
   // transition our main draw image into general layout so we can write into it
   // we will overwrite it all so we dont care about what was the older layout
-  util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_UNDEFINED,
-                         VK_IMAGE_LAYOUT_GENERAL);
+  //util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_UNDEFINED,
+  //                                 VK_IMAGE_LAYOUT_GENERAL);
+  auto undefined2General = ImageBarrierBuilder(draw_image, VK_FORMAT_B8G8R8A8_UNORM)
+            .from(VK_IMAGE_LAYOUT_UNDEFINED)
+            .to(VK_IMAGE_LAYOUT_GENERAL)
+            .build();
+
+  BarrierBuilder{}
+            .add(undefined2General)
+            .createBarrier(cmd);
 
   // Draw Background
   draw_background(cmd, draw_image);
@@ -348,38 +357,86 @@ void VulkanEngine::draw() {
   // Compute Shader!
   sceneMgr->compute(cmd, currentFrame);
 
-  util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_GENERAL,
-                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+  //util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_GENERAL,
+//                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    //util::transition_image(cmd, depth_image, VK_IMAGE_LAYOUT_UNDEFINED,
+//                       VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+  auto general2ColorAttach = ImageBarrierBuilder(draw_image, VK_FORMAT_B8G8R8A8_UNORM)
+            .from(VK_IMAGE_LAYOUT_GENERAL)
+            .to(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+            .build();
 
-  util::transition_image(cmd, depth_image, VK_IMAGE_LAYOUT_UNDEFINED,
-                         VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+  auto undefined2DepthAttach = ImageBarrierBuilder(depth_image, VK_FORMAT_D32_SFLOAT)
+            .from(VK_IMAGE_LAYOUT_UNDEFINED)
+            .to(VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+            .aspect(VK_IMAGE_ASPECT_DEPTH_BIT)
+            .build();
+
+  BarrierBuilder{}
+            .add(general2ColorAttach)
+            .add(undefined2DepthAttach)
+            .createBarrier(cmd);
 
   // Graphic Render
   sceneMgr->render(cmd, currentFrame);
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
-  util::transition_image(cmd, draw_image,
-                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+  //util::transition_image(cmd, draw_image,
+  //                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+  //                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
-  util::transition_image(cmd, swapchain_image, VK_IMAGE_LAYOUT_UNDEFINED,
-                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  //util::transition_image(cmd, swapchain_image, VK_IMAGE_LAYOUT_UNDEFINED,
+  //                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+  auto colorAttach2transfer = ImageBarrierBuilder(draw_image, VK_FORMAT_B8G8R8A8_UNORM)
+            .from(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+            .to(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+            .build();
+
+  auto undefined2Transfer = ImageBarrierBuilder(swapchain_image, VK_FORMAT_B8G8R8A8_UNORM)
+            .from(VK_IMAGE_LAYOUT_UNDEFINED)
+            .to(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+            .build();
+
+  BarrierBuilder{}
+            .add(colorAttach2transfer)
+            .add(undefined2Transfer)
+            .createBarrier(cmd);
 
   // execute a copy from the draw image into the swapchain
   util::copy_image_to_image(cmd, draw_image, swapchain_image, drawExtent_,
                             swapchainExtent_);
 
   // set swapchain image layout to Attachment Optimal so we can draw it
-  util::transition_image(cmd, swapchain_image,
-                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+  //util::transition_image(cmd, swapchain_image,
+  //                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+  //                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+  auto transferDst2ColorAttach = ImageBarrierBuilder(swapchain_image, VK_FORMAT_B8G8R8A8_UNORM)
+            .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+            .to(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+            .build();
+
+  BarrierBuilder{}
+            .add(transferDst2ColorAttach)
+            .createBarrier(cmd);
 
   draw_imgui(cmd, drawExtent_, image_view);
 
-  util::transition_image(cmd, swapchain_image,
-                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+  //util::transition_image(cmd, swapchain_image,
+  //                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+  //                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+  auto colorAttach2Present = ImageBarrierBuilder(swapchain_image, VK_FORMAT_B8G8R8A8_UNORM)
+            .from(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+            .to(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            .queueIndex(graphicsQueueFamily_, presentQueueFamily_)
+            .build();
+
+  BarrierBuilder{}
+            .add(colorAttach2Present)
+            .createBarrier(cmd);
 
   vkEndCommandBuffer(cmd);
 

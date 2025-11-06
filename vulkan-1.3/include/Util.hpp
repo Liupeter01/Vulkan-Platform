@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <vulkan/vulkan_core.h>
+#include <builder/BarrierBuilder.hpp>
 
 namespace engine {
 namespace util {
@@ -66,29 +67,16 @@ static inline void generate_mipmaps(VkCommandBuffer cmd, VkImage image,
     VkExtent2D currSize{std::max(imageSize.width >> 1, 1u),
                         std::max(imageSize.height >> 1, 1u)};
 
-    VkImageSubresourceRange subImage{};
-    subImage.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    subImage.baseMipLevel = static_cast<uint32_t>(perviousLevel);
-    subImage.levelCount = 1;
-    subImage.baseArrayLayer = 0;
-    subImage.layerCount = VK_REMAINING_ARRAY_LAYERS;
+    auto imageBarrier = ImageBarrierBuilder{ image }
+              .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+              .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+              .to(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+              .withRange(static_cast<uint32_t>(perviousLevel), 1)
+              .build();
 
-    VkImageMemoryBarrier2 imageBarrier{};
-    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-    imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
-    imageBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    imageBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    imageBarrier.subresourceRange = subImage;
-    imageBarrier.image = image;
-
-    VkDependencyInfo depInfo{};
-    depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    depInfo.imageMemoryBarrierCount = 1;
-    depInfo.pImageMemoryBarriers = &imageBarrier;
-    vkCmdPipelineBarrier2(cmd, &depInfo);
+    BarrierBuilder{}
+              .add(imageBarrier)
+              .createBarrier(cmd);
 
     VkImageBlit2 blitRegion{};
     blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
@@ -119,8 +107,15 @@ static inline void generate_mipmaps(VkCommandBuffer cmd, VkImage image,
     imageSize = currSize;
   }
 
-  transition_image(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  auto mipmapBarrier = ImageBarrierBuilder{ image }
+            .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+            .from(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+            .to(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+            .build();
+
+  BarrierBuilder{}
+            .add(mipmapBarrier)
+            .createBarrier(cmd);
 }
 
 static inline void copy_image_to_image(VkCommandBuffer cmd, VkImage source,
