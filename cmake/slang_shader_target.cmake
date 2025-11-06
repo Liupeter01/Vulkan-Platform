@@ -5,17 +5,31 @@ cmake_minimum_required(VERSION 3.10)
 # PathName)
 # ==========================================
 function(add_slang_shader_target TARGET SHADER_DIR)
-  if(NOT SLANGC_EXECUTABLE)
-    set(SLANG_SEARCH_PATHS
+
+    if(NOT SLANGC_EXECUTABLE)
+
+      if(APPLE)
+      set(SLANG_LIB_PATH /opt/homebrew/lib)
+      set(SLANG_SEARCH_PATHS
         /opt/homebrew/bin # macOS M1 Homebrew
         /usr/local/bin # Intel macOS
         $ENV{HOME}/.local/share/nvim/mason/packages/slang/bin /usr/bin)
 
-    find_program(
+    if(EXISTS "$ENV{HOME}/.local/share/nvim/mason/packages/slang/lib")
+      set(SLANG_LIB_PATH
+          "$ENV{HOME}/.local/share/nvim/mason/packages/slang/lib")
+    endif()
+    set(CMAKE_BUILD_RPATH "${CMAKE_BUILD_RPATH};${SLANG_LIB_PATH}")
+    message(STATUS "?Added Slang runtime lib path: ${SLANG_LIB_PATH}")
+
+        find_program(
       SLANGC_EXECUTABLE
       NAMES slangc
       PATHS ${SLANG_SEARCH_PATHS} REQUIRED
       NO_DEFAULT_PATH)
+  else()
+    find_program(SLANGC_EXECUTABLE slangc REQUIRED)
+  endif()
 
     if(SLANGC_EXECUTABLE)
       message(STATUS "Found Slang compiler: ${SLANGC_EXECUTABLE}")
@@ -23,16 +37,6 @@ function(add_slang_shader_target TARGET SHADER_DIR)
       message(
         FATAL_ERROR "slangc not found! Please install via Homebrew or Mason.")
     endif()
-  endif()
-
-  if(APPLE)
-    set(SLANG_LIB_PATH /opt/homebrew/lib)
-    if(EXISTS "$ENV{HOME}/.local/share/nvim/mason/packages/slang/lib")
-      set(SLANG_LIB_PATH
-          "$ENV{HOME}/.local/share/nvim/mason/packages/slang/lib")
-    endif()
-    set(CMAKE_BUILD_RPATH "${CMAKE_BUILD_RPATH};${SLANG_LIB_PATH}")
-    message(STATUS "¿ Added Slang runtime lib path: ${SLANG_LIB_PATH}")
   endif()
 
   file(GLOB SLANG_SOURCES "${SHADER_DIR}/*.slang")
