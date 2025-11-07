@@ -132,6 +132,7 @@ private:
       VK_NULL_HANDLE; // Vulkan debug output handle
   VkPhysicalDevice physicalDevice_ =
       VK_NULL_HANDLE; // GPU chosen as the default device
+  vkb::PhysicalDevice vkb_physicalDevice_;
 
   VkDevice device_;      // Vulkan device for commands
   VkSurfaceKHR surface_; // Vulkan window surface

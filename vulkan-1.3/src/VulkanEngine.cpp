@@ -584,12 +584,12 @@ void VulkanEngine::init_vulkan() {
                         //.select_devices()
                         .select();
 
-  vkb::PhysicalDevice _physicalDevice = pickPhysicalDevicesByUser(selector);
+  vkb_physicalDevice_ = pickPhysicalDevicesByUser(selector);
 
-  vkb::DeviceBuilder deviceBuilder{_physicalDevice};
+  vkb::DeviceBuilder deviceBuilder{ vkb_physicalDevice_ };
   vkb::Device vkbDevice = deviceBuilder.build().value();
 
-  physicalDevice_ = _physicalDevice.physical_device;
+  physicalDevice_ = vkb_physicalDevice_.physical_device;
   device_ = vkbDevice.device;
 
   graphicsQueue_ = vkbDevice.get_queue(vkb::QueueType::graphics).value();
@@ -600,7 +600,7 @@ void VulkanEngine::init_vulkan() {
   presentQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::present).value();
 
-  if (!_physicalDevice.has_separate_transfer_queue()) {
+  if (!vkb_physicalDevice_.has_separate_transfer_queue()) {
     isTransferQueueSupported = false;
 
     spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue "
@@ -613,7 +613,7 @@ void VulkanEngine::init_vulkan() {
   transferQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
 
-  if (!_physicalDevice.has_separate_compute_queue()) {
+  if (!vkb_physicalDevice_.has_separate_compute_queue()) {
     isComputeQueueSupported = false;
     spdlog::warn("[VulkanEngine Warn]:Device has no dedicated compute queue "
                  "¡ª using graphics queue instead ");
