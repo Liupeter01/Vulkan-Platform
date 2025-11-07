@@ -31,6 +31,11 @@ SceneNodeBuilder::set_config(const node::SceneNodeConf &conf) {
   return *this;
 }
 
+SceneNodeBuilder& SceneNodeBuilder::enable_mipmap(bool status ) {
+          enableMipmap_ = status;
+          return *this;
+}
+
 std::optional<std::shared_ptr<node::SceneNode>> SceneNodeBuilder::build() {
 
   if (filepath_.empty()) {
@@ -89,7 +94,7 @@ std::optional<std::shared_ptr<node::SceneNode>> SceneNodeBuilder::build() {
   processSamplers(gltf);
 
   // Loading Images
-  processImages(gltf);
+  processImages(gltf, enableMipmap_);
 
   // Loading Material(processMaterials)
   processMaterials(gltf);
@@ -138,7 +143,7 @@ SceneNodeBuilder::extract_mipmap_mode(fastgltf::Filter filter) {
 }
 
 std::optional<std::shared_ptr<AllocatedTexture>>
-SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image) {
+SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image, bool mipMapped ) {
 
   int width, height, nrChannels;
   std::shared_ptr<AllocatedTexture> ret{nullptr};
@@ -163,7 +168,7 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image) {
                                                engine_->allocator_);
       ret->createBuffer(data, imagesize, VK_FORMAT_R8G8B8A8_UNORM,
                         VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                            VK_IMAGE_USAGE_SAMPLED_BIT);
+                            VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped);
       stbi_image_free(data);
     }
   };
@@ -182,7 +187,7 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image) {
       ret = std::make_shared<AllocatedTexture>(engine_->device_,
                                                engine_->allocator_);
       ret->createBuffer(data, imagesize, VK_FORMAT_R8G8B8A8_UNORM,
-                        VK_IMAGE_USAGE_SAMPLED_BIT);
+                        VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped);
 
       stbi_image_free(data);
     }
@@ -211,7 +216,7 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image) {
               ret = std::make_shared<AllocatedTexture>(engine_->device_,
                                                        engine_->allocator_);
               ret->createBuffer(data, imagesize, VK_FORMAT_R8G8B8A8_UNORM,
-                                VK_IMAGE_USAGE_SAMPLED_BIT);
+                                VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped);
 
               stbi_image_free(data);
             }
@@ -250,13 +255,25 @@ void SceneNodeBuilder::processSamplers(fastgltf::Asset &gltf) {
   for (fastgltf::Sampler &sampler : gltf.samplers) {
     VkSamplerCreateInfo sampl{};
     sampl.maxLod = VK_LOD_CLAMP_NONE;
-    sampl.minLod = 0;
+    sampl.minLod = 0.f;
+    sampl.mipLodBias = 0.f;
+
+    sampl.anisotropyEnable = VK_TRUE;
+    sampl.maxAnisotropy = engine_->vkb_physicalDevice_.properties.limits.maxSamplerAnisotropy;
+
+    sampl.compareEnable = VK_FALSE;
+    sampl.compareOp = VK_COMPARE_OP_ALWAYS;
+
+    sampl.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampl.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampl.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
     sampl.magFilter =
-        extract_filter(sampler.magFilter.value_or(fastgltf::Filter::Nearest));
+        extract_filter(sampler.magFilter.value_or(fastgltf::Filter::Linear));
     sampl.minFilter =
-        extract_filter(sampler.minFilter.value_or(fastgltf::Filter::Nearest));
+        extract_filter(sampler.minFilter.value_or(fastgltf::Filter::Linear));
     sampl.mipmapMode = extract_mipmap_mode(
-        sampler.minFilter.value_or(fastgltf::Filter::Nearest));
+        sampler.minFilter.value_or(fastgltf::Filter::Linear));
 
     VkSampler newSampler;
     vkCreateSampler(engine_->device_, &sampl, nullptr, &newSampler);
@@ -264,10 +281,10 @@ void SceneNodeBuilder::processSamplers(fastgltf::Asset &gltf) {
   }
 }
 
-void SceneNodeBuilder::processImages(fastgltf::Asset &gltf) {
+void SceneNodeBuilder::processImages(fastgltf::Asset &gltf, bool mipMapped) {
   for (fastgltf::Image &i : gltf.images) {
 
-    auto status = extract_image(gltf, i);
+    auto status = extract_image(gltf, i, mipMapped);
 
     // Current There is no texture loaded, using default checkerboard
     auto image = status.has_value() ? status.value() : engine_->loaderrorImage_;
