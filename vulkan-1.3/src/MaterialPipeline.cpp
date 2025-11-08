@@ -1,11 +1,37 @@
 #include <material/GLTFPBR_Material.hpp>
 #include <material/MaterialPipeline.hpp>
 #include <mesh/MeshBuffers.hpp>
+#include <spdlog/spdlog.h>
 
 namespace engine {
-MaterialPipeline::MaterialPipeline(VkDevice device) : device_(device) {}
+          MaterialPipeline::MaterialPipeline(VkDevice device) 
+                    : device_(device), isUsingDefaultShader(true)
+          { }
 
 MaterialPipeline::~MaterialPipeline() { destroy(); }
+
+void MaterialPipeline::set_vertex_shader(const std::string& path, const std::string& entry) {
+          if (path.empty() || entry.empty()) {
+                    spdlog::warn("[MaterialPipeline Warn]: Invalid Vertex Shader path or entry, using default settings!");
+                    return;
+          }
+
+          stages[0].path = path;
+          stages[0].entry = entry;
+          isUsingDefaultShader = false;
+}
+
+void MaterialPipeline::set_fragment_shader(const std::string& path, const std::string& entry){
+
+          if (path.empty() || entry.empty()) {
+                    spdlog::warn("[MaterialPipeline Warn]: Invalid Fragment Shader path or entry, using default settings!");
+                    return;
+          }
+
+          stages[1].path = path;
+          stages[1].entry = entry;
+          isUsingDefaultShader = false;
+}
 
 void MaterialPipeline::create(
     MaterialPass pass, const std::vector<VkDescriptorSetLayout> &layouts) {
@@ -13,6 +39,11 @@ void MaterialPipeline::create(
     return;
   if (pass == MaterialPass::UNDEFINED) {
     throw std::runtime_error("Undefined MaterialPass!");
+  }
+
+  if (isUsingDefaultShader) {
+            spdlog::info("[MaterialPipeline info]: MaterialPass {}, Using default Vertex Shader settings.", static_cast<int>(pass));
+            spdlog::info("[MaterialPipeline info]: MaterialPass {}, Using default Fragment Shader settings.", static_cast<int>(pass));
   }
 
   VkPushConstantRange matrixRange{};
@@ -31,8 +62,7 @@ void MaterialPipeline::create(
   GraphicPipelineBuilder builder{device_};
   builder.pipelineLayout_ = pipelineLayout_;
   builder
-      .set_shaders(GLSL_SHADER_PATH "pbr.vert.spv",
-                   GLSL_SHADER_PATH "pbr.frag.spv")
+      .set_shaders_stages(stages)
       .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
       .set_polygon_mode(VK_POLYGON_MODE_FILL)
       .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
@@ -46,9 +76,6 @@ void MaterialPipeline::create(
   } else if (pass == MaterialPass::TRANSPARENT) {
     create_transparent_pipeline(builder);
   }
-
-  vkDestroyShaderModule(device_, builder.shaderStages_[0].module, nullptr);
-  vkDestroyShaderModule(device_, builder.shaderStages_[1].module, nullptr);
 
   isinit_ = true;
 }
