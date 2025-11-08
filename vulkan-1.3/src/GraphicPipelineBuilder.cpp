@@ -55,8 +55,6 @@ void GraphicPipelineBuilder::clear() {
             }
   }
   shaderStages_.clear();
-
-  shaderStages_.clear();
 }
 
 void GraphicPipelineBuilder::init_dynamic_state() {
