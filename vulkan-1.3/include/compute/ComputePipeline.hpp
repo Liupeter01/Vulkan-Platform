@@ -1,24 +1,50 @@
 #pragma once
 #ifndef _COMPUTE_COMPUTE_PIPELINE_HPP_
 #define _COMPUTE_COMPUTE_PIPELINE_HPP_
+#include <vector>
 #include <Util.hpp>
 #include <compute/Compute_Material.hpp>
-#include <vector>
+#include <builder/ComputePipelineBuilder.hpp>
 
 namespace engine {
 
 struct ComputePipeline {
-  ComputePipeline(VkDevice device) : device_(device) {}
+          struct SpecializationEntry {
+                    uint32_t id;
+                    std::vector<uint8_t> data;
+          };
 
-  virtual ~ComputePipeline() { destroy(); }
+          ComputePipeline(VkDevice device);
+          virtual ~ComputePipeline();
 
-  void create(const std::vector<VkDescriptorSetLayout> &layouts) {
+          void set_compute_shader(const std::string& path, const std::string& entry);
+
+          template<typename T>
+          void set_specialization_constant(uint32_t constantID, const T& value) {
+                    const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&value);
+                    specializationConstants_.push_back({ constantID, std::vector<uint8_t>(bytes, bytes + sizeof(T)) });
+          }
+
+          template<typename _Ty = ComputeShaderPushConstants>
+  void create(ComputePass pass, const std::vector<VkDescriptorSetLayout> &layouts) {
 
     if (isinit_)
       return;
+
+    static_assert(sizeof(_Ty) <= 128, "Push constant size exceeds Vulkan 128-byte limit!");
+
+    if (pass == ComputePass::UNDEFINED) {
+              throw std::runtime_error("Undefined ComputePass!");
+    }
+
+    if (isUsingDefaultShader) {
+              spdlog::info("[ComputePipeline info]: ComputePass {}, Using default Compute Shader settings.",
+                        static_cast<int>(pass));
+    }
+
     VkPushConstantRange pushConstant{};
     pushConstant.offset = 0;
-    pushConstant.size = sizeof(ComputeShaderPushConstants);
+    pushConstant.size = sizeof(_Ty);
     pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkPipelineLayoutCreateInfo computeLayout{};
@@ -30,53 +56,42 @@ struct ComputePipeline {
     computeLayout.pPushConstantRanges = &pushConstant;
 
     vkCreatePipelineLayout(device_, &computeLayout, nullptr, &pipelineLayout_);
-    create_default_pipeline();
+
+    ComputePipelineBuilder builder{ device_ };
+    builder.set_pipeline_layout(pipelineLayout_)
+              .set_shaders_stage(compute_stage);
+
+    if (pass == ComputePass::DEFAULT) {
+              create_default_pipeline(builder);
+    }
+    else if (pass == ComputePass::SPECIALCONSTANT) {
+              create_specialize_constant_pipeline(builder);
+    }
 
     isinit_ = true;
   }
-  void destroy() {
-    if (isinit_) {
-      vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
-      vkDestroyPipeline(device_, pipeline_, nullptr);
-      isinit_ = false;
-    }
-  }
+
+  void destroy();
 
   VkPipeline getPipeline() { return pipeline_; }
   VkPipelineLayout getPipelineLayout() { return pipelineLayout_; }
 
 protected:
-  void create_default_pipeline() {
-    // load shader
-    VkShaderModule computeDrawShader;
-    util::load_shader(GLSL_SHADER_PATH"gradient.comp.spv", device_,
-                      &computeDrawShader);
+          void create_default_pipeline(ComputePipelineBuilder& builder);
+          void create_specialize_constant_pipeline(ComputePipelineBuilder& builder);
 
-    VkPipelineShaderStageCreateInfo stageinfo{};
-    stageinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    stageinfo.pNext = nullptr;
-    stageinfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    stageinfo.module = computeDrawShader;
-    stageinfo.pName = "main";
-
-    VkComputePipelineCreateInfo computePipelineCreateInfo{};
-    computePipelineCreateInfo.sType =
-        VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    computePipelineCreateInfo.layout = pipelineLayout_;
-    computePipelineCreateInfo.stage = stageinfo;
-
-    vkCreateComputePipelines(device_, VK_NULL_HANDLE, 1,
-                             &computePipelineCreateInfo, nullptr, &pipeline_);
-
-    vkDestroyShaderModule(device_, computeDrawShader, nullptr);
-  }
+  ComputePipelineBuilder::ShaderStageDesc compute_stage{
+            GLSL_SHADER_PATH"gradient.comp.spv", "main", VK_SHADER_STAGE_COMPUTE_BIT };
 
 private:
   bool isinit_ = false;
+  bool isUsingDefaultShader = true;
   VkDevice device_ = VK_NULL_HANDLE;
 
   VkPipeline pipeline_ = VK_NULL_HANDLE;
   VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
+
+  std::vector<SpecializationEntry> specializationConstants_;
 };
 
 } // namespace engine
