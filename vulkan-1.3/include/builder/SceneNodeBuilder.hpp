@@ -18,7 +18,7 @@ struct SceneNodeBuilder {
 
   SceneNodeBuilder &set_filepath(std::filesystem::path filePath);
   SceneNodeBuilder &set_config(const node::SceneNodeConf &conf);
-  SceneNodeBuilder& enable_mipmap(bool status = false);
+  SceneNodeBuilder &enable_mipmap(bool status = false);
   std::optional<std::shared_ptr<node::SceneNode>> build();
 
 protected:
@@ -26,7 +26,8 @@ protected:
   static VkSamplerMipmapMode extract_mipmap_mode(fastgltf::Filter filter);
 
   [[nodiscard]] std::optional<std::shared_ptr<AllocatedTexture>>
-  extract_image(fastgltf::Asset &gltf, fastgltf::Image &image, bool mipMapped = false);
+  extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
+                bool mipMapped = false);
 
   void processSamplers(fastgltf::Asset &gltf);
   void processImages(fastgltf::Asset &gltf, bool mipMapped = false);
@@ -36,7 +37,7 @@ protected:
   void processRelation(fastgltf::Asset &gltf);
 
 protected:
-          bool enableMipmap_{ false };
+  bool enableMipmap_{false};
   fastgltf::Options options_{};
   std::filesystem::path filepath_{};
   std::optional<node::SceneNodeConf> conf_{};

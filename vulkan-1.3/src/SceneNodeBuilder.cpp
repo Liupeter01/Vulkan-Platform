@@ -31,9 +31,9 @@ SceneNodeBuilder::set_config(const node::SceneNodeConf &conf) {
   return *this;
 }
 
-SceneNodeBuilder& SceneNodeBuilder::enable_mipmap(bool status ) {
-          enableMipmap_ = status;
-          return *this;
+SceneNodeBuilder &SceneNodeBuilder::enable_mipmap(bool status) {
+  enableMipmap_ = status;
+  return *this;
 }
 
 std::optional<std::shared_ptr<node::SceneNode>> SceneNodeBuilder::build() {
@@ -143,7 +143,8 @@ SceneNodeBuilder::extract_mipmap_mode(fastgltf::Filter filter) {
 }
 
 std::optional<std::shared_ptr<AllocatedTexture>>
-SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image, bool mipMapped ) {
+SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
+                                bool mipMapped) {
 
   int width, height, nrChannels;
   std::shared_ptr<AllocatedTexture> ret{nullptr};
@@ -168,7 +169,8 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image, b
                                                engine_->allocator_);
       ret->createBuffer(data, imagesize, VK_FORMAT_R8G8B8A8_UNORM,
                         VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                            VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped);
+                            VK_IMAGE_USAGE_SAMPLED_BIT,
+                        mipMapped);
       stbi_image_free(data);
     }
   };
@@ -259,7 +261,8 @@ void SceneNodeBuilder::processSamplers(fastgltf::Asset &gltf) {
     sampl.mipLodBias = 0.f;
 
     sampl.anisotropyEnable = VK_TRUE;
-    sampl.maxAnisotropy = engine_->vkb_physicalDevice_.properties.limits.maxSamplerAnisotropy;
+    sampl.maxAnisotropy =
+        engine_->vkb_physicalDevice_.properties.limits.maxSamplerAnisotropy;
 
     sampl.compareEnable = VK_FALSE;
     sampl.compareOp = VK_COMPARE_OP_ALWAYS;

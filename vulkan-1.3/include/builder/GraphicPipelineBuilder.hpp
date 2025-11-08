@@ -14,9 +14,9 @@ struct GraphicPipelineBuilder {
   virtual ~GraphicPipelineBuilder();
 
   struct ShaderStageDesc {
-            std::string path;
-            std::string entry;
-            VkShaderStageFlagBits stage;
+    std::string path;
+    std::string entry;
+    VkShaderStageFlagBits stage;
   };
 
   GraphicPipelineBuilder &
@@ -25,7 +25,8 @@ struct GraphicPipelineBuilder {
   GraphicPipelineBuilder &set_multisampling();
   GraphicPipelineBuilder &set_color_attachment_format(VkFormat format);
   GraphicPipelineBuilder &set_depth_format(VkFormat format);
-  GraphicPipelineBuilder &set_shaders_stages(const std::vector< ShaderStageDesc>& stages);
+  GraphicPipelineBuilder &
+  set_shaders_stages(const std::vector<ShaderStageDesc> &stages);
   GraphicPipelineBuilder &set_blending_additive(bool status);
   GraphicPipelineBuilder &set_blending_alphablend(bool status);
 

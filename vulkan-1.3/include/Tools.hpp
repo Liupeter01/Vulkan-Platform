@@ -286,8 +286,9 @@ rendering_info(VkExtent2D rect, VkRenderingAttachmentInfo *pColorAttachments,
 
 [[nodiscard]]
 inline static VkPipelineShaderStageCreateInfo
-shader_stage_create_info(VkDevice &device, const std::string &shaderPath, 
-                         VkShaderStageFlagBits stage, const std::string& entry = "main" ) {
+shader_stage_create_info(VkDevice &device, const std::string &shaderPath,
+                         VkShaderStageFlagBits stage,
+                         const std::string &entry = "main") {
 
   VkShaderModule shaderModule;
 

@@ -586,7 +586,7 @@ void VulkanEngine::init_vulkan() {
 
   vkb_physicalDevice_ = pickPhysicalDevicesByUser(selector);
 
-  vkb::DeviceBuilder deviceBuilder{ vkb_physicalDevice_ };
+  vkb::DeviceBuilder deviceBuilder{vkb_physicalDevice_};
   vkb::Device vkbDevice = deviceBuilder.build().value();
 
   physicalDevice_ = vkb_physicalDevice_.physical_device;

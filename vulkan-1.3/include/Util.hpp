@@ -60,33 +60,32 @@ static inline void generate_mipmaps(VkCommandBuffer cmd, VkImage image,
 
   const std::size_t mips = generate_mipmap_levels(imageSize);
 
-
-  //assume LOD = 0 already exist!
-  for (std::size_t currLevel = 1; currLevel < mips;
-       ++currLevel) {
+  // assume LOD = 0 already exist!
+  for (std::size_t currLevel = 1; currLevel < mips; ++currLevel) {
 
     const std::size_t lastLevel = currLevel - 1;
     VkExtent2D currSize{std::max(imageSize.width >> 1, 1u),
                         std::max(imageSize.height >> 1, 1u)};
 
-    auto imageBarrierLast = ImageBarrierBuilder{ image }
-              .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
-              .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-              .to(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
-              .withRange(static_cast<uint32_t>(lastLevel), 1)
-              .build();
+    auto imageBarrierLast = ImageBarrierBuilder{image}
+                                .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+                                .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+                                .to(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+                                .withRange(static_cast<uint32_t>(lastLevel), 1)
+                                .build();
 
-    auto imageBarrierCurrent = ImageBarrierBuilder{ image }
-              .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
-              .from(VK_IMAGE_LAYOUT_UNDEFINED)
-              .to(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-              .withRange(static_cast<uint32_t>(currLevel), 1)
-              .build();
+    auto imageBarrierCurrent =
+        ImageBarrierBuilder{image}
+            .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+            .from(VK_IMAGE_LAYOUT_UNDEFINED)
+            .to(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+            .withRange(static_cast<uint32_t>(currLevel), 1)
+            .build();
 
     BarrierBuilder{}
-          .add(imageBarrierLast)
-          .add(imageBarrierCurrent)
-          .createBarrier(cmd);
+        .add(imageBarrierLast)
+        .add(imageBarrierCurrent)
+        .createBarrier(cmd);
 
     VkImageBlit2 blitRegion{};
     blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
@@ -116,24 +115,22 @@ static inline void generate_mipmaps(VkCommandBuffer cmd, VkImage image,
 
     imageSize = currSize;
 
-   imageBarrierLast = ImageBarrierBuilder{ image }
-              .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
-              .from(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
-              .to(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-              .withRange(static_cast<uint32_t>(lastLevel), 1)
-              .build();
+    imageBarrierLast = ImageBarrierBuilder{image}
+                           .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+                           .from(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+                           .to(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+                           .withRange(static_cast<uint32_t>(lastLevel), 1)
+                           .build();
 
-    BarrierBuilder{}
-              .add(imageBarrierLast)
-              .createBarrier(cmd);
+    BarrierBuilder{}.add(imageBarrierLast).createBarrier(cmd);
   }
 
   auto finalmip = ImageBarrierBuilder{image}
-                           .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
-                           .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-                           .to(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-                              .withRange(mips - 1, 1)
-                           .build();
+                      .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+                      .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+                      .to(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+                      .withRange(mips - 1, 1)
+                      .build();
 
   BarrierBuilder{}.add(finalmip).createBarrier(cmd);
 }

@@ -83,14 +83,15 @@ struct ImageBarrierBuilder {
         VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
         VK_ACCESS_2_SHADER_READ_BIT},
 
-        {
-  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,          // oldLayout
-  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,      // newLayout
-  VK_PIPELINE_STAGE_2_TRANSFER_BIT,              // srcStage
-    VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,   // or COMPUTE_SHADER_BIT | FRAGMENT_SHADER_BIT
-  VK_ACCESS_2_TRANSFER_WRITE_BIT,                // srcAccess
-  VK_ACCESS_2_SHADER_READ_BIT                    // dstAccess
-},
+       {
+           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,     // oldLayout
+           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // newLayout
+           VK_PIPELINE_STAGE_2_TRANSFER_BIT,         // srcStage
+           VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,     // or COMPUTE_SHADER_BIT |
+                                                     // FRAGMENT_SHADER_BIT
+           VK_ACCESS_2_TRANSFER_WRITE_BIT,           // srcAccess
+           VK_ACCESS_2_SHADER_READ_BIT               // dstAccess
+       },
 
        // TRANSFER_DST_OPTIMAL ¡ú COLOR_ATTACHMENT_OPTIMAL
        {VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,

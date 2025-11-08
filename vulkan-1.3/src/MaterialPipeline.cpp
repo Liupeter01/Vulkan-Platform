@@ -1,35 +1,36 @@
-#include <material/GLTFPBR_Material.hpp>
 #include <material/MaterialPipeline.hpp>
-#include <mesh/MeshBuffers.hpp>
 
 namespace engine {
-          MaterialPipeline::MaterialPipeline(VkDevice device) 
-                    : device_(device), isUsingDefaultShader(true)
-          { }
+MaterialPipeline::MaterialPipeline(VkDevice device)
+    : device_(device), isUsingDefaultShader(true) {}
 
 MaterialPipeline::~MaterialPipeline() { destroy(); }
 
-void MaterialPipeline::set_vertex_shader(const std::string& path, const std::string& entry) {
-          if (path.empty() || entry.empty()) {
-                    spdlog::warn("[MaterialPipeline Warn]: Invalid Vertex Shader path or entry, using default settings!");
-                    return;
-          }
+void MaterialPipeline::set_vertex_shader(const std::string &path,
+                                         const std::string &entry) {
+  if (path.empty() || entry.empty()) {
+    spdlog::warn("[MaterialPipeline Warn]: Invalid Vertex Shader path or "
+                 "entry, using default settings!");
+    return;
+  }
 
-          stages[0].path = path;
-          stages[0].entry = entry;
-          isUsingDefaultShader = false;
+  stages[0].path = path;
+  stages[0].entry = entry;
+  isUsingDefaultShader = false;
 }
 
-void MaterialPipeline::set_fragment_shader(const std::string& path, const std::string& entry){
+void MaterialPipeline::set_fragment_shader(const std::string &path,
+                                           const std::string &entry) {
 
-          if (path.empty() || entry.empty()) {
-                    spdlog::warn("[MaterialPipeline Warn]: Invalid Fragment Shader path or entry, using default settings!");
-                    return;
-          }
+  if (path.empty() || entry.empty()) {
+    spdlog::warn("[MaterialPipeline Warn]: Invalid Fragment Shader path or "
+                 "entry, using default settings!");
+    return;
+  }
 
-          stages[1].path = path;
-          stages[1].entry = entry;
-          isUsingDefaultShader = false;
+  stages[1].path = path;
+  stages[1].entry = entry;
+  isUsingDefaultShader = false;
 }
 
 void MaterialPipeline::destroy() {

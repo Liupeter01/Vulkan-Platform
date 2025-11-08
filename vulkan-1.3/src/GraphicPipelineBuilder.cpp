@@ -11,9 +11,7 @@ GraphicPipelineBuilder::GraphicPipelineBuilder(VkDevice device)
   init_viewport_state();
 }
 
-GraphicPipelineBuilder::~GraphicPipelineBuilder() {
-          clear();
-}
+GraphicPipelineBuilder::~GraphicPipelineBuilder() { clear(); }
 
 void GraphicPipelineBuilder::clear() {
   rasterizer_ = {};
@@ -49,10 +47,10 @@ void GraphicPipelineBuilder::clear() {
       VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
-  for (auto& stage : shaderStages_) {
-            if (stage.module != VK_NULL_HANDLE) {
-                      vkDestroyShaderModule(device_, stage.module, nullptr);
-            }
+  for (auto &stage : shaderStages_) {
+    if (stage.module != VK_NULL_HANDLE) {
+      vkDestroyShaderModule(device_, stage.module, nullptr);
+    }
   }
   shaderStages_.clear();
 }
@@ -109,15 +107,15 @@ GraphicPipelineBuilder::set_depth_format(VkFormat format) {
   return *this;
 }
 
-GraphicPipelineBuilder &
-GraphicPipelineBuilder::set_shaders_stages(const std::vector< GraphicPipelineBuilder::ShaderStageDesc>& stages) {
-          shaderStages_.clear();
-          shaderStages_.reserve(stages.size());
+GraphicPipelineBuilder &GraphicPipelineBuilder::set_shaders_stages(
+    const std::vector<GraphicPipelineBuilder::ShaderStageDesc> &stages) {
+  shaderStages_.clear();
+  shaderStages_.reserve(stages.size());
 
-          for (const auto& s : stages) {
-                    shaderStages_.push_back(tools::shader_stage_create_info(
-                              device_, s.path, s.stage, s.entry));
-          }
+  for (const auto &s : stages) {
+    shaderStages_.push_back(
+        tools::shader_stage_create_info(device_, s.path, s.stage, s.entry));
+  }
 
   return *this;
 }

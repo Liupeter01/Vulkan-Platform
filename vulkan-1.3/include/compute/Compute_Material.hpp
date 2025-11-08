@@ -11,7 +11,7 @@ namespace engine {
 
 struct ComputePipeline;
 
-enum class ComputePass { UNDEFINED, DEFAULT, SPECIALCONSTANT};
+enum class ComputePass { UNDEFINED, DEFAULT, SPECIALCONSTANT };
 
 struct ComputeShaderPushConstants {
   glm::vec4 topLeft = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);     // Red
