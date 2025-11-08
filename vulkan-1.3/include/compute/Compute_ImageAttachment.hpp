@@ -22,7 +22,7 @@ public:
 
     std::vector<VkDescriptorSetLayout> layouts{computeLayout_};
 
-    defaultComputePipeline_.create(layouts);
+    defaultComputePipeline_.create(ComputePass::DEFAULT, layouts);
     isinit_ = true;
   }
 
