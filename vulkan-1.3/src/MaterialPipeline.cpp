@@ -42,8 +42,10 @@ void MaterialPipeline::create(
   }
 
   if (isUsingDefaultShader) {
-            spdlog::info("[MaterialPipeline info]: MaterialPass {}, Using default Vertex Shader settings.", static_cast<int>(pass));
-            spdlog::info("[MaterialPipeline info]: MaterialPass {}, Using default Fragment Shader settings.", static_cast<int>(pass));
+            spdlog::info("[MaterialPipeline info]: MaterialPass {}, Using default Vertex Shader settings.", 
+                      static_cast<int>(pass));
+            spdlog::info("[MaterialPipeline info]: MaterialPass {}, Using default Fragment Shader settings.", 
+                      static_cast<int>(pass));
   }
 
   VkPushConstantRange matrixRange{};
