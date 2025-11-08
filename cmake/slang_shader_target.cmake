@@ -20,7 +20,7 @@ function(add_slang_shader_target TARGET SHADER_DIR)
             "$ENV{HOME}/.local/share/nvim/mason/packages/slang/lib")
       endif()
       set(CMAKE_BUILD_RPATH "${CMAKE_BUILD_RPATH};${SLANG_LIB_PATH}")
-      message(STATUS "?Added Slang runtime lib path: ${SLANG_LIB_PATH}")
+      message(STATUS "Added Slang runtime lib path: ${SLANG_LIB_PATH}")
 
       find_program(
         SLANGC_EXECUTABLE
