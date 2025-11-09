@@ -8,13 +8,17 @@
 
 namespace engine {
 
-ScenesManager::ScenesManager(VulkanEngine *eng) : engine_(eng) {}
+ScenesManager::ScenesManager(VulkanEngine *eng) 
+          : engine_(eng) 
+          , scenePool_(eng->device_)
+{}
 
 ScenesManager::~ScenesManager() { destroy(); }
 
 void ScenesManager::init() {
   if (isinit)
     return;
+  init_pool();
   myScene.sceneDescriptorSetLayout_ = engine_->sceneDescriptorSetLayout_;
   init_default_compute();
   init_default_material();
@@ -27,6 +31,7 @@ void ScenesManager::destroy() {
     myScene.sceneDescriptorSetLayout_ = VK_NULL_HANDLE;
     destroy_default_compute();
     destroy_default_material();
+    destroy_pool();
     isinit = false;
   }
 }
@@ -75,20 +80,41 @@ void ScenesManager::destroy_default_material() {
 void ScenesManager::init_default_compute() {
   imageAttachmentCompute.reset();
   imageAttachmentCompute =
-      std::make_unique<Compute_ImageAttachment>(engine_->device_);
+      std::make_unique<Compute_ImageAttachment<>>(engine_->device_);
 
   if (!imageAttachmentCompute) {
     spdlog::error(
-        "[ScenesManager Error]: Create Default Compute Material Failed!");
-    throw std::runtime_error("Alloc Default Compute Material Failed!");
+        "[ScenesManager Error]: Create Image Attachment Compute Material Failed!");
+    throw std::runtime_error("Alloc Image Attachment Compute Material Failed!");
   }
 
   imageAttachmentCompute->init();
+
+  //particleSysCompute.reset();
+  //particleSysCompute = std::make_unique<Compute_ParticleSys<>>(engine_->device_);
+  //if (!particleSysCompute) {
+  //          spdlog::error(
+  //                    "[ScenesManager Error]: Create Particle System Compute Material Failed!");
+  //          throw std::runtime_error("Alloc Particle System Compute Material Failed!");
+  //}
+
+}
+
+// Pool
+void ScenesManager::init_pool() {
+          scenePool_.init(setCount_, frame_sizes);
+}
+
+void ScenesManager::destroy_pool(){
+          scenePool_.destroy_pools();
 }
 
 void ScenesManager::destroy_default_compute() {
   imageAttachmentCompute->destory();
   imageAttachmentCompute.reset();
+
+  //particleSysCompute->destory();
+  //particleSysCompute.reset();
 }
 
 void ScenesManager::destroy_scene() {
@@ -283,28 +309,22 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
 
 void ScenesManager::compute(VkCommandBuffer cmd, FrameData &frame) {
 
-  auto drawExtent = frame.getExtent2D();
-  ComputeResources res{frame.drawImage_->imageView};
+          auto color_blending_background = [&]() {
+                    auto drawExtent = frame.getExtent2D();
+                    ImageAttachmentResources res{ frame.drawImage_->imageView };
 
-  auto ins =
-      imageAttachmentCompute->generate_instance(res, frame._frameDescriptor);
+                    auto ins = imageAttachmentCompute->generate_instance(res, frame._frameDescriptor);
+                    imageAttachmentCompute->set_dispatch_size(
+                              (drawExtent.width + 15) >> 4,
+                              (drawExtent.height + 15) >> 4,
+                              1
+                    );
 
-  vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
-                    ins.pipeline->getPipeline());
+                    imageAttachmentCompute->dispatch(cmd, ins);
+                    };
 
-  vkCmdPushConstants(
-      cmd, ins.pipeline->getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0,
-      sizeof(ComputeShaderPushConstants), &myScene.computeShaderData);
 
-  // bind the descriptor set containing the draw image for the compute pipeline
-  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-                          ins.pipeline->getPipelineLayout(), 0, 1,
-                          &ins.computeSet, 0, nullptr);
-
-  // execute the compute pipeline dispatch. We are using 16x16 workgroup size so
-  // we need to divide by it
-  vkCmdDispatch(cmd, static_cast<uint32_t>(std::ceil(drawExtent.width / 16.0f)),
-                static_cast<uint32_t>(std::ceil(drawExtent.height / 16.0f)), 1);
+          color_blending_background();
 }
 
 bool ScenesManager::addScene(std::shared_ptr<NodeManager> scene) {
@@ -321,7 +341,7 @@ bool ScenesManager::addScene(std::shared_ptr<NodeManager> scene) {
 }
 
 ComputeShaderPushConstants &ScenesManager::getComputeData() {
-  return myScene.computeShaderData;
+          return imageAttachmentCompute->getPushConstantData();
 }
 
 void ScenesManager::submit() {
