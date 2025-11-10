@@ -27,6 +27,7 @@ struct FrameData;
 struct SceneNodeBuilder;
 struct NodeManagerBuilder;
 class ScenesNodesManager;
+struct ParticleSysDataBuffer;
 
 namespace node {
 class SceneNode;
@@ -39,6 +40,7 @@ class VulkanEngine {
   friend struct NodeManagerBuilder;
   friend class node::SceneNode;
   friend class ScenesManager;
+  friend struct ParticleSysDataBuffer;
 
 public:
   using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
@@ -101,6 +103,9 @@ private:
   void destroy_immediate_commands();
   void destroy_swapchain();
   void destroy_vulkan();
+
+  void submit_default_color(VkCommandBuffer cmd);
+  void flush_default_color(VkFence fence);
 
 private:
   [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();

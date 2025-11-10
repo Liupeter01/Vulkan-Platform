@@ -34,7 +34,11 @@ void VulkanEngine::init() {
   init_vma_allocator();
   init_frames(setCount_, frame_sizes);
   init_imgui();
+
   init_default_color();
+  imm_command_submit([this](VkCommandBuffer cmd) {submit_default_color(cmd); });
+  flush_default_color(immFence_);
+
   init_default_sampler();
   init_scene_layout();
   init_scene();
@@ -984,6 +988,22 @@ void VulkanEngine::destroy_immediate_sync() {
 
 void VulkanEngine::destroy_immediate_commands() {
   vkDestroyCommandPool(device_, immCommandPool_, nullptr);
+}
+
+void VulkanEngine::submit_default_color(VkCommandBuffer cmd){
+          black_->uploadBufferToImage(cmd);
+          white_->uploadBufferToImage(cmd);
+          grey_->uploadBufferToImage(cmd);
+          magenta_->uploadBufferToImage(cmd);
+         loaderrorImage_->uploadBufferToImage(cmd);
+}
+
+void VulkanEngine::flush_default_color(VkFence fence) {
+          black_->flushUpload(fence);
+         white_->flushUpload(fence);
+          grey_->flushUpload(fence);
+          magenta_->flushUpload(fence);
+        loaderrorImage_->flushUpload(fence);
 }
 
 FrameData &VulkanEngine::get_current_frame() {
