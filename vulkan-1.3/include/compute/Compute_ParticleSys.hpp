@@ -79,7 +79,7 @@ namespace engine {
                               {}
 
                               void init() override {
-                                        if (isinit_) return;
+                                        if (this->isinit_) return;
 
                                         DescriptorLayoutBuilder builder{ this->device_ };
                                         this->computeLayout_ = builder
