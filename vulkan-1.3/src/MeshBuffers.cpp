@@ -28,7 +28,8 @@ bool GPUGeoMeshBuffers::isValid() const { return isinit; }
 void GPUGeoMeshBuffers::createMesh(std::vector<Vertex> &&vertices,
                                    std::vector<uint32_t> &&indices) {
 
-          if (isinit) return;
+  if (isinit)
+    return;
 
   vertex_ = std::move(vertices);
   indicies_ = std::move(indices);

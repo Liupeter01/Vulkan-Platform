@@ -93,9 +93,10 @@ private:
       loadedScenes_;
 
   std::unique_ptr<GLTFMetallic_Roughness> metalRoughMaterial{}; // Graphic
-  std::unique_ptr<Compute_ImageAttachment<>> imageAttachmentCompute{}; // Compute
+  std::unique_ptr<Compute_ImageAttachment<>>
+      imageAttachmentCompute{}; // Compute
 
-  std::unique_ptr< ParticleSysDataBuffer > particleSysBuffer{};
+  std::unique_ptr<ParticleSysDataBuffer> particleSysBuffer{};
   std::unique_ptr<Compute_ParticleSys<>> particleSysCompute{};
 
   DescriptorPoolAllocator scenePool_;

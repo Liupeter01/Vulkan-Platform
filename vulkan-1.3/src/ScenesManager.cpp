@@ -93,19 +93,18 @@ void ScenesManager::init_default_compute() {
 
 void ScenesManager::init_particle_sys() {
 
-          particleSysBuffer.reset();
-          particleSysBuffer =
-                    std::make_unique<ParticleSysDataBuffer>(engine_);
-          particleSysBuffer->create(8192 * 2);
+  particleSysBuffer.reset();
+  particleSysBuffer = std::make_unique<ParticleSysDataBuffer>(engine_);
+  particleSysBuffer->create(8192 * 2);
 
-          particleSysCompute.reset();
-          particleSysCompute =
-                    std::make_unique<Compute_ParticleSys<>>(engine_->device_); 
-          if (!particleSysCompute) {
-                    spdlog::error(
-                              "[ScenesManager Error]: Create Particle System Compute Material Failed!");
-                    throw std::runtime_error("Alloc Particle System Compute Material Failed!");
-          }
+  particleSysCompute.reset();
+  particleSysCompute =
+      std::make_unique<Compute_ParticleSys<>>(engine_->device_);
+  if (!particleSysCompute) {
+    spdlog::error("[ScenesManager Error]: Create Particle System Compute "
+                  "Material Failed!");
+    throw std::runtime_error("Alloc Particle System Compute Material Failed!");
+  }
 }
 
 // Pool
@@ -115,8 +114,8 @@ void ScenesManager::destroy_pool() { scenePool_.destroy_pools(); }
 
 void ScenesManager::destroy_particle_sys() {
 
-          particleSysCompute->destory();
-          particleSysCompute.reset();
+  particleSysCompute->destory();
+  particleSysCompute.reset();
 }
 
 void ScenesManager::destroy_default_compute() {
@@ -336,9 +335,7 @@ ComputeShaderPushConstants &ScenesManager::getComputeData() {
 }
 
 void ScenesManager::submit() {
-  engine_->imm_command_submit([this](VkCommandBuffer cmd) {
-    submitMesh(cmd);
-  });
+  engine_->imm_command_submit([this](VkCommandBuffer cmd) { submitMesh(cmd); });
 
   flushUpload(engine_->immFence_);
 }
