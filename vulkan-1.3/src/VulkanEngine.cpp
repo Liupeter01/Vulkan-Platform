@@ -570,6 +570,11 @@ void VulkanEngine::init_vulkan() {
   // Choose Device
   vkb::PhysicalDeviceSelector selector{vkb_inst};
 
+  // vulkan 1.1 features
+  VkPhysicalDeviceVulkan11Features vk11Features{};
+  vk11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+  vk11Features.shaderDrawParameters = VK_TRUE;   // DrawParameters
+
   // vulkan 1.2 features
   VkPhysicalDeviceVulkan12Features features12{};
   features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -577,14 +582,15 @@ void VulkanEngine::init_vulkan() {
   features12.descriptorIndexing = true;
 
   // vulkan 1.3 features
-  VkPhysicalDeviceVulkan13Features features{};
-  features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-  features.dynamicRendering = true;
-  features.synchronization2 = true;
+  VkPhysicalDeviceVulkan13Features features13{};
+  features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+  features13.dynamicRendering = true;
+  features13.synchronization2 = true;
 
   auto select_ret = selector.set_minimum_version(1, 3)
-                        .set_required_features_13(features)
+                        .set_required_features_11(vk11Features)
                         .set_required_features_12(features12)
+                         .set_required_features_13(features13)
                         .set_surface(surface_)
                         //.select_devices()
                         .select();
