@@ -81,8 +81,8 @@ namespace engine {
                               void init() override {
                                         if (isinit_) return;
 
-                                        DescriptorLayoutBuilder builder{ device_ };
-                                        computeLayout_ = builder
+                                        DescriptorLayoutBuilder builder{ this->device_ };
+                                        this->computeLayout_ = builder
                                                   //.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
                                                   .add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                                                   .add_binding(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
@@ -92,7 +92,7 @@ namespace engine {
 
                                         this->defaultComputePipeline_.template create<PushConstantType>(ComputePass::DEFAULT, layout);
                                         this->specialConstantPipeline_.template create<PushConstantType>(ComputePass::SPECIALCONSTANT, layout);
-                                        isinit_ = true;
+                                        this->isinit_ = true;
                               }
 
                               void dispatch(VkCommandBuffer cmd, const ComputeInstance& ins) override {
@@ -105,8 +105,8 @@ namespace engine {
                                         this->writer_.clear();
 
                                         ComputeInstance ins{};
-                                        ins.pipeline = &defaultComputePipeline_;
-                                        ins.computeSet = globalDescriptorAllocator.allocate(computeLayout_);
+                                        ins.pipeline = &this->defaultComputePipeline_;
+                                        ins.computeSet = globalDescriptorAllocator.allocate(this->computeLayout_);
 
                                         this->writer_.write_buffer(
                                                   0, resources.particlesIn, resources.bufferSize,
@@ -116,7 +116,7 @@ namespace engine {
                                                   1, resources.particlesOut, resources.bufferSize,
                                                   0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
-                                        writer_.update_set(ins.computeSet);
+                                       this->writer_.update_set(ins.computeSet);
                                         return ins;
                               }
                     };
