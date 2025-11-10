@@ -19,6 +19,7 @@ void ScenesManager::init() {
   init_pool();
   myScene.sceneDescriptorSetLayout_ = engine_->sceneDescriptorSetLayout_;
   init_default_compute();
+  init_particle_sys();
   init_default_material();
   isinit = true;
 }
@@ -28,6 +29,7 @@ void ScenesManager::destroy() {
     destroy_scene();
     myScene.sceneDescriptorSetLayout_ = VK_NULL_HANDLE;
     destroy_default_compute();
+    destroy_particle_sys();
     destroy_default_material();
     destroy_pool();
     isinit = false;
@@ -87,17 +89,23 @@ void ScenesManager::init_default_compute() {
   }
 
   imageAttachmentCompute->init();
+}
 
-  // particleSysCompute.reset();
-  // particleSysCompute =
-  // std::make_unique<Compute_ParticleSys<>>(engine_->device_); if
-  // (!particleSysCompute) {
-  //           spdlog::error(
-  //                     "[ScenesManager Error]: Create Particle System Compute
-  //                     Material Failed!");
-  //           throw std::runtime_error("Alloc Particle System Compute Material
-  //           Failed!");
-  // }
+void ScenesManager::init_particle_sys() {
+
+          particleSysBuffer.reset();
+          particleSysBuffer =
+                    std::make_unique<ParticleSysDataBuffer>(engine_);
+          particleSysBuffer->create(8192 * 2);
+
+          particleSysCompute.reset();
+          particleSysCompute =
+                    std::make_unique<Compute_ParticleSys<>>(engine_->device_); 
+          if (!particleSysCompute) {
+                    spdlog::error(
+                              "[ScenesManager Error]: Create Particle System Compute Material Failed!");
+                    throw std::runtime_error("Alloc Particle System Compute Material Failed!");
+          }
 }
 
 // Pool
@@ -105,12 +113,15 @@ void ScenesManager::init_pool() { scenePool_.init(setCount_, frame_sizes); }
 
 void ScenesManager::destroy_pool() { scenePool_.destroy_pools(); }
 
+void ScenesManager::destroy_particle_sys() {
+
+          particleSysCompute->destory();
+          particleSysCompute.reset();
+}
+
 void ScenesManager::destroy_default_compute() {
   imageAttachmentCompute->destory();
   imageAttachmentCompute.reset();
-
-  // particleSysCompute->destory();
-  // particleSysCompute.reset();
 }
 
 void ScenesManager::destroy_scene() {
@@ -125,20 +136,7 @@ void ScenesManager::submitMesh(VkCommandBuffer cmd) {
   }
 }
 
-void ScenesManager::submitColorImage(VkCommandBuffer cmd) {
-  engine_->black_->uploadBufferToImage(cmd);
-  engine_->white_->uploadBufferToImage(cmd);
-  engine_->grey_->uploadBufferToImage(cmd);
-  engine_->magenta_->uploadBufferToImage(cmd);
-  engine_->loaderrorImage_->uploadBufferToImage(cmd);
-}
-
 void ScenesManager::flushUpload(VkFence fence) {
-  engine_->black_->flushUpload(fence);
-  engine_->white_->flushUpload(fence);
-  engine_->grey_->flushUpload(fence);
-  engine_->magenta_->flushUpload(fence);
-  engine_->loaderrorImage_->flushUpload(fence);
 
   if (auto mesh = loadedScenes_.find("default")->second->findMesh("Suzanne");
       mesh) {
@@ -339,7 +337,6 @@ ComputeShaderPushConstants &ScenesManager::getComputeData() {
 
 void ScenesManager::submit() {
   engine_->imm_command_submit([this](VkCommandBuffer cmd) {
-    submitColorImage(cmd);
     submitMesh(cmd);
   });
 

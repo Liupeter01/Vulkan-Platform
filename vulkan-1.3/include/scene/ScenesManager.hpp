@@ -2,8 +2,7 @@
 #ifndef _SCENES_NODES_MANAGER_HPP_
 #define _SCENES_NODES_MANAGER_HPP_
 #include <compute/Compute_ImageAttachment.hpp>
-// #include <compute/Compute_ParticleSys.hpp>
-#include <array>
+#include <compute/Compute_ParticleSys.hpp>
 #include <material/GLTFMetallic_Roughness.hpp>
 #include <memory>
 #include <nodes/scene/SceneNode.hpp>
@@ -47,13 +46,15 @@ protected:
   void init_default_compute();
   void destroy_default_compute();
 
+  void init_particle_sys();
+  void destroy_particle_sys();
+
   // Pool
   void init_pool();
   void destroy_pool();
 
 protected:
   void submitMesh(VkCommandBuffer cmd);
-  void submitColorImage(VkCommandBuffer cmd);
   void flushUpload(VkFence fence);
 
   [[nodiscard]]
@@ -85,11 +86,6 @@ private:
     VkDescriptorSetLayout sceneDescriptorSetLayout_{};
   } myScene{};
 
-  struct ParticleSysDataBuffer {
-
-    std::array<std::shared_ptr<AllocatedBuffer>, 2> buffers;
-  };
-
   // Node System(MeshNode, ...) or Scene Mgr
   std::unordered_map<
       /*scene name = */ std::string,
@@ -98,7 +94,9 @@ private:
 
   std::unique_ptr<GLTFMetallic_Roughness> metalRoughMaterial{}; // Graphic
   std::unique_ptr<Compute_ImageAttachment<>> imageAttachmentCompute{}; // Compute
-  // std::unique_ptr<Compute_ParticleSys<>> particleSysCompute{};
+
+  std::unique_ptr< ParticleSysDataBuffer > particleSysBuffer{};
+  std::unique_ptr<Compute_ParticleSys<>> particleSysCompute{};
 
   DescriptorPoolAllocator scenePool_;
 };
