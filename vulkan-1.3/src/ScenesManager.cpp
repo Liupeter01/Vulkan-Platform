@@ -94,7 +94,9 @@ void ScenesManager::init_default_compute() {
 void ScenesManager::init_particle_sys() {
 
   particleSysBuffer.reset();
-  particleSysBuffer = std::make_unique<ParticleSysDataBuffer<particle2d::GPUParticle>>(engine_);
+  particleSysBuffer =
+      std::make_unique<ParticleSysDataBuffer<particle2d::GPUParticle>>(
+          engine_->device_, engine_->allocator_);
   particleSysBuffer->create(8192 * 2);
 
   particleSysCompute.reset();
@@ -107,16 +109,17 @@ void ScenesManager::init_particle_sys() {
   }
   particleSysCompute->init();
 
-  engine_->imm_command_submit([&](VkCommandBuffer cmd) {particleSysBuffer->submit(cmd); });
+  engine_->imm_command_submit(
+      [&](VkCommandBuffer cmd) { particleSysBuffer->submit(cmd); });
   particleSysBuffer->flush(engine_->immFence_);
 }
 
 void ScenesManager::on_gui() {
-          if (imageAttachmentCompute)
-                    imageAttachmentCompute->on_gui();
+  if (imageAttachmentCompute)
+    imageAttachmentCompute->on_gui();
 
-          if (particleSysCompute)
-                    particleSysCompute->on_gui();
+  if (particleSysCompute)
+    particleSysCompute->on_gui();
 }
 
 // Pool
@@ -326,28 +329,27 @@ void ScenesManager::compute(VkCommandBuffer cmd, FrameData &frame) {
     imageAttachmentCompute->dispatch(cmd, ins);
   };
 
-
   auto particle_movement = [&]() {
+    const std::size_t dispatchGroupsX =
+        particleSysBuffer->getParticleCount() >> 8;
+    if (!dispatchGroupsX) {
+      spdlog::info("[ParticleMovement] Dispatching {} groups for {} particles",
+                   dispatchGroupsX, particleSysBuffer->getParticleCount());
+    }
 
-            const std::size_t dispatchGroupsX = particleSysBuffer->getParticleCount() >> 8;
-            if (!dispatchGroupsX) {
-                      spdlog::info("[ParticleMovement] Dispatching {} groups for {} particles",
-                                dispatchGroupsX, particleSysBuffer->getParticleCount());
+    particle2d::ParticleResources res;
+    res.bufferSize = particleSysBuffer->getBufferSize();
+    res.particlesIn = particleSysBuffer->get_in_buffer();
+    res.particlesOut = particleSysBuffer->get_out_buffer();
+    res.colorImage = frame.drawImage_->imageView;
 
-            }
+    auto ins =
+        particleSysCompute->generate_instance(res, frame._frameDescriptor);
+    particleSysCompute->set_dispatch_size(dispatchGroupsX, 1, 1);
+    particleSysCompute->dispatch(cmd, ins);
 
-            particle2d::ParticleResources res;
-            res.bufferSize = particleSysBuffer->getBufferSize();
-            res.particlesIn = particleSysBuffer->get_in_buffer();
-            res.particlesOut = particleSysBuffer->get_out_buffer();
-            res.colorImage = frame.drawImage_->imageView;
-
-            auto ins = particleSysCompute->generate_instance(res, frame._frameDescriptor);
-            particleSysCompute->set_dispatch_size(dispatchGroupsX, 1, 1);
-            particleSysCompute->dispatch(cmd, ins);
-
-            particleSysBuffer->swap();
-            };
+    particleSysBuffer->swap();
+  };
 
   color_blending_background();
   particle_movement();

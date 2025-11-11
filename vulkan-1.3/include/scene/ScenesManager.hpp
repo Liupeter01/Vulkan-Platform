@@ -2,11 +2,11 @@
 #ifndef _SCENES_NODES_MANAGER_HPP_
 #define _SCENES_NODES_MANAGER_HPP_
 #include <compute/Compute_ImageAttachment.hpp>
-#include <particle/ParticleSys2D.hpp>
 #include <material/GLTFMetallic_Roughness.hpp>
 #include <memory>
 #include <nodes/scene/SceneNode.hpp>
 #include <optional>
+#include <particle/ParticleSys2D.hpp>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -32,7 +32,9 @@ public:
   bool addScene(std::shared_ptr<NodeManager> scene);
 
   ComputeShaderPushConstants &getComputeData();
-  particle2d::ParticlePushConstant& getParticleData() { return particleSysCompute->getPushConstantData(); }
+  particle2d::ParticlePushConstant &getParticleData() {
+    return particleSysCompute->getPushConstantData();
+  }
 
   void submit();
 
@@ -99,7 +101,8 @@ private:
   std::unique_ptr<Compute_ImageAttachment<>>
       imageAttachmentCompute{}; // Compute
 
-  std::unique_ptr<ParticleSysDataBuffer<particle2d::GPUParticle>> particleSysBuffer{};
+  std::unique_ptr<ParticleSysDataBuffer<particle2d::GPUParticle>>
+      particleSysBuffer{};
   std::unique_ptr<particle2d::Compute_ParticleSys2D<>> particleSysCompute{};
 
   DescriptorPoolAllocator scenePool_;
