@@ -1,194 +1,189 @@
 #pragma once
+#include <vulkan/vulkan_core.h>
 #ifndef _PARTICLE_DATA_BUFFER_HPP_
 #define _PARTICLE_DATA_BUFFER_HPP_
-#include <array>
-#include <random>
-#include <memory>
-#include <type_traits>
 #include <GlobalDef.hpp>
+#include <array>
+#include <memory>
+#include <random>
+#include <type_traits>
 
 namespace engine {
 
-          template<typename  ParticleType>
-          struct remove_cvref{
-                    using type = std::remove_cv_t<std::remove_reference_t<ParticleType>>;
-          };
+class VulkanEngine;
 
-          template<typename T>
-          using remove_cvref_t = typename remove_cvref<T>::type;
+template <typename ParticleType> struct remove_cvref {
+  using type = std::remove_cv_t<std::remove_reference_t<ParticleType>>;
+};
 
-          template<typename  ParticleType>
-          using __Particle_Trait = std::void_t<
-                    decltype(std::declval<remove_cvref_t<ParticleType>>().position),
-                    decltype(std::declval<remove_cvref_t<ParticleType>>().velocity),
-                    decltype(std::declval<remove_cvref_t<ParticleType>>().color)>;
+template <typename T> using remove_cvref_t = typename remove_cvref<T>::type;
 
-          template<typename T, typename = void>
-          struct has_particle_fields : std::false_type {};  
+template <typename ParticleType>
+using __Particle_Trait =
+    std::void_t<decltype(std::declval<remove_cvref_t<ParticleType>>().position),
+                decltype(std::declval<remove_cvref_t<ParticleType>>().velocity),
+                decltype(std::declval<remove_cvref_t<ParticleType>>().color)>;
 
-          template<typename T>
-          struct has_particle_fields<T, __Particle_Trait<T>> : std::true_type {}; 
+template <typename T, typename = void>
+struct has_particle_fields : std::false_type {};
 
-          template<typename T>
-          constexpr bool has_particle_fields_v = has_particle_fields<T>::value;
+template <typename T>
+struct has_particle_fields<T, __Particle_Trait<T>> : std::true_type {};
 
-          template<typename ParticleType, typename = void>
-          struct ParticleSysDataBuffer : std::false_type {
-                    static_assert(sizeof(ParticleType) == 0,
-                              "ParticleSysDataBuffer requires ParticleType with position, velocity, and color fields!");
-          };
+template <typename T>
+constexpr bool has_particle_fields_v = has_particle_fields<T>::value;
 
-          template<typename ParticleType>
-          struct ParticleSysDataBuffer<ParticleType , std::enable_if_t<has_particle_fields_v<ParticleType>, void>>{
-                    ParticleSysDataBuffer(VulkanEngine* eng)
-                              : engine_(eng), staging(eng->allocator_)
-                    {
-                              mt.seed(static_cast<unsigned>(std::random_device{}()));
-                              rndDist = std::uniform_real_distribution<float>(0.f, 1.f);
-                    }
+template <typename ParticleType, typename = void>
+struct ParticleSysDataBuffer : std::false_type {
+  static_assert(sizeof(ParticleType) == 0,
+                "ParticleSysDataBuffer requires ParticleType with position, "
+                "velocity, and color fields!");
+};
 
-                    virtual ~ParticleSysDataBuffer() { 
-                              destroy(); 
-                    }
+template <typename ParticleType>
+struct ParticleSysDataBuffer<
+    ParticleType, std::enable_if_t<has_particle_fields_v<ParticleType>, void>> {
+  ParticleSysDataBuffer(VkDevice device, VmaAllocator allocator)
+      : device_(device), allocator_(allocator), staging(allocator) {
+    mt.seed(static_cast<unsigned>(std::random_device{}()));
+    rndDist = std::uniform_real_distribution<float>(0.f, 1.f);
+  }
 
-                    void destroy() {
-                              if (isinit_) {
-                                        staging.destroy();
-                                        for (auto& buf : buffers) {
-                                                  buf->destroy();
-                                                  buf.reset();
-                                        }
-                                        isinit_ = false;
-                              }
-                    }
+  virtual ~ParticleSysDataBuffer() { destroy(); }
 
-                    void invalid() {
-                              destroy();
-                              pendingUpload_ = false;
-                    }
+  void destroy() {
+    if (isinit_) {
+      staging.destroy();
+      for (auto &buf : buffers) {
+        buf->destroy();
+        buf.reset();
+      }
+      isinit_ = false;
+    }
+  }
 
-                    bool isValid() const { 
-                              return isinit_; 
-                    }
+  void invalid() {
+    destroy();
+    pendingUpload_ = false;
+  }
 
-                    void ParticleSysDataBuffer::create(const std::size_t particle_count) {
-                              if (isinit_)
-                                        return;
+  bool isValid() const { return isinit_; }
 
-                              staging.destroy();
+  void create(const std::size_t particle_count) {
+    if (isinit_)
+      return;
 
-                              particleCount = particle_count;
-                              const std::size_t bufferSize = particleSize * particle_count;
+    staging.destroy();
 
-                              /*create staging buffer for upload*/
-                              staging.create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                        VMA_MEMORY_USAGE_CPU_ONLY,
-                                        "ParticleSysDataBuffer::StagingBuffer");
+    particleCount = particle_count;
+    const std::size_t bufferSize = particleSize * particle_count;
 
-                              /*Ping-Pong Swap Buffer*/
-                              for (auto& buf : buffers) {
-                                        buf.reset();
-                                        buf = std::make_shared<AllocatedBuffer>(engine_->allocator_);
-                                        buf->create(
-                                                  bufferSize,
-                                                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                                                  VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+    /*create staging buffer for upload*/
+    staging.create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                   VMA_MEMORY_USAGE_CPU_ONLY,
+                   "ParticleSysDataBuffer::StagingBuffer");
 
-                                                  VMA_MEMORY_USAGE_GPU_ONLY, "ParticleSysDataBuffer::PingPongBuffer");
-                              }
+    /*Ping-Pong Swap Buffer*/
+    for (auto &buf : buffers) {
+      buf.reset();
+      buf = std::make_shared<AllocatedBuffer>(allocator_);
+      buf->create(bufferSize,
+                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                      VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                      VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 
-                              isinit_ = true;
-                    }
+                  VMA_MEMORY_USAGE_GPU_ONLY,
+                  "ParticleSysDataBuffer::PingPongBuffer");
+    }
 
-                    void submit(VkCommandBuffer cmd) {
-                              // fill random data
-                              fill(staging.map(), particleCount);
-                              staging.unmap();
+    isinit_ = true;
+  }
 
-                              VkBufferCopy bufferCopy{ 0, 0,getBufferSize() };
-                              vkCmdCopyBuffer(cmd, staging.buffer, buffers[0]->buffer, 1, &bufferCopy);
+  void submit(VkCommandBuffer cmd) {
+    // fill random data
+    fill(staging.map(), particleCount);
+    staging.unmap();
 
-                              pendingUpload_ = true;
-                    }
+    VkBufferCopy bufferCopy{0, 0, getBufferSize()};
+    vkCmdCopyBuffer(cmd, staging.buffer, buffers[0]->buffer, 1, &bufferCopy);
 
-                    void flush(VkFence fence) {
-                              if (!pendingUpload_)
-                                        return;
+    pendingUpload_ = true;
+  }
 
-                              vkWaitForFences(engine_->device_, 1, &fence, true,
-                                        std::numeric_limits<uint64_t>::max());
+  void flush(VkFence fence) {
+    if (!pendingUpload_)
+      return;
 
-                              // staging.destroy();
-                              pendingUpload_ = false;
-                    }
+    vkWaitForFences(device_, 1, &fence, true,
+                    std::numeric_limits<uint64_t>::max());
 
-                    std::size_t getParticleCount() const noexcept {
-                              return particleCount;
-                    }
+    // staging.destroy();
+    pendingUpload_ = false;
+  }
 
-                    std::size_t getBufferSize() const noexcept {
-                              return particleCount * particleSize;
-                    }
+  std::size_t getParticleCount() const noexcept { return particleCount; }
 
-                    void swap() noexcept {
-                              index ^= 1; // index = (index + 1) % 2
-                    }
+  std::size_t getBufferSize() const noexcept {
+    return particleCount * particleSize;
+  }
 
-                    VkBuffer get_in_buffer() const noexcept {
-                              return buffers[index]->buffer;
-                    }
+  void swap() noexcept {
+    index ^= 1; // index = (index + 1) % 2
+  }
 
-                    VkBuffer get_out_buffer() const noexcept {
-                              return buffers[index ^ 1]->buffer;
-                    }
+  VkBuffer get_in_buffer() const noexcept { return buffers[index]->buffer; }
 
-                    /*one is for particle in, another is for particle out;
-                     * buffer[0] will be the first one and it's going to swap in every frame
-                     */
-                    bool index = 0;
-                    std::size_t particleCount{ 0 };
-                    std::size_t particleSize = sizeof(ParticleType);
-                    std::array<std::shared_ptr<AllocatedBuffer>, 2> buffers;
+  VkBuffer get_out_buffer() const noexcept {
+    return buffers[index ^ 1]->buffer;
+  }
 
-          protected:
-                    std::random_device rd;
-                    std::mt19937 mt;
-                    std::uniform_real_distribution<float> rndDist;
+  /*one is for particle in, another is for particle out;
+   * buffer[0] will be the first one and it's going to swap in every frame
+   */
+  bool index = 0;
+  std::size_t particleCount{0};
+  std::size_t particleSize = sizeof(ParticleType);
+  std::array<std::shared_ptr<AllocatedBuffer>, 2> buffers;
 
-                    // This is the staging buffer to init the first buffer slot
-                    AllocatedBuffer staging;
+protected:
+  std::random_device rd;
+  std::mt19937 mt;
+  std::uniform_real_distribution<float> rndDist;
 
-                    void fill(void* buffer,
-                              const std::size_t particle_count) {
-                              ParticleType* src = reinterpret_cast<ParticleType*>(buffer);
-                              memset(src, 0, particle_count * particleSize);
+  // This is the staging buffer to init the first buffer slot
+  AllocatedBuffer staging;
 
-                              for (std::size_t i = 0; i < particle_count; ++i) {
-                                        auto& particle = src[i];
+  void fill(void *buffer, const std::size_t particle_count) {
+    ParticleType *src = reinterpret_cast<ParticleType *>(buffer);
+    memset(src, 0, particle_count * particleSize);
 
-                                       const float r = std::sqrtf(rndDist(mt));
-                                        const float theta = 2.f * rndDist(mt) * glm::pi<float>();
-                                        const float x = r * cosf(theta);
-                                        const float y = r * sinf(theta);
-                                        particle.position = glm::vec4(x, y, 0, 0);
+    for (std::size_t i = 0; i < particle_count; ++i) {
+      auto &particle = src[i];
 
-                                        glm::vec2 dir = glm::vec2(x, y);
-                                        if (glm::length(dir) < 1e-6f) {
-                                                  float angle = 2.f * rndDist(mt) * glm::pi<float>();
-                                                  dir = glm::vec2(cosf(angle), sinf(angle));
-                                        }
+      const float r = std::sqrtf(rndDist(mt));
+      const float theta = 2.f * rndDist(mt) * glm::pi<float>();
+      const float x = r * cosf(theta);
+      const float y = r * sinf(theta);
+      particle.position = glm::vec4(x, y, 0, 0);
 
-                                        particle.velocity = glm::vec4(normalize(dir) * 0.00025f, 0.f, 0.f);
-                                        particle.color = glm::vec4(rndDist(mt), rndDist(mt), rndDist(mt), 1.0f);
-                              }
-                    }
+      glm::vec2 dir = glm::vec2(x, y);
+      if (glm::length(dir) < 1e-6f) {
+        float angle = 2.f * rndDist(mt) * glm::pi<float>();
+        dir = glm::vec2(cosf(angle), sinf(angle));
+      }
 
-          private:
-                    bool isinit_ = false;
-                    VulkanEngine* engine_;
-                    bool pendingUpload_ = false;
-          };
-}
+      particle.velocity = glm::vec4(normalize(dir) * 0.00025f, 0.f, 0.f);
+      particle.color = glm::vec4(rndDist(mt), rndDist(mt), rndDist(mt), 1.0f);
+    }
+  }
+
+private:
+  bool isinit_ = false;
+  VkDevice device_{};
+  VmaAllocator allocator_{};
+  bool pendingUpload_ = false;
+};
+} // namespace engine
 
 #endif //_PARTICLE_DATA_BUFFER_HPP_
