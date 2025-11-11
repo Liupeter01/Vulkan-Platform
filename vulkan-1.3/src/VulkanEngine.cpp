@@ -144,7 +144,7 @@ void VulkanEngine::run() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::Begin("Engine Control Panel"); 
+    ImGui::Begin("Engine Control Panel");
     show_states(stats);
     sceneMgr->on_gui();
     ImGui::End();
@@ -256,14 +256,14 @@ void VulkanEngine::draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
 }
 
 void VulkanEngine::show_states(const EngineStats &stats) {
-          if (ImGui::CollapsingHeader("Engine Stats", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    ImGui::Text("Frame time:  %.3f ms", stats.frametime);
-                    ImGui::Text("Draw time:   %.3f ms", stats.mesh_draw_time);
-                    ImGui::Text("Update time: %.3f ms", stats.scene_update_time);
-                    ImGui::Text("Triangles:   %i", stats.triangle_count);
-                    ImGui::Text("Draw calls:  %i", stats.drawcall_count);
-                    ImGui::Separator();
-          }
+  if (ImGui::CollapsingHeader("Engine Stats", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Text("Frame time:  %.3f ms", stats.frametime);
+    ImGui::Text("Draw time:   %.3f ms", stats.mesh_draw_time);
+    ImGui::Text("Update time: %.3f ms", stats.scene_update_time);
+    ImGui::Text("Triangles:   %i", stats.triangle_count);
+    ImGui::Text("Draw calls:  %i", stats.drawcall_count);
+    ImGui::Separator();
+  }
 }
 
 bool VulkanEngine::isDeviceSuitable(const vkb::PhysicalDevice &device) {
@@ -561,7 +561,7 @@ void VulkanEngine::init_vulkan() {
   // vulkan 1.1 features
   VkPhysicalDeviceVulkan11Features vk11Features{};
   vk11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-  vk11Features.shaderDrawParameters = VK_TRUE;   // DrawParameters
+  vk11Features.shaderDrawParameters = VK_TRUE; // DrawParameters
 
   // vulkan 1.2 features
   VkPhysicalDeviceVulkan12Features features12{};
@@ -578,7 +578,7 @@ void VulkanEngine::init_vulkan() {
   auto select_ret = selector.set_minimum_version(1, 3)
                         .set_required_features_11(vk11Features)
                         .set_required_features_12(features12)
-                         .set_required_features_13(features13)
+                        .set_required_features_13(features13)
                         .set_surface(surface_)
                         //.select_devices()
                         .select();

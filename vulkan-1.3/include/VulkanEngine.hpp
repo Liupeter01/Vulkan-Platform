@@ -28,9 +28,6 @@ struct SceneNodeBuilder;
 struct NodeManagerBuilder;
 class ScenesNodesManager;
 
-template<typename ParticleType, typename>
-struct ParticleSysDataBuffer;
-
 namespace node {
 class SceneNode;
 }
@@ -42,9 +39,6 @@ class VulkanEngine {
   friend struct NodeManagerBuilder;
   friend class node::SceneNode;
   friend class ScenesManager;
-
-  template<typename ParticleType, typename>
-  friend struct ParticleSysDataBuffer;
 
 public:
   using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
