@@ -3,6 +3,12 @@
 #define _COMPUTE_IMAGEATTACHMENT_HPP_
 #include <compute/Compute_EffectBase.hpp>
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_vulkan.h>
+#include <imgui.h>
+
 namespace engine {
 
 struct ComputeShaderPushConstants {
@@ -39,11 +45,13 @@ public:
 
     auto layout = {this->computeLayout_};
 
-    this->defaultComputePipeline_.set_compute_shader(GLSL_SHADER_PATH "gradient.comp.spv", "main");
+    this->defaultComputePipeline_.set_compute_shader(
+        GLSL_SHADER_PATH "gradient.comp.spv", "main");
     this->defaultComputePipeline_.template create<PushConstantType>(
         ComputePass::DEFAULT, layout);
 
-    this->specialConstantPipeline_.set_compute_shader(GLSL_SHADER_PATH "gradient.comp.spv", "main");
+    this->specialConstantPipeline_.set_compute_shader(
+        GLSL_SHADER_PATH "gradient.comp.spv", "main");
     this->specialConstantPipeline_.template create<PushConstantType>(
         ComputePass::SPECIALCONSTANT, layout);
     this->isinit_ = true;
@@ -71,19 +79,23 @@ public:
                   this->dispatchGroups_.z);
   }
 
-  void Compute_ImageAttachment::on_gui() {
-  
-            if (ImGui::CollapsingHeader("Compute_ImageAttachment", ImGuiTreeNodeFlags_DefaultOpen)) {
-                      ImGui::InputFloat4("Top Left", (float*)&this->pushConstantData_.topLeft, "%.3f",
-                                ImGuiInputTextFlags_ElideLeft);
-                      ImGui::InputFloat4("Top Right", (float*)&this->pushConstantData_.topRight, "%.3f",
-                                ImGuiInputTextFlags_ElideLeft);
-                      ImGui::InputFloat4("Bottom Left", (float*)&this->pushConstantData_.bottomLeft, "%.3f",
-                                ImGuiInputTextFlags_ElideLeft);
-                      ImGui::InputFloat4("Bottom Right", (float*)&this->pushConstantData_.bottomRight, "%.3f",
-                                ImGuiInputTextFlags_ElideLeft);
-                      ImGui::Separator();
-            }
+  void on_gui() {
+
+    if (ImGui::CollapsingHeader("Compute_ImageAttachment",
+                                ImGuiTreeNodeFlags_DefaultOpen)) {
+      ImGui::InputFloat4("Top Left", (float *)&this->pushConstantData_.topLeft,
+                         "%.3f", ImGuiInputTextFlags_ElideLeft);
+      ImGui::InputFloat4("Top Right",
+                         (float *)&this->pushConstantData_.topRight, "%.3f",
+                         ImGuiInputTextFlags_ElideLeft);
+      ImGui::InputFloat4("Bottom Left",
+                         (float *)&this->pushConstantData_.bottomLeft, "%.3f",
+                         ImGuiInputTextFlags_ElideLeft);
+      ImGui::InputFloat4("Bottom Right",
+                         (float *)&this->pushConstantData_.bottomRight, "%.3f",
+                         ImGuiInputTextFlags_ElideLeft);
+      ImGui::Separator();
+    }
   }
 
   ComputeInstance generate_instance(
