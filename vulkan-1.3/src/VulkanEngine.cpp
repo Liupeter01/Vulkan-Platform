@@ -144,8 +144,10 @@ void VulkanEngine::run() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    show_compute_background(data);
+    ImGui::Begin("Engine Control Panel"); 
     show_states(stats);
+    sceneMgr->on_gui();
+    ImGui::End();
 
     stats.drawcall_count = stats.triangle_count = 0;
 
@@ -174,6 +176,8 @@ void VulkanEngine::run() {
 
     stats.mesh_draw_time = drawTimeFrame / 1000.f;
     stats.frametime = frameTimeDuration / 1000.f;
+
+    sceneMgr->getParticleData().deltaTime = stats.frametime;
 
     frameTimeStart = frameTimeEnd;
 
@@ -251,31 +255,15 @@ void VulkanEngine::draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
   vkCmdEndRendering(cmd);
 }
 
-void VulkanEngine::show_compute_background(ComputeShaderPushConstants &data) {
-
-  if (ImGui::Begin("background")) {
-    ImGui::InputFloat4("topLeft", (float *)&data.topLeft, "%.3f",
-                       ImGuiInputTextFlags_ElideLeft);
-    ImGui::InputFloat4("topRight", (float *)&data.topRight, "%.3f",
-                       ImGuiInputTextFlags_ElideLeft);
-    ImGui::InputFloat4("bottomLeft", (float *)&data.bottomLeft, "%.3f",
-                       ImGuiInputTextFlags_ElideLeft);
-    ImGui::InputFloat4("bottomRight", (float *)&data.bottomRight);
-    ImGui::SliderFloat("Render Scale", &renderScale, 0.3f, 1.f, "%.3f",
-                       ImGuiInputTextFlags_ElideLeft);
-  }
-  ImGui::End();
-}
-
 void VulkanEngine::show_states(const EngineStats &stats) {
-  if (ImGui::Begin("Stats")) {
-    ImGui::Text("frametime %f ms", stats.frametime);
-    ImGui::Text("draw time %f ms", stats.mesh_draw_time);
-    ImGui::Text("update time %f ms", stats.scene_update_time);
-    ImGui::Text("triangles %i", stats.triangle_count);
-    ImGui::Text("draws %i", stats.drawcall_count);
-  }
-  ImGui::End();
+          if (ImGui::CollapsingHeader("Engine Stats", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    ImGui::Text("Frame time:  %.3f ms", stats.frametime);
+                    ImGui::Text("Draw time:   %.3f ms", stats.mesh_draw_time);
+                    ImGui::Text("Update time: %.3f ms", stats.scene_update_time);
+                    ImGui::Text("Triangles:   %i", stats.triangle_count);
+                    ImGui::Text("Draw calls:  %i", stats.drawcall_count);
+                    ImGui::Separator();
+          }
 }
 
 bool VulkanEngine::isDeviceSuitable(const vkb::PhysicalDevice &device) {

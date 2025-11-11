@@ -27,6 +27,8 @@ struct FrameData;
 struct SceneNodeBuilder;
 struct NodeManagerBuilder;
 class ScenesNodesManager;
+
+template<typename ParticleType, typename>
 struct ParticleSysDataBuffer;
 
 namespace node {
@@ -40,6 +42,8 @@ class VulkanEngine {
   friend struct NodeManagerBuilder;
   friend class node::SceneNode;
   friend class ScenesManager;
+
+  template<typename ParticleType, typename>
   friend struct ParticleSysDataBuffer;
 
 public:
@@ -115,7 +119,6 @@ private:
   void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
                   VkImageView imageView = VK_NULL_HANDLE);
 
-  void show_compute_background(ComputeShaderPushConstants &data);
   void show_states(const EngineStats &stats);
 
   bool isDeviceSuitable(const vkb::PhysicalDevice &device);
