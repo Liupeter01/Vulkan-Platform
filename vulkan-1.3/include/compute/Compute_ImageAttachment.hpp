@@ -71,6 +71,21 @@ public:
                   this->dispatchGroups_.z);
   }
 
+  void Compute_ImageAttachment::on_gui() {
+  
+            if (ImGui::CollapsingHeader("Compute_ImageAttachment", ImGuiTreeNodeFlags_DefaultOpen)) {
+                      ImGui::InputFloat4("Top Left", (float*)&this->pushConstantData_.topLeft, "%.3f",
+                                ImGuiInputTextFlags_ElideLeft);
+                      ImGui::InputFloat4("Top Right", (float*)&this->pushConstantData_.topRight, "%.3f",
+                                ImGuiInputTextFlags_ElideLeft);
+                      ImGui::InputFloat4("Bottom Left", (float*)&this->pushConstantData_.bottomLeft, "%.3f",
+                                ImGuiInputTextFlags_ElideLeft);
+                      ImGui::InputFloat4("Bottom Right", (float*)&this->pushConstantData_.bottomRight, "%.3f",
+                                ImGuiInputTextFlags_ElideLeft);
+                      ImGui::Separator();
+            }
+  }
+
   ComputeInstance generate_instance(
       ResourcesType &resources,
       DescriptorPoolAllocator &globalDescriptorAllocator) override {
