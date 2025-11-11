@@ -39,8 +39,11 @@ public:
 
     auto layout = {this->computeLayout_};
 
+    this->defaultComputePipeline_.set_compute_shader(GLSL_SHADER_PATH "gradient.comp.spv", "main");
     this->defaultComputePipeline_.template create<PushConstantType>(
         ComputePass::DEFAULT, layout);
+
+    this->specialConstantPipeline_.set_compute_shader(GLSL_SHADER_PATH "gradient.comp.spv", "main");
     this->specialConstantPipeline_.template create<PushConstantType>(
         ComputePass::SPECIALCONSTANT, layout);
     this->isinit_ = true;
