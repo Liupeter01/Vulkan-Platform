@@ -1,12 +1,4 @@
-struct Particle {
-    float4 position;
-    float4 velocity;
-    float4 color;
-};
-
-struct ParticleSSBO {
-    Particle particles;
-};
+#include "particlebuffer.slang"
 
 // <binding, set>
 [[vk::binding(0, 0)]]
@@ -17,17 +9,6 @@ RWStructuredBuffer<ParticleSSBO> particlesOut;
 
 [[vk::binding(2, 0)]]
 RWTexture2D<float4> image;
-
-struct ParticlePushConstant {
-    float4 speedup;
-    float deltaTime;
-    //float3 pad0;
-};
-
-struct SlangArgs {
-    float4 position : SV_Position;
-    float4 color;
-}
 
 [[vk::push_constant]]
 ParticlePushConstant pc;
@@ -59,26 +40,8 @@ void compMain(uint3 threadId : SV_DispatchThreadID)
     float2 pos = particlesIn[index].particles.position.xy;
     float2 vel = particlesIn[index].particles.velocity.xy;
 
-    const float boundary = 0.97;
-    // if (pos.x <= -boundary || pos.x >= boundary) vel.x = -vel.x;
-    // if (pos.y <= -boundary || pos.y >= boundary) vel.y = -vel.y;
-    if (pos.x <= -boundary) {
-        pos.x = -boundary;
-        vel.x = abs(vel.x);
-    }
-    else if (pos.x >= boundary) {
-        pos.x = boundary;
-        vel.x = -abs(vel.x);
-    }
-
-    if (pos.y <= -boundary) {
-        pos.y = -boundary;
-        vel.y = abs(vel.y);
-    }
-    else if (pos.y >= boundary) {
-        pos.y = boundary;
-        vel.y = -abs(vel.y);
-    }
+    float xyboundary = 0.97;
+    pos.xy = reflectBoundaryXY2D(pos.xy, vel.xy, xyboundary);
 
     pos += vel * pc.deltaTime * pc.speedup.xy;
 
