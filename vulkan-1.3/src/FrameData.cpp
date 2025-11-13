@@ -20,7 +20,7 @@ void DeletionQueue::flush() {
 }
 
 FrameData::FrameData(VulkanEngine *eng)
-    : engine_(eng), _frameDescriptor(eng->device_), isCommandInit(false),
+    : engine_(eng), _frameDescriptor(eng->device_),
       isSyncInit(false) {
 
   if (!eng) {
@@ -38,20 +38,36 @@ FrameData::~FrameData() {
   destroy_allocator();
 }
 
-void FrameData::init_command(const VkCommandPoolCreateInfo &commandPoolInfo) {
-  if (isCommandInit)
-    return;
+void FrameData::init_compute_command(const VkCommandPoolCreateInfo& commandPoolInfo){
+          if (isComputeCommandInit)
+                    return;
 
+          vkCreateCommandPool(engine_->device_, &commandPoolInfo, nullptr,
+                    &_computeCommandPool);
+
+          VkCommandBufferAllocateInfo cmdAllocInfo =
+                    tools::command_buffer_allocate_info(_computeCommandPool, 1);
+
+          vkAllocateCommandBuffers(engine_->device_, &cmdAllocInfo,
+                    &_computeCommandBuffer);
+
+          isComputeCommandInit = true;
+}
+
+void FrameData::init_graphic_command(const VkCommandPoolCreateInfo &commandPoolInfo) {
+  if (isGraphicCommandInit)
+    return;
+  
   vkCreateCommandPool(engine_->device_, &commandPoolInfo, nullptr,
-                      &_commandPool);
+                      &_graphicCommandPool);
 
   VkCommandBufferAllocateInfo cmdAllocInfo =
-      tools::command_buffer_allocate_info(_commandPool, 1);
+      tools::command_buffer_allocate_info(_graphicCommandPool, 1);
 
   vkAllocateCommandBuffers(engine_->device_, &cmdAllocInfo,
-                           &_mainCommandBuffer);
+                           &_graphicCommandBuffer);
 
-  isCommandInit = true;
+  isGraphicCommandInit = true;
 }
 
 void FrameData::init_sync(const VkFenceCreateInfo &fenceCreateInfo,
@@ -62,11 +78,13 @@ void FrameData::init_sync(const VkFenceCreateInfo &fenceCreateInfo,
 
   vkCreateFence(engine_->device_, &fenceCreateInfo, nullptr,
                 &_renderFinishedFence);
+  vkCreateFence(engine_->device_, &fenceCreateInfo, nullptr,
+            &_computeFinishedFence);
+
   vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
                     &_swapChainWait);
   vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
-                    &_renderPresentKHRSignal);
-
+            &_computeWait);
   isSyncInit = true;
 }
 
@@ -90,24 +108,27 @@ VkDescriptorSet FrameData::allocate(VkDescriptorSetLayout layout, void *pNext) {
 }
 
 void FrameData::destroy_command(bool needWaitIdle) {
-  if (isCommandInit) {
+  if (isGraphicCommandInit && isComputeCommandInit) {
     // make sure the gpu has stopped doing its things
     if (needWaitIdle) {
       vkDeviceWaitIdle(engine_->device_);
     }
 
-    vkDestroyCommandPool(engine_->device_, _commandPool, nullptr);
-    _commandPool = VK_NULL_HANDLE;
+    vkDestroyCommandPool(engine_->device_, _graphicCommandPool, nullptr);
+    vkDestroyCommandPool(engine_->device_, _computeCommandPool, nullptr);
+    _graphicCommandPool = VK_NULL_HANDLE;
+    _computeCommandPool = VK_NULL_HANDLE;
 
-    isCommandInit = false;
+    isGraphicCommandInit = isComputeCommandInit = false;
   }
 }
 
 void FrameData::destroy_sync() {
   if (isSyncInit) {
     vkDestroyFence(engine_->device_, _renderFinishedFence, nullptr);
+    vkDestroyFence(engine_->device_, _computeFinishedFence, nullptr);
     vkDestroySemaphore(engine_->device_, _swapChainWait, nullptr);
-    vkDestroySemaphore(engine_->device_, _renderPresentKHRSignal, nullptr);
+    vkDestroySemaphore(engine_->device_, _computeWait, nullptr);
     isSyncInit = false;
   }
 }

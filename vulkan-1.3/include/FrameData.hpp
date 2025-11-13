@@ -31,7 +31,8 @@ struct FrameData {
   void init_images(VkExtent3D extent);
   void init_allocator(const uint32_t setCount,
                       const std::vector<PoolSizeRatio> &poolSizeRatio);
-  void init_command(const VkCommandPoolCreateInfo &commandPoolInfo);
+  void init_graphic_command(const VkCommandPoolCreateInfo &commandPoolInfo);
+  void init_compute_command(const VkCommandPoolCreateInfo& commandPoolInfo);
   void init_sync(const VkFenceCreateInfo &fenceCreateInfo,
                  const VkSemaphoreCreateInfo &semaphoreCreateInfo);
 
@@ -46,9 +47,19 @@ struct FrameData {
   VkExtent2D getExtent2D() const;
 
   VkFence _renderFinishedFence;
-  VkSemaphore _swapChainWait, _renderPresentKHRSignal;
-  VkCommandPool _commandPool;
-  VkCommandBuffer _mainCommandBuffer;
+  VkFence _computeFinishedFence;
+
+  //Highest Prioity! Before all Compute & Graphic
+  VkSemaphore _swapChainWait;
+  VkSemaphore _transferWait;       //before all the compute & graphic!
+  VkSemaphore _computeWait;      //before graphic!
+
+  VkCommandPool _graphicCommandPool;
+  VkCommandPool _computeCommandPool;
+
+  VkCommandBuffer _graphicCommandBuffer;
+  VkCommandBuffer _computeCommandBuffer;
+
   DescriptorPoolAllocator _frameDescriptor;
   DeletionQueue _deletionQueue;
 
@@ -56,7 +67,8 @@ struct FrameData {
   std::unique_ptr<AllocatedImage> depthImage_ = nullptr;
 
 private:
-  bool isCommandInit = false;
+  bool isGraphicCommandInit = false;
+  bool isComputeCommandInit = false;
   bool isSyncInit = false;
   VulkanEngine *engine_;
   VkExtent3D oldExtent_{};
