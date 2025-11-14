@@ -6,7 +6,8 @@
 #include <memory>
 #include <nodes/scene/SceneNode.hpp>
 #include <optional>
-#include <particle/ParticleSys2D.hpp>
+#include <particle/sprite/PointSpriteParticleSystem2D.hpp>
+#include <particle/sprite/PointSpriteParticleSystem3D.hpp>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -32,7 +33,7 @@ public:
   bool addScene(std::shared_ptr<NodeManager> scene);
 
   ComputeShaderPushConstants &getComputeData();
-  particle2d::ParticlePushConstant &getParticleData() {
+  auto &getParticleData() {
     return particleSysCompute->getPushConstantData();
   }
 
@@ -58,13 +59,15 @@ protected:
   void init_pool();
   void destroy_pool();
 
+  void create_scene_set();
+  void destroy_scene_set();
+
 protected:
   void submitMesh(VkCommandBuffer cmd);
   void flushUpload(VkFence fence);
 
-  [[nodiscard]]
-  std::tuple<VkDescriptorSet, std::shared_ptr<AllocatedBuffer>>
-  createSceneSet(FrameData &frame);
+  void update_scene_set();
+  VkDescriptorSet get_scene_set();
 
   [[nodiscard]]
   std::tuple<MaterialInstance, std::shared_ptr<AllocatedBuffer>>
@@ -89,6 +92,8 @@ private:
     /*  Graphic Scene Control System (set = 0, binding = 0 ) */
     GPUSceneData globalSceneData{}; // Scene Data For this scene only
     VkDescriptorSetLayout sceneDescriptorSetLayout_{};
+    std::shared_ptr<AllocatedBuffer> sceneDataBuffer;
+    VkDescriptorSet sceneDescriptorSet;
   } myScene{};
 
   // Node System(MeshNode, ...) or Scene Mgr
@@ -101,9 +106,9 @@ private:
   std::unique_ptr<Compute_ImageAttachment<>>
       imageAttachmentCompute{}; // Compute
 
-  std::unique_ptr<ParticleSysDataBuffer<particle2d::GPUParticle>>
+  std::unique_ptr<ParticleSysDataBuffer<particle::GPUParticle>>
       particleSysBuffer{};
-  std::unique_ptr<particle2d::Compute_ParticleSys2D<>> particleSysCompute{};
+  std::shared_ptr<particle::PointSpriteParticleSystemBase<>> particleSysCompute{};
 
   DescriptorPoolAllocator scenePool_;
 };

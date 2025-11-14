@@ -18,6 +18,9 @@ void ScenesManager::init() {
     return;
   init_pool();
   myScene.sceneDescriptorSetLayout_ = engine_->sceneDescriptorSetLayout_;
+
+  create_scene_set();
+
   init_default_compute();
   init_particle_sys();
   init_default_material();
@@ -31,6 +34,9 @@ void ScenesManager::destroy() {
     destroy_default_compute();
     destroy_particle_sys();
     destroy_default_material();
+
+    destroy_scene_set();
+
     destroy_pool();
     isinit = false;
   }
@@ -54,6 +60,8 @@ void ScenesManager::update_scene() {
   myScene.globalSceneData.view = engine_->camera_->getViewMatrix();
   myScene.globalSceneData.proj = engine_->camera_->getProjectionMatrix();
   myScene.globalSceneData.proj[1][1] *= -1; // Reverse Y
+
+  update_scene_set();
 }
 
 // Material
@@ -95,18 +103,20 @@ void ScenesManager::init_particle_sys() {
 
   particleSysBuffer.reset();
   particleSysBuffer =
-      std::make_unique<ParticleSysDataBuffer<particle2d::GPUParticle>>(
-          engine_->device_, engine_->allocator_);
+      std::make_unique<ParticleSysDataBuffer<particle::GPUParticle>>(
+          engine_->device_, engine_->allocator_, 
+                ParticleSysDataBuffer<particle::GPUParticle>::ParticleDimension::Particle3D);
   particleSysBuffer->create(8192 * 2);
 
   particleSysCompute.reset();
   particleSysCompute =
-      std::make_unique<particle2d::Compute_ParticleSys2D<>>(engine_->device_);
+      std::make_shared<particle2d::PointSpriteParticleSystem2D<>>(engine_->device_);
   if (!particleSysCompute) {
     spdlog::error("[ScenesManager Error]: Create Particle System Compute "
                   "Material Failed!");
     throw std::runtime_error("Alloc Particle System Compute Material Failed!");
   }
+  particleSysCompute->setGlobalLayout(myScene.sceneDescriptorSetLayout_, myScene.sceneDescriptorSet);
   particleSysCompute->init();
 
   engine_->imm_command_submit(
@@ -158,28 +168,54 @@ void ScenesManager::flushUpload(VkFence fence) {
   }
 }
 
-std::tuple<VkDescriptorSet, std::shared_ptr<AllocatedBuffer>>
-ScenesManager::createSceneSet(FrameData &frame) {
+void ScenesManager::update_scene_set() {
 
-  std::shared_ptr<AllocatedBuffer> sceneDataBuffer =
-      std::make_shared<AllocatedBuffer>(engine_->allocator_);
+          if (!myScene.sceneDataBuffer) {
+                    throw std::runtime_error("Invalid Scene Data Buffer!");
+          }
 
-  sceneDataBuffer->create(
+          GPUSceneData* data = reinterpret_cast<GPUSceneData*>(myScene.sceneDataBuffer->map());
+          memcpy(data, &myScene.globalSceneData, sizeof(GPUSceneData));
+          myScene.sceneDataBuffer->unmap();
+}
+
+VkDescriptorSet ScenesManager::get_scene_set() {
+          DescriptorWriter scenewriter{ engine_->device_ };
+          scenewriter.write_buffer(0, myScene.sceneDataBuffer->buffer, sizeof(GPUSceneData), 0,
+                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+          return myScene.sceneDescriptorSet;
+}
+
+void ScenesManager::create_scene_set() {
+          if (myScene.sceneDataBuffer) {
+                    myScene.sceneDataBuffer->destroy();
+          }
+          myScene.sceneDataBuffer.reset();
+          myScene.sceneDataBuffer = std::make_shared<AllocatedBuffer>(engine_->allocator_);
+
+          myScene.sceneDataBuffer->create(
       sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, "Scene::execute::sceneDataBuffer");
 
-  GPUSceneData *data = reinterpret_cast<GPUSceneData *>(sceneDataBuffer->map());
+  GPUSceneData *data = reinterpret_cast<GPUSceneData *>(myScene.sceneDataBuffer->map());
   memcpy(data, &myScene.globalSceneData, sizeof(GPUSceneData));
-  sceneDataBuffer->unmap();
+  myScene.sceneDataBuffer->unmap();
 
-  VkDescriptorSet sceneSet =
-      frame._frameDescriptor.allocate(myScene.sceneDescriptorSetLayout_);
+  VkDescriptorSet sceneSet = scenePool_.allocate(myScene.sceneDescriptorSetLayout_);
   DescriptorWriter scenewriter{engine_->device_};
-  scenewriter.write_buffer(0, sceneDataBuffer->buffer, sizeof(GPUSceneData), 0,
+  scenewriter.write_buffer(0, myScene.sceneDataBuffer->buffer, sizeof(GPUSceneData), 0,
                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   scenewriter.update_set(sceneSet);
 
-  return {sceneSet, sceneDataBuffer};
+  myScene.sceneDescriptorSet = sceneSet;
+}
+
+void ScenesManager::destroy_scene_set() {
+          if (myScene.sceneDataBuffer) {
+                    myScene.sceneDataBuffer->destroy();
+          }
+          myScene.sceneDataBuffer.reset();
 }
 
 std::tuple<MaterialInstance, std::shared_ptr<AllocatedBuffer>>
@@ -217,13 +253,12 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
   MaterialPipeline *last_pipeline{};
 
   /*set = 0, binding = 0*/
-  auto [sceneSet, sceneDataBuffer] = createSceneSet(frame);
+  auto sceneSet = get_scene_set();
 
   /*set = 1, binding = 0, 1, 2*/
   auto [defaultMateral, materialBuffer] = createDefaultMaterialInstance(frame);
 
-  frame.destroy_by_deferred([sceneDataBuffer, materialBuffer]() {
-    sceneDataBuffer->destroy();
+  frame.destroy_by_deferred([materialBuffer]() {
     materialBuffer->destroy();
   });
 
@@ -252,6 +287,23 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
   scissor.extent.height = drawExtent.height;
 
   vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+  const std::size_t dispatchGroupsX =
+            particleSysBuffer->getParticleCount() >> 8;
+  if (!dispatchGroupsX) {
+            spdlog::info("[ParticleMovement] Dispatching {} groups for {} particles",
+                      dispatchGroupsX, particleSysBuffer->getParticleCount());
+  }
+
+  particle::ParticleResources res;
+  res.bufferSize = particleSysBuffer->getBufferSize();
+  res.particlesIn = particleSysBuffer->get_in_buffer();
+  res.particlesOut = particleSysBuffer->get_out_buffer();
+
+  auto ins =
+            particleSysCompute->generate_instance(res, frame._frameDescriptor);
+  particleSysCompute->set_dispatch_size(dispatchGroupsX, 1, 1);
+  particleSysCompute->render(cmd, ins);
 
   auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
 
@@ -337,11 +389,11 @@ void ScenesManager::compute(VkCommandBuffer cmd, FrameData &frame) {
                    dispatchGroupsX, particleSysBuffer->getParticleCount());
     }
 
-    particle2d::ParticleResources res;
+    particle::ParticleResources res;
     res.bufferSize = particleSysBuffer->getBufferSize();
     res.particlesIn = particleSysBuffer->get_in_buffer();
     res.particlesOut = particleSysBuffer->get_out_buffer();
-    res.colorImage = frame.drawImage_->imageView;
+    //res.colorImage = frame.drawImage_->imageView;
 
     auto ins =
         particleSysCompute->generate_instance(res, frame._frameDescriptor);
