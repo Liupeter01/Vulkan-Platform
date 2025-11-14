@@ -35,10 +35,10 @@ StructuredBuffer<ParticleSSBO> particlesIn;
 RWStructuredBuffer<ParticleSSBO> particlesOut;
 
 [shader("vertex")]
-SlangArgs vertMain(uint vertexId: SV_VertexID){
+SlangArgs vertMain(uint vertexId: SV_VertexID) {
     SlangArgs o;
 
-    o.position =  mul(myScene.proj, mul(myScene.view, float4(particlesIn[vertexId].particles.position.xyz, 1)));
+    o.position = mul(myScene.proj, mul(myScene.view, float4(particlesIn[vertexId].particles.position.xyz, 1)));
     o.color = particlesIn[vertexId].particles.color;
     o.PSIZE = 2;
     return o;
@@ -46,7 +46,7 @@ SlangArgs vertMain(uint vertexId: SV_VertexID){
 
 [shader("fragment")]
 float4 fragMain(in SlangArgs args) : SV_Target {
-        return args.color;
+    return args.color;
 }
 
 [shader("compute")]
