@@ -53,7 +53,6 @@ struct MaterialPipeline {
     GraphicPipelineBuilder builder{device_};
     builder.pipelineLayout_ = pipelineLayout_;
     builder.set_shaders_stages(stages)
-        .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
         .set_polygon_mode(VK_POLYGON_MODE_FILL)
         .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
         .set_multisampling()
@@ -62,9 +61,15 @@ struct MaterialPipeline {
         .set_color_attachment_format(VK_FORMAT_R16G16B16A16_SFLOAT);
 
     if (pass == MaterialPass::OPAQUE) {
+              builder.set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
       create_opaque_pipeline(builder);
     } else if (pass == MaterialPass::TRANSPARENT) {
+              builder.set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
       create_transparent_pipeline(builder);
+    }
+    else if (pass == MaterialPass::OPAQUE_POINT) {
+              builder.set_input_topology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST);
+              create_opaque_point_pipeline(builder);
     }
 
     isinit_ = true;
@@ -85,6 +90,7 @@ protected:
 
   void create_opaque_pipeline(GraphicPipelineBuilder &builder);
   void create_transparent_pipeline(GraphicPipelineBuilder &builder);
+  void create_opaque_point_pipeline(GraphicPipelineBuilder& builder);
 
 private:
   bool isinit_ = false;
