@@ -27,8 +27,8 @@ public:
   void update_scene();
   void Draw(const glm::mat4 &parentMatrix, DrawContext &ctx);
 
-  void render(VkCommandBuffer cmd, FrameData &frame);
-  void compute(VkCommandBuffer cmd, FrameData &frame);
+  void render(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext> &frame);
+  void compute(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext>& frame);
 
   bool addScene(std::shared_ptr<NodeManager> scene);
 
@@ -69,10 +69,6 @@ protected:
   void update_scene_set();
   VkDescriptorSet get_scene_set();
 
-  [[nodiscard]]
-  std::tuple<MaterialInstance, std::shared_ptr<AllocatedBuffer>>
-  createDefaultMaterialInstance(FrameData &frame);
-
 protected:
   const uint32_t setCount_ = 1000;
   const std::vector<PoolSizeRatio> frame_sizes = {
@@ -95,6 +91,11 @@ private:
     std::shared_ptr<AllocatedBuffer> sceneDataBuffer;
     VkDescriptorSet sceneDescriptorSet;
   } myScene{};
+
+  struct DefaultMaterial {
+            MaterialInstance defaultMateral{};
+            std::shared_ptr<AllocatedBuffer > materialBuffer{};
+  }defaultMaterial{};
 
   // Node System(MeshNode, ...) or Scene Mgr
   std::unordered_map<
