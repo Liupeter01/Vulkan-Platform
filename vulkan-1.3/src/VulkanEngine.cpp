@@ -731,14 +731,14 @@ void VulkanEngine::init_vulkan() {
     transferQueueFamily_ = graphicsQueueFamily_;
     spdlog::warn("[VulkanEngine Warn]: Device has no dedicated transfer queue, using graphics queue instead ");
     spdlog::warn("[VulkanEngine Warn]: Override transfer queue with queueFamilyIndex = {}", transferQueueFamily_);
-    return;
   }
-
-  isTransferQueueSupported = true;
-  transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
-  transferQueueFamily_ =
-      vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
-  spdlog::info("[VulkanEngine Info]: Creating transfe queue with queueFamilyIndex = {}", transferQueueFamily_);
+  else {
+            isTransferQueueSupported = true;
+            transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
+            transferQueueFamily_ =
+                      vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
+            spdlog::info("[VulkanEngine Info]: Creating transfe queue with queueFamilyIndex = {}", transferQueueFamily_);
+  }
 
   if (!vkb_physicalDevice_.has_separate_compute_queue()) {
     isComputeQueueSupported = false;
