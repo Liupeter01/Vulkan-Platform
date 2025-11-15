@@ -717,14 +717,20 @@ void VulkanEngine::init_vulkan() {
   graphicsQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
+  spdlog::info("[VulkanEngine Info]: Creating graphic queue with queueFamilyIndex = {}", graphicsQueueFamily_);
+
   presentQueue_ = vkbDevice.get_queue(vkb::QueueType::present).value();
   presentQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::present).value();
 
+  spdlog::info("[VulkanEngine Info]: Creating present queue with queueFamilyIndex = {}", presentQueueFamily_);
+
   if (!vkb_physicalDevice_.has_separate_transfer_queue()) {
     isTransferQueueSupported = false;
-    spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue, using graphics queue instead ");
     transferQueue_ = graphicsQueue_;
+    transferQueueFamily_ = graphicsQueueFamily_;
+    spdlog::warn("[VulkanEngine Warn]: Device has no dedicated transfer queue, using graphics queue instead ");
+    spdlog::warn("[VulkanEngine Warn]: Override transfer queue with queueFamilyIndex = {}", transferQueueFamily_);
     return;
   }
 
@@ -732,11 +738,14 @@ void VulkanEngine::init_vulkan() {
   transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
   transferQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
+  spdlog::info("[VulkanEngine Info]: Creating transfe queue with queueFamilyIndex = {}", transferQueueFamily_);
 
   if (!vkb_physicalDevice_.has_separate_compute_queue()) {
     isComputeQueueSupported = false;
-    spdlog::warn("[VulkanEngine Warn]:Device has no dedicated compute queue, using graphics queue instead ");
     computeQueue_ = graphicsQueue_;
+    computeQueueFamily_ = graphicsQueueFamily_;
+    spdlog::warn("[VulkanEngine Warn]:Device has no dedicated compute queue, using graphics queue instead ");
+    spdlog::warn("[VulkanEngine Warn]: Override compute queue with queueFamilyIndex = {}", computeQueueFamily_);
     return;
   }
 
@@ -745,6 +754,7 @@ void VulkanEngine::init_vulkan() {
   computeQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::compute).value();
 
+  spdlog::info("[VulkanEngine Info]: Creating compute queue with queueFamilyIndex = {}", computeQueueFamily_);
   isInit = true;
 }
 
