@@ -12,16 +12,19 @@ namespace particle2d {
 template <typename PushConstantType = particle::ParticlePushConstant,
           typename ResourcesType = particle::ParticleResources>
 class PointSpriteParticleSystem2D
-    : public particle::PointSpriteParticleSystemBase< PushConstantType, ResourcesType>{
+    : public particle::PointSpriteParticleSystemBase<PushConstantType,
+                                                     ResourcesType> {
 
 public:
   PointSpriteParticleSystem2D(VkDevice device)
-      : particle::PointSpriteParticleSystemBase< PushConstantType, ResourcesType>(device) {
+      : particle::PointSpriteParticleSystemBase<PushConstantType,
+                                                ResourcesType>(device) {
 
-          this->set_vertex_shader(SLANG_SHADER_PATH"SpriteParticleDraw2D.slang.spv", "vertMain");
-          this->set_fragment_shader(SLANG_SHADER_PATH"SpriteParticleDraw2D.slang.spv", "fragMain");
-}
-
+    this->set_vertex_shader(SLANG_SHADER_PATH "SpriteParticleDraw2D.slang.spv",
+                            "vertMain");
+    this->set_fragment_shader(
+        SLANG_SHADER_PATH "SpriteParticleDraw2D.slang.spv", "fragMain");
+  }
 };
 } // namespace particle2d
 } // namespace engine

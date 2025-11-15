@@ -44,9 +44,9 @@ public:
   generate_instance(ResourcesType &resources,
                     DescriptorPoolAllocator &globalDescriptorAllocator) = 0;
 
-  virtual  bool has_graphic() const = 0;
-  virtual  bool has_compute() const = 0;
-  virtual void render(VkCommandBuffer cmd, const ComputeInstance& ins) = 0;
+  virtual bool has_graphic() const = 0;
+  virtual bool has_compute() const = 0;
+  virtual void render(VkCommandBuffer cmd, const ComputeInstance &ins) = 0;
   virtual void dispatch(VkCommandBuffer cmd, const ComputeInstance &ins) = 0;
 
 protected:

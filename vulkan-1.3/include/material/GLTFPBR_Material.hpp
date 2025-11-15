@@ -11,7 +11,7 @@ namespace engine {
 
 struct MaterialPipeline;
 
-enum class MaterialPass { UNDEFINED, OPAQUE, TRANSPARENT , OPAQUE_POINT};
+enum class MaterialPass { UNDEFINED, OPAQUE, TRANSPARENT, OPAQUE_POINT };
 
 struct MaterialConstants {
   glm::vec4 colorFactors;

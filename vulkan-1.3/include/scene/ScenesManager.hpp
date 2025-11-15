@@ -28,14 +28,12 @@ public:
   void Draw(const glm::mat4 &parentMatrix, DrawContext &ctx);
 
   void render(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext> &frame);
-  void compute(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext>& frame);
+  void compute(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext> &frame);
 
   bool addScene(std::shared_ptr<NodeManager> scene);
 
   ComputeShaderPushConstants &getComputeData();
-  auto &getParticleData() {
-    return particleSysCompute->getPushConstantData();
-  }
+  auto &getParticleData() { return particleSysCompute->getPushConstantData(); }
 
   void submit();
 
@@ -93,9 +91,9 @@ private:
   } myScene{};
 
   struct DefaultMaterial {
-            MaterialInstance defaultMateral{};
-            std::shared_ptr<AllocatedBuffer > materialBuffer{};
-  }defaultMaterial{};
+    MaterialInstance defaultMateral{};
+    std::shared_ptr<AllocatedBuffer> materialBuffer{};
+  } defaultMaterial{};
 
   // Node System(MeshNode, ...) or Scene Mgr
   std::unordered_map<
@@ -109,7 +107,8 @@ private:
 
   std::unique_ptr<ParticleSysDataBuffer<particle::GPUParticle>>
       particleSysBuffer{};
-  std::shared_ptr<particle::PointSpriteParticleSystemBase<>> particleSysCompute{};
+  std::shared_ptr<particle::PointSpriteParticleSystemBase<>>
+      particleSysCompute{};
 
   DescriptorPoolAllocator scenePool_;
 };

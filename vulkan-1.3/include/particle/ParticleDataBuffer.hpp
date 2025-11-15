@@ -44,16 +44,14 @@ template <typename ParticleType>
 struct ParticleSysDataBuffer<
     ParticleType, std::enable_if_t<has_particle_fields_v<ParticleType>, void>> {
 
-          enum class ParticleDimension {
-                    Particle2D, Particle3D
-          };
+  enum class ParticleDimension { Particle2D, Particle3D };
 
-  ParticleSysDataBuffer(VkDevice device, VmaAllocator allocator, ParticleDimension dim = ParticleDimension::Particle3D)
-      : device_(device), allocator_(allocator), staging(allocator) ,dim_(dim){
+  ParticleSysDataBuffer(VkDevice device, VmaAllocator allocator,
+                        ParticleDimension dim = ParticleDimension::Particle3D)
+      : device_(device), allocator_(allocator), staging(allocator), dim_(dim) {
     mt.seed(static_cast<unsigned>(std::random_device{}()));
     rndDist = std::uniform_real_distribution<float>(0.f, 1.f);
   }
-
 
   virtual ~ParticleSysDataBuffer() { destroy(); }
 
@@ -109,12 +107,11 @@ struct ParticleSysDataBuffer<
   void submit(VkCommandBuffer cmd) {
 
     // fill random data
-            if (dim_ == ParticleDimension::Particle2D) {
-                      fill2D(staging.map(), particleCount);
-            }
-            else {
-                      fill3D(staging.map(), particleCount);
-            }
+    if (dim_ == ParticleDimension::Particle2D) {
+      fill2D(staging.map(), particleCount);
+    } else {
+      fill3D(staging.map(), particleCount);
+    }
 
     staging.unmap();
 
@@ -167,26 +164,26 @@ protected:
   // This is the staging buffer to init the first buffer slot
   AllocatedBuffer staging;
 
-  virtual void fill2D(void* buffer, const std::size_t particle_count) {
-            ParticleType* src = reinterpret_cast<ParticleType*>(buffer);
-            memset(src, 0, particle_count * particleSize);
+  virtual void fill2D(void *buffer, const std::size_t particle_count) {
+    ParticleType *src = reinterpret_cast<ParticleType *>(buffer);
+    memset(src, 0, particle_count * particleSize);
 
-            for (std::size_t i = 0; i < particle_count; ++i) {
-                      auto& particle = src[i];
+    for (std::size_t i = 0; i < particle_count; ++i) {
+      auto &particle = src[i];
 
-                      float r = std::sqrt(rndDist(mt));
-                      float theta = 2.0f * glm::pi<float>() * rndDist(mt);
+      float r = std::sqrt(rndDist(mt));
+      float theta = 2.0f * glm::pi<float>() * rndDist(mt);
 
-                      float x = r * cos(theta);
-                      float y = r * sin(theta);
+      float x = r * cos(theta);
+      float y = r * sin(theta);
 
-                      particle.position = glm::vec4(x, y, 0, 1);
-                      glm::vec3 pos = glm::vec3(particle.position);
-                      glm::vec3 vel = glm::normalize(glm::cross(pos, glm::vec3(0, 0, 1)));
-                   
-                      particle.velocity = glm::vec4(vel * 0.002f, 0.0f);
-                      particle.color = glm::vec4(rndDist(mt), rndDist(mt), rndDist(mt), 1.0f);
-            }
+      particle.position = glm::vec4(x, y, 0, 1);
+      glm::vec3 pos = glm::vec3(particle.position);
+      glm::vec3 vel = glm::normalize(glm::cross(pos, glm::vec3(0, 0, 1)));
+
+      particle.velocity = glm::vec4(vel * 0.002f, 0.0f);
+      particle.color = glm::vec4(rndDist(mt), rndDist(mt), rndDist(mt), 1.0f);
+    }
   }
 
   virtual void fill3D(void *buffer, const std::size_t particle_count) {
@@ -199,8 +196,8 @@ protected:
       float u = rndDist(mt);
       float v = rndDist(mt);
 
-      float theta = 2.0f * glm::pi<float>() * u;       // 0~2pi
-      float phi = acos(2.0f * v - 1);  //  0~¦Ð
+      float theta = 2.0f * glm::pi<float>() * u; // 0~2pi
+      float phi = acos(2.0f * v - 1);            //  0~¦Ð
 
       float sx = sin(phi) * cos(theta);
       float sy = sin(phi) * sin(theta);

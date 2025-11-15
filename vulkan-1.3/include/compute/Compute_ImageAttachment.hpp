@@ -57,16 +57,10 @@ public:
     this->isinit_ = true;
   }
 
-  bool has_graphic() const override {
-            return false;
-  }
-  bool has_compute() const override {
-            return true;
-  }
+  bool has_graphic() const override { return false; }
+  bool has_compute() const override { return true; }
 
-  void render(VkCommandBuffer cmd, const ComputeInstance& ins) override {
-
-  }
+  void render(VkCommandBuffer cmd, const ComputeInstance &ins) override {}
 
   void dispatch(VkCommandBuffer cmd, const ComputeInstance &ins) override {
 
