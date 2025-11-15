@@ -156,19 +156,6 @@ namespace engine {
 
                                         vkCmdDispatch(cmd, this->dispatchGroups_.x, this->dispatchGroups_.y,
                                                   this->dispatchGroups_.z);
-
-                                        VkMemoryBarrier2 barrier{};
-                                        barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-
-                                        // Compute shader writes to SSBO
-                                        barrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-                                        barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
-
-                                        // Next stage = vertex shader reads SSBO (not vertex input!)
-                                        barrier.dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
-                                        barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-
-                                        BarrierBuilder{}.add(barrier).createBarrier(cmd);
                               }
 
                               ComputeInstance generate_instance(
