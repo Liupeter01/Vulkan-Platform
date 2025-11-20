@@ -19,9 +19,98 @@ void DeletionQueue::flush() {
   deletors.clear();
 }
 
-FrameData::FrameData(VulkanEngine *eng)
-    : engine_(eng), _frameDescriptor(eng->device_), isCommandInit(false),
-      isSyncInit(false) {
+CommonFrameContext::CommonFrameContext(FrameData *eng)
+    : parent_(eng), _frameDescriptor(eng->engine_->device_) {}
+
+CommonFrameContext::~CommonFrameContext() { destroy(); }
+
+void CommonFrameContext::destroy(bool needWaitIdle) {
+  if (isinit_) {
+    if (needWaitIdle) {
+      vkDeviceWaitIdle(parent_->engine_->device_);
+    }
+
+    destroy_fence();
+    destroy_command();
+    clean_last_frame();
+    destroy_allocator();
+    isinit_ = false;
+  }
+}
+
+void CommonFrameContext::init(const VkFenceCreateInfo &fenceCreateInfo,
+                              const VkCommandPoolCreateInfo &commandPoolInfo,
+                              const uint32_t setCount,
+                              const std::vector<PoolSizeRatio> &poolSizeRatio) {
+
+  if (isinit_)
+    return;
+  init_fence(fenceCreateInfo);
+  init_command(commandPoolInfo);
+  init_allocator(setCount, poolSizeRatio);
+  isinit_ = true;
+}
+
+void CommonFrameContext::init_fence(const VkFenceCreateInfo &fenceCreateInfo) {
+  vkCreateFence(parent_->engine_->device_, &fenceCreateInfo, nullptr,
+                &_finishedFence);
+}
+
+void CommonFrameContext::destroy_fence() {
+  vkDestroyFence(parent_->engine_->device_, _finishedFence, nullptr);
+}
+
+void CommonFrameContext::init_command(
+    const VkCommandPoolCreateInfo &commandPoolInfo) {
+  vkCreateCommandPool(parent_->engine_->device_, &commandPoolInfo, nullptr,
+                      &_commandPool);
+
+  VkCommandBufferAllocateInfo cmdAllocInfo =
+      tools::command_buffer_allocate_info(_commandPool, 1);
+
+  vkAllocateCommandBuffers(parent_->engine_->device_, &cmdAllocInfo,
+                           &_commandBuffer);
+}
+
+void CommonFrameContext::destroy_command() {
+  vkDestroyCommandPool(parent_->engine_->device_, _commandPool, nullptr);
+}
+
+void CommonFrameContext::init_allocator(
+    const uint32_t setCount, const std::vector<PoolSizeRatio> &poolSizeRatio) {
+  _frameDescriptor.init(setCount, poolSizeRatio);
+}
+
+void CommonFrameContext::destroy_allocator() {
+  _frameDescriptor.destroy_pools();
+}
+
+void CommonFrameContext::reset_allocator_pools() {
+  _frameDescriptor.reset_pools();
+}
+
+void CommonFrameContext::destroy_by_deferred(std::function<void()> &&function) {
+  _deletionQueue.push_function(std::move(function));
+}
+
+void CommonFrameContext::clean_last_frame() { _deletionQueue.flush(); }
+
+VkDescriptorSet CommonFrameContext::allocate(VkDescriptorSetLayout layout,
+                                             void *pNext) {
+  return _frameDescriptor.allocate(layout, pNext);
+}
+
+GraphicFrameContext::GraphicFrameContext(FrameData *eng)
+    : CommonFrameContext(eng) {}
+
+GraphicFrameContext::~GraphicFrameContext() {}
+
+ComputeFrameContext::ComputeFrameContext(FrameData *eng)
+    : CommonFrameContext(eng) {}
+
+ComputeFrameContext::~ComputeFrameContext() {}
+
+FrameData::FrameData(VulkanEngine *eng) : engine_(eng) {
 
   if (!eng) {
     spdlog::error("[FrameData CTOR]: Invalid VulkanEngine!");
@@ -29,87 +118,67 @@ FrameData::FrameData(VulkanEngine *eng)
   }
 }
 
-FrameData::~FrameData() {
+FrameData::~FrameData() { destroy(); }
 
-  _deletionQueue.flush();
-  destroy_command();
-  destroy_sync();
-  // destroy_images();
-  destroy_allocator();
+void FrameData::init(VkExtent3D extent,
+                     const VkSemaphoreCreateInfo &semaphoreCreateInfo) {
+  if (isinit_)
+    return;
+  init_images(extent);
+  init_sync(semaphoreCreateInfo);
+  isinit_ = true;
 }
 
-void FrameData::init_command(const VkCommandPoolCreateInfo &commandPoolInfo) {
-  if (isCommandInit)
-    return;
-
-  vkCreateCommandPool(engine_->device_, &commandPoolInfo, nullptr,
-                      &_commandPool);
-
-  VkCommandBufferAllocateInfo cmdAllocInfo =
-      tools::command_buffer_allocate_info(_commandPool, 1);
-
-  vkAllocateCommandBuffers(engine_->device_, &cmdAllocInfo,
-                           &_mainCommandBuffer);
-
-  isCommandInit = true;
+void FrameData::destroy() {
+  if (isinit_) {
+    destroy_sync();
+    destroy_images();
+    ctx.clear();
+    isinit_ = false;
+  }
 }
 
-void FrameData::init_sync(const VkFenceCreateInfo &fenceCreateInfo,
-                          const VkSemaphoreCreateInfo &semaphoreCreateInfo) {
+void FrameData::init_sync(const VkSemaphoreCreateInfo &semaphoreCreateInfo) {
 
-  if (isSyncInit)
-    return;
-
-  vkCreateFence(engine_->device_, &fenceCreateInfo, nullptr,
-                &_renderFinishedFence);
   vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
                     &_swapChainWait);
   vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
-                    &_renderPresentKHRSignal);
-
-  isSyncInit = true;
+                    &_computeWait);
 }
 
-void FrameData::reset_allocator_pools() { _frameDescriptor.reset_pools(); }
-
-void FrameData::destroy_by_deferred(std::function<void()> &&function) {
-  _deletionQueue.push_function(std::move(function));
+CommonFrameContext *FrameData::get_context(ContextPass pass) {
+  auto it = ctx.find(pass);
+  return (it != ctx.end()) ? it->second.get() : nullptr;
 }
 
-void FrameData::clean_last_frame() { _deletionQueue.flush(); }
-
-void FrameData::init_allocator(
-    const uint32_t setCount, const std::vector<PoolSizeRatio> &poolSizeRatio) {
-  _frameDescriptor.init(setCount, poolSizeRatio);
+VkDescriptorSet FrameData::allocate(ContextPass pass,
+                                    VkDescriptorSetLayout layout, void *pNext) {
+  auto *context = get_context(pass);
+  return context ? context->allocate(layout, pNext) : VK_NULL_HANDLE;
 }
 
-void FrameData::destroy_allocator() { _frameDescriptor.destroy_pools(); }
-
-VkDescriptorSet FrameData::allocate(VkDescriptorSetLayout layout, void *pNext) {
-  return _frameDescriptor.allocate(layout, pNext);
+void FrameData::reset_allocator_pools(ContextPass pass) {
+  if (auto *context = get_context(pass)) {
+    context->reset_allocator_pools();
+  }
 }
 
-void FrameData::destroy_command(bool needWaitIdle) {
-  if (isCommandInit) {
-    // make sure the gpu has stopped doing its things
-    if (needWaitIdle) {
-      vkDeviceWaitIdle(engine_->device_);
-    }
+void FrameData::destroy_by_deferred(ContextPass pass,
+                                    std::function<void()> &&func) {
+  if (auto *context = get_context(pass)) {
+    context->destroy_by_deferred(std::move(func));
+  }
+}
 
-    vkDestroyCommandPool(engine_->device_, _commandPool, nullptr);
-    _commandPool = VK_NULL_HANDLE;
-
-    isCommandInit = false;
+void FrameData::clean_last_frame(ContextPass pass) {
+  if (auto *context = get_context(pass)) {
+    context->clean_last_frame();
   }
 }
 
 void FrameData::destroy_sync() {
-  if (isSyncInit) {
-    vkDestroyFence(engine_->device_, _renderFinishedFence, nullptr);
-    vkDestroySemaphore(engine_->device_, _swapChainWait, nullptr);
-    vkDestroySemaphore(engine_->device_, _renderPresentKHRSignal, nullptr);
-    isSyncInit = false;
-  }
+  vkDestroySemaphore(engine_->device_, _swapChainWait, nullptr);
+  vkDestroySemaphore(engine_->device_, _computeWait, nullptr);
 }
 
 void FrameData::init_images(VkExtent3D extent) {

@@ -49,4 +49,10 @@ void MaterialPipeline::create_transparent_pipeline(
     GraphicPipelineBuilder &builder) {
   pipeline_ = builder.set_blending_alphablend(true).build();
 }
+
+void MaterialPipeline::create_opaque_point_pipeline(
+    GraphicPipelineBuilder &builder) {
+  pipeline_ = builder.disable_blending().build();
+}
+
 } // namespace engine

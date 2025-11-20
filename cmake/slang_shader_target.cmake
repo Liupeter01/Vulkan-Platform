@@ -51,7 +51,7 @@ function(add_slang_shader_target TARGET SHADER_DIR)
       COMMAND
         ${SLANGC_EXECUTABLE} ${SLANG_SHADER} -target spirv -profile spirv_1_4
         -emit-spirv-directly -fvk-use-entrypoint-name -entry vertMain -entry
-        fragMain -o ${SLANG_SPIRV}
+        fragMain -entry compMain -o ${SLANG_SPIRV}
       DEPENDS ${SLANG_SHADER}
       COMMENT "Compiling Slang Shader: ${SLANG_SHADER_NAME} ¡ú ${SLANG_SPIRV}")
     list(APPEND SLANG_SHADER_OUTPUTS ${SLANG_SPIRV})

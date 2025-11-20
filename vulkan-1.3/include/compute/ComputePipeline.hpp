@@ -27,7 +27,7 @@ struct ComputePipeline {
         {constantID, std::vector<uint8_t>(bytes, bytes + sizeof(T))});
   }
 
-  template <typename _Ty = ComputeShaderPushConstants>
+  template <typename _Ty>
   void create(ComputePass pass,
               const std::vector<VkDescriptorSetLayout> &layouts) {
 

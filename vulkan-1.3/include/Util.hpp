@@ -129,7 +129,7 @@ static inline void generate_mipmaps(VkCommandBuffer cmd, VkImage image,
                       .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
                       .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
                       .to(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-                      .withRange(mips - 1, 1)
+                      .withRange(static_cast<uint32_t>(mips - 1), 1)
                       .build();
 
   BarrierBuilder{}.add(finalmip).createBarrier(cmd);

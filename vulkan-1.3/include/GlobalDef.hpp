@@ -14,7 +14,7 @@ namespace engine {
 struct AllocatedBuffer;
 
 struct EngineStats {
-  float frametime{};
+  float frametime{16.0f / 1000.0f};
   int triangle_count{};
   int drawcall_count{};
   float scene_update_time{};
