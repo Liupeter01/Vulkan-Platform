@@ -30,7 +30,7 @@ if(MSVC) # 1. fix string literial cannot include unicode characters; 2. rid min
   )
 
   add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
-add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+  add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 elseif(CMAKE_COMPILER_IS_GNUCXX) # Add necessary checks and warnings
   if(CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
     add_compile_options(

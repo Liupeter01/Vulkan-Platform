@@ -24,6 +24,7 @@ namespace engine {
 
 class Scene;
 struct FrameData;
+struct CommonFrameContext;
 struct SceneNodeBuilder;
 struct NodeManagerBuilder;
 class ScenesNodesManager;
@@ -39,6 +40,7 @@ class VulkanEngine {
   friend struct NodeManagerBuilder;
   friend class node::SceneNode;
   friend class ScenesManager;
+  friend struct CommonFrameContext;
 
 public:
   using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
@@ -102,6 +104,9 @@ private:
   void destroy_swapchain();
   void destroy_vulkan();
 
+  void submit_default_color(VkCommandBuffer cmd);
+  void flush_default_color(VkFence fence);
+
 private:
   [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
   void resize_swapchain();
@@ -110,10 +115,13 @@ private:
   void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
                   VkImageView imageView = VK_NULL_HANDLE);
 
-  void show_compute_background(ComputeShaderPushConstants &data);
   void show_states(const EngineStats &stats);
 
   bool isDeviceSuitable(const vkb::PhysicalDevice &device);
+
+  void presentKHR(uint32_t swapchainImageIndex);
+  void compute();
+  void graphic(uint32_t &swapchainImageIndex);
 
 private:
   bool isInit = false;
@@ -144,6 +152,7 @@ private:
   std::vector<VkImage> swapchainImages_;         //
   std::vector<VkImageView> swapchainImageViews_; //
   VkExtent2D swapchainExtent_;
+  std::vector<VkSemaphore> _renderPresentKHRSignal;
 
   std::size_t FRAMES_IN_FLIGHT{0};
 

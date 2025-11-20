@@ -34,7 +34,12 @@ void VulkanEngine::init() {
   init_vma_allocator();
   init_frames(setCount_, frame_sizes);
   init_imgui();
+
   init_default_color();
+  imm_command_submit(
+      [this](VkCommandBuffer cmd) { submit_default_color(cmd); });
+  flush_default_color(immFence_);
+
   init_default_sampler();
   init_scene_layout();
   init_scene();
@@ -86,6 +91,11 @@ void VulkanEngine::destroy() {
   destroy_immediate_commands();
   destroy_immediate_sync();
   destroy_swapchain();
+
+  for (std::size_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+    vkDestroySemaphore(device_, _renderPresentKHRSignal[i], nullptr);
+  }
+
   destroy_vulkan();
 }
 
@@ -140,8 +150,10 @@ void VulkanEngine::run() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    show_compute_background(data);
+    ImGui::Begin("Engine Control Panel");
     show_states(stats);
+    sceneMgr->on_gui();
+    ImGui::End();
 
     stats.drawcall_count = stats.triangle_count = 0;
 
@@ -170,6 +182,8 @@ void VulkanEngine::run() {
 
     stats.mesh_draw_time = drawTimeFrame / 1000.f;
     stats.frametime = frameTimeDuration / 1000.f;
+
+    sceneMgr->getParticleData().deltaTime = stats.frametime;
 
     frameTimeStart = frameTimeEnd;
 
@@ -247,31 +261,77 @@ void VulkanEngine::draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
   vkCmdEndRendering(cmd);
 }
 
-void VulkanEngine::show_compute_background(ComputeShaderPushConstants &data) {
-
-  if (ImGui::Begin("background")) {
-    ImGui::InputFloat4("topLeft", (float *)&data.topLeft, "%.3f",
-                       ImGuiInputTextFlags_ElideLeft);
-    ImGui::InputFloat4("topRight", (float *)&data.topRight, "%.3f",
-                       ImGuiInputTextFlags_ElideLeft);
-    ImGui::InputFloat4("bottomLeft", (float *)&data.bottomLeft, "%.3f",
-                       ImGuiInputTextFlags_ElideLeft);
-    ImGui::InputFloat4("bottomRight", (float *)&data.bottomRight);
-    ImGui::SliderFloat("Render Scale", &renderScale, 0.3f, 1.f, "%.3f",
-                       ImGuiInputTextFlags_ElideLeft);
-  }
-  ImGui::End();
-}
-
 void VulkanEngine::show_states(const EngineStats &stats) {
-  if (ImGui::Begin("Stats")) {
-    ImGui::Text("frametime %f ms", stats.frametime);
-    ImGui::Text("draw time %f ms", stats.mesh_draw_time);
-    ImGui::Text("update time %f ms", stats.scene_update_time);
-    ImGui::Text("triangles %i", stats.triangle_count);
-    ImGui::Text("draws %i", stats.drawcall_count);
+  static float fps[120] = {};
+  static int index = 0;
+
+  static float sampleAccum = 0.0f;
+  static int sampleCount = 0;
+
+  // ---- Clamp frametime for safety ----
+  if (!std::isfinite(stats.frametime) ||
+      stats.frametime <= std::numeric_limits<float>::epsilon()) {
+    spdlog::warn("[VulkanEngine Statistic Info]: INVALID frametime = {}",
+                 stats.frametime);
+    return;
   }
-  ImGui::End();
+
+  float currentFPS = 1000.f / stats.frametime;
+
+  sampleAccum += currentFPS;
+  sampleCount++;
+
+  bool ready = false;
+  float averagedFPS = 0.0f;
+
+  if (sampleCount >= 4) {
+    averagedFPS = sampleAccum / sampleCount;
+    sampleAccum = 0.0f;
+    sampleCount = 0;
+    ready = true;
+  }
+
+  // EMA
+  static float filteredFPS = 72.f; // START WITH REASONABLE DEFAULT!!
+  const float alpha = 0.25f;       // EMA weight
+
+  if (ready) {
+    filteredFPS = filteredFPS * (1.0f - alpha) + averagedFPS * alpha;
+    fps[index] = filteredFPS;
+    index = (index + 1) % IM_ARRAYSIZE(fps);
+  }
+
+  if (ImGui::CollapsingHeader("Engine Stats", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImU32 lineColor;
+    if (filteredFPS >= 60)
+      lineColor = IM_COL32(0, 255, 0, 255);
+    else if (filteredFPS >= 30 && filteredFPS < 60)
+      lineColor = IM_COL32(255, 255, 0, 255);
+    else
+      lineColor = IM_COL32(255, 0, 0, 255);
+
+    ImGui::Text("Frame time:  %.3f ms", stats.frametime);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0, 0, 0, 0.30f)); // dark
+    ImGui::PushStyleColor(ImGuiCol_PlotLines,
+                          ImGui::ColorConvertU32ToFloat4(lineColor));
+    ImGui::PushStyleColor(ImGuiCol_PlotLinesHovered,
+                          ImGui::ColorConvertU32ToFloat4(lineColor));
+    ImGui::PlotLines(
+        "FPS", fps, IM_ARRAYSIZE(fps),
+        index,                                          // offset
+        fmt::format("{:.1f} FPS", filteredFPS).c_str(), // overlay text
+        0.0f,                                           // ymin
+        30.0f,                                          // ymax
+        ImVec2(250, 30)                                 // width  height
+    );
+    ImGui::Text("Draw time:   %.3f ms", stats.mesh_draw_time);
+    ImGui::Text("Update time: %.3f ms", stats.scene_update_time);
+    ImGui::Text("Triangles:   %i", stats.triangle_count);
+    ImGui::Text("Draw calls:  %i", stats.drawcall_count);
+
+    ImGui::PopStyleColor(3);
+    ImGui::Separator();
+  }
 }
 
 bool VulkanEngine::isDeviceSuitable(const vkb::PhysicalDevice &device) {
@@ -337,15 +397,12 @@ void VulkanEngine::presentKHR(uint32_t swapchainImageIndex) {
     throw std::runtime_error("failed to acquire swap chain image!");
   }
 
-  // now that we are sure that the commands finished executing, we can safely
-  VkCommandBuffer cmd = currentFrame._mainCommandBuffer;
+  VkImage &draw_image = currentFrame.drawImage_->image;   // Draw Image
+  VkImage &depth_image = currentFrame.depthImage_->image; // Depth Image
+  VkImage &swapchain_image =
+      swapchainImages_[swapchainImageIndex]; // SwapChain Image
 
-  // reset the command buffer to begin recording again.
-  vkResetCommandBuffer(cmd, 0);
-
-  // use command buffer exactly once
-  VkCommandBufferBeginInfo cmdBeginInfo = tools::command_buffer_begin_info(
-      VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+  VkImageView &image_view = swapchainImageViews_[swapchainImageIndex];
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
@@ -412,14 +469,14 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
                currentFrame.drawImage_->imageExtent.width) *
       renderScale);
 
+  // reset the command buffer to begin recording again.
+  vkResetCommandBuffer(cmd, 0);
+
+  // use command buffer exactly once
+  VkCommandBufferBeginInfo cmdBeginInfo = tools::command_buffer_begin_info(
+      VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
-
-  VkImage &draw_image = currentFrame.drawImage_->image;   // Draw Image
-  VkImage &depth_image = currentFrame.depthImage_->image; // Depth Image
-  VkImage &swapchain_image =
-      swapchainImages_[swapchainImageIndex]; // SwapChain Image
-
-  VkImageView &image_view = swapchainImageViews_[swapchainImageIndex];
 
   // transition our main draw image into general layout so we can write into it
   // we will overwrite it all so we dont care about what was the older layout
@@ -436,13 +493,6 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
   // Draw Background
   draw_background(cmd, draw_image);
 
-  // Compute Shader!
-  sceneMgr->compute(cmd, currentFrame);
-
-  // util::transition_image(cmd, draw_image, VK_IMAGE_LAYOUT_GENERAL,
-  //                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-  // util::transition_image(cmd, depth_image, VK_IMAGE_LAYOUT_UNDEFINED,
-  //                       VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
   auto general2ColorAttach =
       ImageBarrierBuilder(draw_image, VK_FORMAT_B8G8R8A8_UNORM)
           .from(VK_IMAGE_LAYOUT_GENERAL)
@@ -462,7 +512,7 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
       .createBarrier(cmd);
 
   // Graphic Render
-  sceneMgr->render(cmd, currentFrame);
+  sceneMgr->render(cmd, currentFrame.ctx[FrameData::ContextPass::GRAPHIC]);
 
   VkResult e = vkAcquireNextImageKHR(
             device_, swapchain_, std::numeric_limits<uint64_t>::max(),
@@ -481,13 +531,6 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
-  // util::transition_image(cmd, draw_image,
-  //                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-  //                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-
-  // util::transition_image(cmd, swapchain_image, VK_IMAGE_LAYOUT_UNDEFINED,
-  //                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
   auto colorAttach2transfer =
       ImageBarrierBuilder(draw_image, VK_FORMAT_B8G8R8A8_UNORM)
           .from(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
@@ -510,10 +553,6 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
                             swapchainExtent_);
 
   // set swapchain image layout to Attachment Optimal so we can draw it
-  // util::transition_image(cmd, swapchain_image,
-  //                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-  //                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
   auto transferDst2ColorAttach =
       ImageBarrierBuilder(swapchain_image, VK_FORMAT_B8G8R8A8_UNORM)
           .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
@@ -523,10 +562,6 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
   BarrierBuilder{}.add(transferDst2ColorAttach).createBarrier(cmd);
 
   draw_imgui(cmd, drawExtent_, image_view);
-
-  // util::transition_image(cmd, swapchain_image,
-  //                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-  //                        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
   auto colorAttach2Present =
       ImageBarrierBuilder(swapchain_image, VK_FORMAT_B8G8R8A8_UNORM)
@@ -564,29 +599,7 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
   info.commandBufferInfoCount = 1;
   info.pCommandBufferInfos = &cmdinfo;
 
-  vkQueueSubmit2(graphicsQueue_, 1, &info,
-                 get_current_frame()._renderFinishedFence);
-
-  // we want to wait on the _renderSemaphore for that,
-  // as its necessary that drawing commands have finished before the image is
-  // displayed to the user
-  VkPresentInfoKHR presentInfo = {};
-  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = &swapchain_;
-
-  presentInfo.pWaitSemaphores =
-      &frames_[swapchainImageIndex]->_renderPresentKHRSignal;
-  presentInfo.waitSemaphoreCount = 1;
-
-  presentInfo.pImageIndices = &swapchainImageIndex;
-
-  e = vkQueuePresentKHR(presentQueue_, &presentInfo);
-  if (e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
-    resize_requested = true;
-  } else if (e != VK_SUCCESS) {
-    throw std::runtime_error("failed to present swap chain image!");
-  }
+  vkQueueSubmit2(graphicsQueue_, 1, &info, context->_finishedFence);
 }
 
 std::vector<const char *> VulkanEngine::getRequiredExtensions() {
@@ -667,6 +680,11 @@ void VulkanEngine::init_vulkan() {
   // Choose Device
   vkb::PhysicalDeviceSelector selector{vkb_inst};
 
+  // vulkan 1.1 features
+  VkPhysicalDeviceVulkan11Features vk11Features{};
+  vk11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+  vk11Features.shaderDrawParameters = VK_TRUE; // DrawParameters
+
   // vulkan 1.2 features
   VkPhysicalDeviceVulkan12Features features12{};
   features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -675,14 +693,15 @@ void VulkanEngine::init_vulkan() {
   features12.timelineSemaphore = true;  //tineline sem support
 
   // vulkan 1.3 features
-  VkPhysicalDeviceVulkan13Features features{};
-  features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-  features.dynamicRendering = true;
-  features.synchronization2 = true;
+  VkPhysicalDeviceVulkan13Features features13{};
+  features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+  features13.dynamicRendering = true;
+  features13.synchronization2 = true;
 
   auto select_ret = selector.set_minimum_version(1, 3)
-                        .set_required_features_13(features)
+                        .set_required_features_11(vk11Features)
                         .set_required_features_12(features12)
+                        .set_required_features_13(features13)
                         .set_surface(surface_)
                         //.select_devices()
                         .select();
@@ -699,27 +718,46 @@ void VulkanEngine::init_vulkan() {
   graphicsQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
+  spdlog::info(
+      "[VulkanEngine Info]: Creating graphic queue with queueFamilyIndex = {}",
+      graphicsQueueFamily_);
+
   presentQueue_ = vkbDevice.get_queue(vkb::QueueType::present).value();
   presentQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::present).value();
 
+  spdlog::info(
+      "[VulkanEngine Info]: Creating present queue with queueFamilyIndex = {}",
+      presentQueueFamily_);
+
   if (!vkb_physicalDevice_.has_separate_transfer_queue()) {
     isTransferQueueSupported = false;
-
-    spdlog::warn("[VulkanEngine Warn]:Device has no dedicated transfer queue "
-                 "¡ª using graphics queue instead ");
-    return;
+    transferQueue_ = graphicsQueue_;
+    transferQueueFamily_ = graphicsQueueFamily_;
+    spdlog::warn("[VulkanEngine Warn]: Device has no dedicated transfer queue, "
+                 "using graphics queue instead ");
+    spdlog::warn("[VulkanEngine Warn]: Override transfer queue with "
+                 "queueFamilyIndex = {}",
+                 transferQueueFamily_);
+  } else {
+    isTransferQueueSupported = true;
+    transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
+    transferQueueFamily_ =
+        vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
+    spdlog::info("[VulkanEngine Info]: Creating transfe queue with "
+                 "queueFamilyIndex = {}",
+                 transferQueueFamily_);
   }
-
-  isTransferQueueSupported = true;
-  transferQueue_ = vkbDevice.get_queue(vkb::QueueType::transfer).value();
-  transferQueueFamily_ =
-      vkbDevice.get_queue_index(vkb::QueueType::transfer).value();
 
   if (!vkb_physicalDevice_.has_separate_compute_queue()) {
     isComputeQueueSupported = false;
-    spdlog::warn("[VulkanEngine Warn]:Device has no dedicated compute queue "
-                 "¡ª using graphics queue instead ");
+    computeQueue_ = graphicsQueue_;
+    computeQueueFamily_ = graphicsQueueFamily_;
+    spdlog::warn("[VulkanEngine Warn]:Device has no dedicated compute queue, "
+                 "using graphics queue instead ");
+    spdlog::warn("[VulkanEngine Warn]: Override compute queue with "
+                 "queueFamilyIndex = {}",
+                 computeQueueFamily_);
     return;
   }
 
@@ -728,6 +766,9 @@ void VulkanEngine::init_vulkan() {
   computeQueueFamily_ =
       vkbDevice.get_queue_index(vkb::QueueType::compute).value();
 
+  spdlog::info(
+      "[VulkanEngine Info]: Creating compute queue with queueFamilyIndex = {}",
+      computeQueueFamily_);
   isInit = true;
 }
 
@@ -1022,6 +1063,7 @@ void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
 
 void VulkanEngine::init_frames(
     const uint32_t setCount, const std::vector<PoolSizeRatio> &poolSizeRatio) {
+
   // DeadLock Prevention!!!
   VkFenceCreateInfo fenceCreateInfo =
       tools::fence_create_info(VK_FENCE_CREATE_SIGNALED_BIT);
@@ -1071,10 +1113,15 @@ void VulkanEngine::destroy_frames() {
 
   for (auto &frame : frames_) {
     if (frame) {
-      frame->destroy_command(false);
-      frame->destroy_sync();
-      frame->destroy_images();
-      frame->destroy_allocator();
+      auto safe_destroy = [&](FrameData::ContextPass pass) {
+        if (frame->ctx.count(pass) && frame->ctx[pass]) {
+          frame->ctx[pass]->destroy(false);
+          frame->ctx[pass].reset();
+        }
+      };
+      safe_destroy(FrameData::ContextPass::COMPUTE);
+      safe_destroy(FrameData::ContextPass::GRAPHIC);
+      frame->destroy();
     }
   }
   frames_.clear();
@@ -1108,6 +1155,22 @@ void VulkanEngine::destroy_immediate_sync() {
 
 void VulkanEngine::destroy_immediate_commands() {
   vkDestroyCommandPool(device_, immCommandPool_, nullptr);
+}
+
+void VulkanEngine::submit_default_color(VkCommandBuffer cmd) {
+  black_->uploadBufferToImage(cmd);
+  white_->uploadBufferToImage(cmd);
+  grey_->uploadBufferToImage(cmd);
+  magenta_->uploadBufferToImage(cmd);
+  loaderrorImage_->uploadBufferToImage(cmd);
+}
+
+void VulkanEngine::flush_default_color(VkFence fence) {
+  black_->flushUpload(fence);
+  white_->flushUpload(fence);
+  grey_->flushUpload(fence);
+  magenta_->flushUpload(fence);
+  loaderrorImage_->flushUpload(fence);
 }
 
 FrameData &VulkanEngine::get_current_frame() {

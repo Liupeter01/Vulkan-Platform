@@ -28,6 +28,9 @@ bool GPUGeoMeshBuffers::isValid() const { return isinit; }
 void GPUGeoMeshBuffers::createMesh(std::vector<Vertex> &&vertices,
                                    std::vector<uint32_t> &&indices) {
 
+  if (isinit)
+    return;
+
   vertex_ = std::move(vertices);
   indicies_ = std::move(indices);
 
@@ -55,38 +58,16 @@ void GPUGeoMeshBuffers::createMesh(std::vector<Vertex> &&vertices,
   deviceAdressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
   deviceAdressInfo.buffer = vertexBuffer.buffer;
   vertexBufferAddress = vkGetBufferDeviceAddress(device_, &deviceAdressInfo);
+
+  isinit = true;
 }
 
 void GPUGeoMeshBuffers::createMesh(const Mesh &mesh) {
 
-  const std::size_t vertexBufferSize =
-      mesh.vertices.size() * sizeof(mesh.vertices[0]);
-  const std::size_t indiciesBufferSize =
-      mesh.indices.size() * sizeof(mesh.indices[0]);
-
   vertex_ = mesh.vertices;
   indicies_ = mesh.indices;
 
-  vertexBuffer.create(vertexBufferSize,
-                      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                          VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-
-                          // Shader Device Addr
-                          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-
-                      VMA_MEMORY_USAGE_GPU_ONLY);
-
-  indexBuffer.create(indiciesBufferSize,
-                     VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                         VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-
-                     VMA_MEMORY_USAGE_GPU_ONLY);
-
-  // find the adress of the vertex buffer
-  VkBufferDeviceAddressInfo deviceAdressInfo{};
-  deviceAdressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-  deviceAdressInfo.buffer = vertexBuffer.buffer;
-  vertexBufferAddress = vkGetBufferDeviceAddress(device_, &deviceAdressInfo);
+  createMesh(std::move(vertex_), std::move(indicies_));
 }
 
 void GPUGeoMeshBuffers::submitMesh(VkCommandBuffer cmd) {

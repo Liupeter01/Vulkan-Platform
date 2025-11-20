@@ -8,15 +8,21 @@
 
 namespace engine {
 
-ScenesManager::ScenesManager(VulkanEngine *eng) : engine_(eng) {}
+ScenesManager::ScenesManager(VulkanEngine *eng)
+    : engine_(eng), scenePool_(eng->device_) {}
 
 ScenesManager::~ScenesManager() { destroy(); }
 
 void ScenesManager::init() {
   if (isinit)
     return;
+  init_pool();
   myScene.sceneDescriptorSetLayout_ = engine_->sceneDescriptorSetLayout_;
+
+  create_scene_set();
+
   init_default_compute();
+  init_particle_sys();
   init_default_material();
   isinit = true;
 }
@@ -26,7 +32,12 @@ void ScenesManager::destroy() {
     destroy_scene();
     myScene.sceneDescriptorSetLayout_ = VK_NULL_HANDLE;
     destroy_default_compute();
+    destroy_particle_sys();
     destroy_default_material();
+
+    destroy_scene_set();
+
+    destroy_pool();
     isinit = false;
   }
 }
@@ -49,6 +60,8 @@ void ScenesManager::update_scene() {
   myScene.globalSceneData.view = engine_->camera_->getViewMatrix();
   myScene.globalSceneData.proj = engine_->camera_->getProjectionMatrix();
   myScene.globalSceneData.proj[1][1] *= -1; // Reverse Y
+
+  update_scene_set();
 }
 
 // Material
@@ -64,9 +77,46 @@ void ScenesManager::init_default_material() {
   }
 
   metalRoughMaterial->init(myScene.sceneDescriptorSetLayout_);
+
+  defaultMaterial.materialBuffer.reset();
+  defaultMaterial.materialBuffer =
+      std::make_shared<AllocatedBuffer>(engine_->allocator_);
+
+  if (!defaultMaterial.materialBuffer) {
+    spdlog::error("[ScenesManager Error]: Create Default Graphic Material "
+                  "Buffer Failed!");
+    throw std::runtime_error("Alloc Default Graphic Material Buffer Failed!");
+  }
+
+  defaultMaterial.materialBuffer->create(
+      sizeof(MaterialConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      VMA_MEMORY_USAGE_CPU_TO_GPU,
+      "Scene::createDefaultMaterialInstance::MaterialConstants");
+
+  MaterialConstants *constant = reinterpret_cast<MaterialConstants *>(
+      defaultMaterial.materialBuffer->map());
+  constant->colorFactors = glm::vec4{1, 1, 1, 1};
+  constant->metal_rough_factors = glm::vec4{1, 0.5, 0, 0};
+  defaultMaterial.materialBuffer->unmap();
+
+  MaterialResources materialResources;
+  materialResources.colorImage = engine_->white_->getImageView();
+  materialResources.colorSampler = engine_->defaultSamplerLinear_;
+  materialResources.metalRoughImage = engine_->white_->getImageView();
+  materialResources.metalRoughSampler = engine_->defaultSamplerLinear_;
+  materialResources.materialConstantsData =
+      defaultMaterial.materialBuffer->buffer;
+
+  defaultMaterial.defaultMateral = metalRoughMaterial->generate_instance(
+      MaterialPass::OPAQUE, materialResources, scenePool_);
 }
 
 void ScenesManager::destroy_default_material() {
+
+  defaultMaterial.defaultMateral = MaterialInstance{};
+  defaultMaterial.materialBuffer->destroy();
+  defaultMaterial.materialBuffer.reset();
+
   metalRoughMaterial->destory();
   metalRoughMaterial.reset();
 }
@@ -75,15 +125,62 @@ void ScenesManager::destroy_default_material() {
 void ScenesManager::init_default_compute() {
   imageAttachmentCompute.reset();
   imageAttachmentCompute =
-      std::make_unique<Compute_ImageAttachment>(engine_->device_);
+      std::make_unique<Compute_ImageAttachment<>>(engine_->device_);
 
   if (!imageAttachmentCompute) {
-    spdlog::error(
-        "[ScenesManager Error]: Create Default Compute Material Failed!");
-    throw std::runtime_error("Alloc Default Compute Material Failed!");
+    spdlog::error("[ScenesManager Error]: Create Image Attachment Compute "
+                  "Material Failed!");
+    throw std::runtime_error("Alloc Image Attachment Compute Material Failed!");
   }
 
   imageAttachmentCompute->init();
+}
+
+void ScenesManager::init_particle_sys() {
+
+  particleSysBuffer.reset();
+  particleSysBuffer =
+      std::make_unique<ParticleSysDataBuffer<particle::GPUParticle>>(
+          engine_->device_, engine_->allocator_,
+          ParticleSysDataBuffer<
+              particle::GPUParticle>::ParticleDimension::Particle3D);
+  particleSysBuffer->create(8192 * 2);
+
+  particleSysCompute.reset();
+  particleSysCompute =
+      std::make_shared<particle2d::PointSpriteParticleSystem2D<>>(
+          engine_->device_);
+  if (!particleSysCompute) {
+    spdlog::error("[ScenesManager Error]: Create Particle System Compute "
+                  "Material Failed!");
+    throw std::runtime_error("Alloc Particle System Compute Material Failed!");
+  }
+  particleSysCompute->setGlobalLayout(myScene.sceneDescriptorSetLayout_,
+                                      myScene.sceneDescriptorSet);
+  particleSysCompute->init();
+
+  engine_->imm_command_submit(
+      [&](VkCommandBuffer cmd) { particleSysBuffer->submit(cmd); });
+  particleSysBuffer->flush(engine_->immFence_);
+}
+
+void ScenesManager::on_gui() {
+  if (imageAttachmentCompute)
+    imageAttachmentCompute->on_gui();
+
+  if (particleSysCompute)
+    particleSysCompute->on_gui();
+}
+
+// Pool
+void ScenesManager::init_pool() { scenePool_.init(setCount_, frame_sizes); }
+
+void ScenesManager::destroy_pool() { scenePool_.destroy_pools(); }
+
+void ScenesManager::destroy_particle_sys() {
+
+  particleSysCompute->destory();
+  particleSysCompute.reset();
 }
 
 void ScenesManager::destroy_default_compute() {
@@ -103,20 +200,7 @@ void ScenesManager::submitMesh(VkCommandBuffer cmd) {
   }
 }
 
-void ScenesManager::submitColorImage(VkCommandBuffer cmd) {
-  engine_->black_->uploadBufferToImage(cmd);
-  engine_->white_->uploadBufferToImage(cmd);
-  engine_->grey_->uploadBufferToImage(cmd);
-  engine_->magenta_->uploadBufferToImage(cmd);
-  engine_->loaderrorImage_->uploadBufferToImage(cmd);
-}
-
 void ScenesManager::flushUpload(VkFence fence) {
-  engine_->black_->flushUpload(fence);
-  engine_->white_->flushUpload(fence);
-  engine_->grey_->flushUpload(fence);
-  engine_->magenta_->flushUpload(fence);
-  engine_->loaderrorImage_->flushUpload(fence);
 
   if (auto mesh = loadedScenes_.find("default")->second->findMesh("Suzanne");
       mesh) {
@@ -124,81 +208,78 @@ void ScenesManager::flushUpload(VkFence fence) {
   }
 }
 
-std::tuple<VkDescriptorSet, std::shared_ptr<AllocatedBuffer>>
-ScenesManager::createSceneSet(FrameData &frame) {
+void ScenesManager::update_scene_set() {
 
-  std::shared_ptr<AllocatedBuffer> sceneDataBuffer =
+  if (!myScene.sceneDataBuffer) {
+    throw std::runtime_error("Invalid Scene Data Buffer!");
+  }
+
+  GPUSceneData *data =
+      reinterpret_cast<GPUSceneData *>(myScene.sceneDataBuffer->map());
+  memcpy(data, &myScene.globalSceneData, sizeof(GPUSceneData));
+  myScene.sceneDataBuffer->unmap();
+}
+
+VkDescriptorSet ScenesManager::get_scene_set() {
+  DescriptorWriter scenewriter{engine_->device_};
+  scenewriter.write_buffer(0, myScene.sceneDataBuffer->buffer,
+                           sizeof(GPUSceneData), 0,
+                           VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+  return myScene.sceneDescriptorSet;
+}
+
+void ScenesManager::create_scene_set() {
+  if (myScene.sceneDataBuffer) {
+    myScene.sceneDataBuffer->destroy();
+  }
+  myScene.sceneDataBuffer.reset();
+  myScene.sceneDataBuffer =
       std::make_shared<AllocatedBuffer>(engine_->allocator_);
 
-  sceneDataBuffer->create(
+  myScene.sceneDataBuffer->create(
       sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, "Scene::execute::sceneDataBuffer");
 
-  GPUSceneData *data = reinterpret_cast<GPUSceneData *>(sceneDataBuffer->map());
+  GPUSceneData *data =
+      reinterpret_cast<GPUSceneData *>(myScene.sceneDataBuffer->map());
   memcpy(data, &myScene.globalSceneData, sizeof(GPUSceneData));
-  sceneDataBuffer->unmap();
+  myScene.sceneDataBuffer->unmap();
 
   VkDescriptorSet sceneSet =
-      frame._frameDescriptor.allocate(myScene.sceneDescriptorSetLayout_);
+      scenePool_.allocate(myScene.sceneDescriptorSetLayout_);
   DescriptorWriter scenewriter{engine_->device_};
-  scenewriter.write_buffer(0, sceneDataBuffer->buffer, sizeof(GPUSceneData), 0,
+  scenewriter.write_buffer(0, myScene.sceneDataBuffer->buffer,
+                           sizeof(GPUSceneData), 0,
                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   scenewriter.update_set(sceneSet);
 
-  return {sceneSet, sceneDataBuffer};
+  myScene.sceneDescriptorSet = sceneSet;
 }
 
-std::tuple<MaterialInstance, std::shared_ptr<AllocatedBuffer>>
-ScenesManager::createDefaultMaterialInstance(FrameData &frame) {
-
-  std::shared_ptr<AllocatedBuffer> materialBuffer =
-      std::make_shared<AllocatedBuffer>(engine_->allocator_);
-  materialBuffer->create(
-      sizeof(MaterialConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      VMA_MEMORY_USAGE_CPU_TO_GPU,
-      "Scene::createDefaultMaterialInstance::MaterialConstants");
-
-  MaterialConstants *constant =
-      reinterpret_cast<MaterialConstants *>(materialBuffer->map());
-  constant->colorFactors = glm::vec4{1, 1, 1, 1};
-  constant->metal_rough_factors = glm::vec4{1, 0.5, 0, 0};
-  materialBuffer->unmap();
-
-  MaterialResources materialResources;
-  materialResources.colorImage = engine_->white_->getImageView();
-  materialResources.colorSampler = engine_->defaultSamplerLinear_;
-  materialResources.metalRoughImage = engine_->white_->getImageView();
-  materialResources.metalRoughSampler = engine_->defaultSamplerLinear_;
-  materialResources.materialConstantsData = materialBuffer->buffer;
-
-  return {metalRoughMaterial->generate_instance(
-              MaterialPass::OPAQUE, materialResources, frame._frameDescriptor),
-          materialBuffer};
+void ScenesManager::destroy_scene_set() {
+  if (myScene.sceneDataBuffer) {
+    myScene.sceneDataBuffer->destroy();
+  }
+  myScene.sceneDataBuffer.reset();
 }
 
-void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
+void ScenesManager::render(VkCommandBuffer cmd,
+                           std::unique_ptr<CommonFrameContext> &frame) {
 
   MeshAsset *last_mesh{};
   MaterialInstance *last_material{};
   MaterialPipeline *last_pipeline{};
 
   /*set = 0, binding = 0*/
-  auto [sceneSet, sceneDataBuffer] = createSceneSet(frame);
+  auto sceneSet = get_scene_set();
 
-  /*set = 1, binding = 0, 1, 2*/
-  auto [defaultMateral, materialBuffer] = createDefaultMaterialInstance(frame);
-
-  frame.destroy_by_deferred([sceneDataBuffer, materialBuffer]() {
-    sceneDataBuffer->destroy();
-    materialBuffer->destroy();
-  });
-
-  auto drawExtent = frame.getExtent2D();
+  auto drawExtent = frame->parent_->getExtent2D();
 
   auto colorAttachmentInfo =
-      tools::color_attachment_info(frame.drawImage_->imageView);
+      tools::color_attachment_info(frame->parent_->drawImage_->imageView);
   auto depthAttachmentInfo =
-      tools::depth_attachment_info(frame.depthImage_->imageView);
+      tools::depth_attachment_info(frame->parent_->depthImage_->imageView);
   auto renderInfo = tools::rendering_info(drawExtent, &colorAttachmentInfo,
                                           &depthAttachmentInfo);
 
@@ -219,6 +300,25 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
 
   vkCmdSetScissor(cmd, 0, 1, &scissor);
 
+  if (particleSysCompute->has_graphic()) {
+    const std::size_t dispatchGroupsX =
+        particleSysBuffer->getParticleCount() >> 8;
+    if (!dispatchGroupsX) {
+      spdlog::info("[ParticleMovement] Dispatching {} groups for {} particles",
+                   dispatchGroupsX, particleSysBuffer->getParticleCount());
+    }
+
+    particle::ParticleResources res;
+    res.bufferSize = particleSysBuffer->getBufferSize();
+    res.particlesIn = particleSysBuffer->get_in_buffer();
+    res.particlesOut = particleSysBuffer->get_out_buffer();
+
+    auto ins =
+        particleSysCompute->generate_instance(res, frame->_frameDescriptor);
+    particleSysCompute->set_dispatch_size(dispatchGroupsX, 1, 1);
+    particleSysCompute->render(cmd, ins);
+  }
+
   auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
 
   for (auto &surface : ctx.OpaqueSurfaces) {
@@ -229,8 +329,8 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
 
     // No Material Set, Then use default
     if (!surface.material) {
-      // setup default material
-      surface.material = &defaultMateral;
+      // setup default material   (set = 1, binding = 0, 1, 2)*/
+      surface.material = &defaultMaterial.defaultMateral;
     }
 
     auto pipeline = surface.material->pipeline->getPipeline();
@@ -281,30 +381,50 @@ void ScenesManager::render(VkCommandBuffer cmd, FrameData &frame) {
   vkCmdEndRendering(cmd);
 }
 
-void ScenesManager::compute(VkCommandBuffer cmd, FrameData &frame) {
+void ScenesManager::compute(VkCommandBuffer cmd,
+                            std::unique_ptr<CommonFrameContext> &frame) {
 
-  auto drawExtent = frame.getExtent2D();
-  ComputeResources res{frame.drawImage_->imageView};
+  // auto color_blending_background = [&]() {
+  //   auto drawExtent = frame.getExtent2D();
+  //   ImageAttachmentResources res{frame.drawImage_->imageView};
 
-  auto ins =
-      imageAttachmentCompute->generate_instance(res, frame._frameDescriptor);
+  //  auto ins =
+  //      imageAttachmentCompute->generate_instance(res,
+  //      frame._frameDescriptor);
+  //  imageAttachmentCompute->set_dispatch_size((drawExtent.width + 15) >> 4,
+  //                                            (drawExtent.height + 15) >> 4,
+  //                                            1);
 
-  vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
-                    ins.pipeline->getPipeline());
+  //  imageAttachmentCompute->dispatch(cmd, ins);
+  //};
 
-  vkCmdPushConstants(
-      cmd, ins.pipeline->getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0,
-      sizeof(ComputeShaderPushConstants), &myScene.computeShaderData);
+  auto particle_movement = [&]() {
+    if (particleSysCompute->has_compute()) {
+      const std::size_t dispatchGroupsX =
+          particleSysBuffer->getParticleCount() >> 8;
+      if (!dispatchGroupsX) {
+        spdlog::info(
+            "[ParticleMovement] Dispatching {} groups for {} particles",
+            dispatchGroupsX, particleSysBuffer->getParticleCount());
+      }
 
-  // bind the descriptor set containing the draw image for the compute pipeline
-  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-                          ins.pipeline->getPipelineLayout(), 0, 1,
-                          &ins.computeSet, 0, nullptr);
+      particle::ParticleResources res;
+      res.bufferSize = particleSysBuffer->getBufferSize();
+      res.particlesIn = particleSysBuffer->get_in_buffer();
+      res.particlesOut = particleSysBuffer->get_out_buffer();
+      // res.colorImage = frame.drawImage_->imageView;
 
-  // execute the compute pipeline dispatch. We are using 16x16 workgroup size so
-  // we need to divide by it
-  vkCmdDispatch(cmd, static_cast<uint32_t>(std::ceil(drawExtent.width / 16.0f)),
-                static_cast<uint32_t>(std::ceil(drawExtent.height / 16.0f)), 1);
+      auto ins =
+          particleSysCompute->generate_instance(res, frame->_frameDescriptor);
+      particleSysCompute->set_dispatch_size(dispatchGroupsX, 1, 1);
+      particleSysCompute->dispatch(cmd, ins);
+
+      particleSysBuffer->swap();
+    }
+  };
+
+  // color_blending_background();
+  particle_movement();
 }
 
 bool ScenesManager::addScene(std::shared_ptr<NodeManager> scene) {
@@ -321,14 +441,11 @@ bool ScenesManager::addScene(std::shared_ptr<NodeManager> scene) {
 }
 
 ComputeShaderPushConstants &ScenesManager::getComputeData() {
-  return myScene.computeShaderData;
+  return imageAttachmentCompute->getPushConstantData();
 }
 
 void ScenesManager::submit() {
-  engine_->imm_command_submit([this](VkCommandBuffer cmd) {
-    submitColorImage(cmd);
-    submitMesh(cmd);
-  });
+  engine_->imm_command_submit([this](VkCommandBuffer cmd) { submitMesh(cmd); });
 
   flushUpload(engine_->immFence_);
 }
