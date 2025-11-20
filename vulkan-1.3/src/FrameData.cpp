@@ -72,15 +72,61 @@ void FrameData::init_sync(const VkFenceCreateInfo &fenceCreateInfo,
 
 void FrameData::reset_allocator_pools() { _frameDescriptor.reset_pools(); }
 
-void FrameData::destroy_by_deferred(std::function<void()> &&function) {
-  _deletionQueue.push_function(std::move(function));
+VkDescriptorSet CommonFrameContext::allocate(VkDescriptorSetLayout layout,
+                                             void *pNext) {
+  return _frameDescriptor.allocate(layout, pNext);
+}
+
+GraphicFrameContext::GraphicFrameContext(FrameData *eng)
+    : CommonFrameContext(eng) {}
+
+GraphicFrameContext::~GraphicFrameContext() {}
+
+ComputeFrameContext::ComputeFrameContext(FrameData *eng)
+    : CommonFrameContext(eng) {}
+
+ComputeFrameContext::~ComputeFrameContext() {}
+
+FrameData::FrameData(VulkanEngine *eng) : engine_(eng) {
+
+  if (!eng) {
+    spdlog::error("[FrameData CTOR]: Invalid VulkanEngine!");
+    std::abort();
+  }
+}
+
+FrameData::~FrameData() { destroy(); }
+
+void FrameData::init(VkExtent3D extent,
+          const VkSemaphoreCreateInfo& binSemaphoreCreateInfo,
+          const VkSemaphoreCreateInfo& timelineSemaphoreCreateInfo){
+  if (isinit_)
+    return;
+  init_images(extent);
+  init_sync(binSemaphoreCreateInfo);
+  init_timeline(timelineSemaphoreCreateInfo);
+  isinit_ = true;
+}
+
+void FrameData::destroy() {
+  if (isinit_) {
+            destroy_timeline();
+    destroy_sync();
+    destroy_images();
+    ctx.clear();
+    isinit_ = false;
+  }
 }
 
 void FrameData::clean_last_frame() { _deletionQueue.flush(); }
 
-void FrameData::init_allocator(
-    const uint32_t setCount, const std::vector<PoolSizeRatio> &poolSizeRatio) {
-  _frameDescriptor.init(setCount, poolSizeRatio);
+  vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
+                    &_swapChainWait);
+}
+
+void FrameData::init_timeline(const VkSemaphoreCreateInfo& semaphoreCreateInfo) {
+          vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
+                    &timelineSemaphore_);
 }
 
 void FrameData::destroy_allocator() { _frameDescriptor.destroy_pools(); }
@@ -103,13 +149,12 @@ void FrameData::destroy_command(bool needWaitIdle) {
   }
 }
 
+void FrameData::destroy_timeline() {
+          vkDestroySemaphore(engine_->device_,timelineSemaphore_, nullptr);
+}
+
 void FrameData::destroy_sync() {
-  if (isSyncInit) {
-    vkDestroyFence(engine_->device_, _renderFinishedFence, nullptr);
-    vkDestroySemaphore(engine_->device_, _swapChainWait, nullptr);
-    vkDestroySemaphore(engine_->device_, _renderPresentKHRSignal, nullptr);
-    isSyncInit = false;
-  }
+  vkDestroySemaphore(engine_->device_, _swapChainWait, nullptr);
 }
 
 void FrameData::init_images(VkExtent3D extent) {
