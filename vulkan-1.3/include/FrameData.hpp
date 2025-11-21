@@ -76,7 +76,7 @@ struct FrameData {
 
   void init(VkExtent3D extent,
             const VkSemaphoreCreateInfo &binSemaphoreCreateInfo,
-            const VkSemaphoreCreateInfo& timelineSemaphoreCreateInfo);
+            const VkSemaphoreCreateInfo &timelineSemaphoreCreateInfo);
   void destroy();
 
   void reset_images(VkExtent3D newExtent);
@@ -98,7 +98,7 @@ struct FrameData {
 
   // ======== Timeline Synchronization Handles ========
   uint64_t timelineValue_{};
-  
+
   uint64_t computeWaitValue_{};
   uint64_t computeSignalValue_{};
 
@@ -125,7 +125,7 @@ struct FrameData {
 protected:
   void init_images(VkExtent3D extent);
   void init_sync(const VkSemaphoreCreateInfo &semaphoreCreateInfo);
-  void init_timeline(const VkSemaphoreCreateInfo& semaphoreCreateInfo);
+  void init_timeline(const VkSemaphoreCreateInfo &semaphoreCreateInfo);
 
   void destroy_timeline();
   void destroy_sync();

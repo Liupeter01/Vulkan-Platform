@@ -80,18 +80,19 @@ semaphore_create_info(VkSemaphoreCreateFlags flags = 0) {
 
 [[nodiscard]]
 inline static VkSemaphoreCreateInfo
-timeline_semaphore_create_info(VkSemaphoreCreateFlags flags = 0, uint64_t init_value = 0) {
+timeline_semaphore_create_info(VkSemaphoreCreateFlags flags = 0,
+                               uint64_t init_value = 0) {
 
-          VkSemaphoreTypeCreateInfo type{};
-          type.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-          type.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-          type.initialValue = init_value;
+  VkSemaphoreTypeCreateInfo type{};
+  type.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+  type.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+  type.initialValue = init_value;
 
-          VkSemaphoreCreateInfo info = {};
-          info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-          info.pNext = reinterpret_cast<void*>(&type);
-          info.flags = flags;
-          return info;
+  VkSemaphoreCreateInfo info = {};
+  info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  info.pNext = reinterpret_cast<void *>(&type);
+  info.flags = flags;
+  return info;
 }
 
 [[nodiscard]]
@@ -121,10 +122,8 @@ image_subresource_range(VkImageAspectFlags aspectMask) {
 
 [[nodiscard]]
 inline static VkSemaphoreSubmitInfo
-semaphore_submit_info(VkPipelineStageFlags2 stageMask, 
-                                          VkSemaphore semaphore, 
-                                        uint32_t queueFamilyIndex = 0,
-                                        uint64_t value = 0) {
+semaphore_submit_info(VkPipelineStageFlags2 stageMask, VkSemaphore semaphore,
+                      uint32_t queueFamilyIndex = 0, uint64_t value = 0) {
   VkSemaphoreSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
   submitInfo.semaphore = semaphore;

@@ -121,8 +121,8 @@ FrameData::FrameData(VulkanEngine *eng) : engine_(eng) {
 FrameData::~FrameData() { destroy(); }
 
 void FrameData::init(VkExtent3D extent,
-          const VkSemaphoreCreateInfo& binSemaphoreCreateInfo,
-          const VkSemaphoreCreateInfo& timelineSemaphoreCreateInfo){
+                     const VkSemaphoreCreateInfo &binSemaphoreCreateInfo,
+                     const VkSemaphoreCreateInfo &timelineSemaphoreCreateInfo) {
   if (isinit_)
     return;
   init_images(extent);
@@ -133,7 +133,7 @@ void FrameData::init(VkExtent3D extent,
 
 void FrameData::destroy() {
   if (isinit_) {
-            destroy_timeline();
+    destroy_timeline();
     destroy_sync();
     destroy_images();
     ctx.clear();
@@ -141,13 +141,14 @@ void FrameData::destroy() {
   }
 }
 
-void FrameData::init_sync(const VkSemaphoreCreateInfo& semaphoreCreateInfo){
+void FrameData::init_sync(const VkSemaphoreCreateInfo &semaphoreCreateInfo) {
   vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
                     &_swapChainWait);
 }
 
-void FrameData::init_timeline(const VkSemaphoreCreateInfo& semaphoreCreateInfo) {
-          vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
+void FrameData::init_timeline(
+    const VkSemaphoreCreateInfo &semaphoreCreateInfo) {
+  vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
                     &timelineSemaphore_);
 }
 
@@ -182,7 +183,7 @@ void FrameData::clean_last_frame(ContextPass pass) {
 }
 
 void FrameData::destroy_timeline() {
-          vkDestroySemaphore(engine_->device_,timelineSemaphore_, nullptr);
+  vkDestroySemaphore(engine_->device_, timelineSemaphore_, nullptr);
 }
 
 void FrameData::destroy_sync() {
