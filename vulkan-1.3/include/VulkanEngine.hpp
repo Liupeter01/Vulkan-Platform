@@ -152,7 +152,6 @@ private:
   std::vector<VkImage> swapchainImages_;         //
   std::vector<VkImageView> swapchainImageViews_; //
   VkExtent2D swapchainExtent_;
-  std::vector<VkSemaphore> _renderPresentKHRSignal;
 
   std::size_t FRAMES_IN_FLIGHT{0};
 

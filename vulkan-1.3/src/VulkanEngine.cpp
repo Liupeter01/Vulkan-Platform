@@ -91,11 +91,6 @@ void VulkanEngine::destroy() {
   destroy_immediate_commands();
   destroy_immediate_sync();
   destroy_swapchain();
-
-  for (std::size_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-    vkDestroySemaphore(device_, _renderPresentKHRSignal[i], nullptr);
-  }
-
   destroy_vulkan();
 }
 
@@ -363,10 +358,6 @@ void VulkanEngine::draw() {
   uint32_t swapchainImageIndex{};
 
   graphic(swapchainImageIndex);
-
-  if (resize_requested) {
-    return;
-  }
   presentKHR(swapchainImageIndex);
 }
 
@@ -396,45 +387,63 @@ void VulkanEngine::presentKHR(uint32_t swapchainImageIndex) {
   } else if (e != VK_SUCCESS && e != VK_SUBOPTIMAL_KHR) {
     throw std::runtime_error("failed to acquire swap chain image!");
   }
+}
 
-  VkImage &draw_image = currentFrame.drawImage_->image;   // Draw Image
-  VkImage &depth_image = currentFrame.depthImage_->image; // Depth Image
-  VkImage &swapchain_image =
-      swapchainImages_[swapchainImageIndex]; // SwapChain Image
+void VulkanEngine::compute() {
+          auto& currentFrame = get_current_frame();
 
-  VkImageView &image_view = swapchainImageViews_[swapchainImageIndex];
+          auto* context = currentFrame.get_context(FrameData::ContextPass::COMPUTE);
+          if (!context) {
+                    spdlog::error("[VulkanEngine Error]: Invalid Compute Pass!");
+                    return;
+          }
 
-  vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+          // wait until the gpu has finished rendering the last frame.
+          vkWaitForFences(device_, 1, &context->_finishedFence, true,
+                    std::numeric_limits<uint64_t>::max());
+          vkResetFences(device_, 1, &context->_finishedFence);
 
-  // Compute Shader!
-  sceneMgr->compute(cmd, currentFrame.ctx[FrameData::ContextPass::COMPUTE]);
+          context->clean_last_frame();
+          context->reset_allocator_pools();
 
-  vkEndCommandBuffer(cmd);
+          // now that we are sure that the commands finished executing, we can safely
+          VkCommandBuffer cmd = context->_commandBuffer;
 
-  VkCommandBufferSubmitInfo cmdinfo = tools::command_buffer_submit_info(cmd);
+          // reset the command buffer to begin recording again.
+          vkResetCommandBuffer(cmd, 0);
 
-  VkSemaphoreSubmitInfo computeWait = tools::semaphore_submit_info(
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            currentFrame.timelineSemaphore_,
-            computeQueueFamily_,
-            currentFrame.computeWaitValue_);
+          // use command buffer exactly once
+          VkCommandBufferBeginInfo cmdBeginInfo = tools::command_buffer_begin_info(
+                    VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-  VkSemaphoreSubmitInfo computeSignal = tools::semaphore_submit_info(
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            currentFrame.timelineSemaphore_,
-            computeQueueFamily_,
-            currentFrame.computeSignalValue_);
+          vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-  VkSubmitInfo2 info{};
-  info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-  info.waitSemaphoreInfoCount = 1;
-  info.pWaitSemaphoreInfos = &computeWait;
-  info.signalSemaphoreInfoCount = 1;
-  info.pSignalSemaphoreInfos = &computeSignal;
-  info.commandBufferInfoCount = 1;
-  info.pCommandBufferInfos = &cmdinfo;
+          sceneMgr->compute(cmd, currentFrame.ctx[FrameData::ContextPass::COMPUTE]);
 
-  vkQueueSubmit2(computeQueue_, 1, &info, context->_finishedFence);
+          vkEndCommandBuffer(cmd);
+
+          VkCommandBufferSubmitInfo cmdinfo = tools::command_buffer_submit_info(cmd);
+
+          VkSemaphoreSubmitInfo computeWait = tools::semaphore_submit_info(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                    currentFrame.timelineSemaphore_,
+                    computeQueueFamily_,
+                    currentFrame.computeWaitValue_);
+
+          VkSemaphoreSubmitInfo computeSignal = tools::semaphore_submit_info(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                    currentFrame.timelineSemaphore_,
+                    computeQueueFamily_,
+                    currentFrame.computeSignalValue_);
+
+          VkSubmitInfo2 info{};
+          info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+          info.waitSemaphoreInfoCount = 1;
+          info.pWaitSemaphoreInfos = &computeWait;
+          info.signalSemaphoreInfoCount = 1;
+          info.pSignalSemaphoreInfos = &computeSignal;
+          info.commandBufferInfoCount = 1;
+          info.pCommandBufferInfos = &cmdinfo;
+
+          vkQueueSubmit2(computeQueue_, 1, &info, context->_finishedFence);
 }
 
 void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
@@ -1083,6 +1092,11 @@ void VulkanEngine::init_frames(
       tools::command_pool_create_info(
           graphicsQueueFamily_,
           VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+
+  VkCommandPoolCreateInfo computeCommandPoolInfo =
+            tools::command_pool_create_info(
+                     computeQueueFamily_,
+                      VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
   VkExtent3D extent = {window_.getExtent().width, window_.getExtent().height,
                        1};

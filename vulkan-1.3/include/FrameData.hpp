@@ -95,19 +95,6 @@ struct FrameData {
 
   // ======== Synchronization Handles ========
   VkSemaphore _swapChainWait; // Highest priority: Wait before all
-  VkSemaphore _transferWait;  // Wait before compute/graphic
-  VkSemaphore _computeWait;   // Wait before graphic
-
-  // ======== Sub-contexts ========
-  std::unordered_map<ContextPass,
-                     std::unique_ptr<CommonFrameContext> // MUST NOT BE shared!
-                     >
-      ctx;
-
-  void clean_last_frame(ContextPass pass);
-
-  // ======== Synchronization Handles ========
-  VkSemaphore _swapChainWait; // Highest priority: Wait before all
 
   // ======== Timeline Synchronization Handles ========
   uint64_t timelineValue_{};

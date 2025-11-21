@@ -120,31 +120,6 @@ FrameData::FrameData(VulkanEngine *eng) : engine_(eng) {
 
 FrameData::~FrameData() { destroy(); }
 
-VkDescriptorSet CommonFrameContext::allocate(VkDescriptorSetLayout layout,
-                                             void *pNext) {
-  return _frameDescriptor.allocate(layout, pNext);
-}
-
-GraphicFrameContext::GraphicFrameContext(FrameData *eng)
-    : CommonFrameContext(eng) {}
-
-GraphicFrameContext::~GraphicFrameContext() {}
-
-ComputeFrameContext::ComputeFrameContext(FrameData *eng)
-    : CommonFrameContext(eng) {}
-
-ComputeFrameContext::~ComputeFrameContext() {}
-
-FrameData::FrameData(VulkanEngine *eng) : engine_(eng) {
-
-  if (!eng) {
-    spdlog::error("[FrameData CTOR]: Invalid VulkanEngine!");
-    std::abort();
-  }
-}
-
-FrameData::~FrameData() { destroy(); }
-
 void FrameData::init(VkExtent3D extent,
           const VkSemaphoreCreateInfo& binSemaphoreCreateInfo,
           const VkSemaphoreCreateInfo& timelineSemaphoreCreateInfo){
@@ -166,15 +141,7 @@ void FrameData::destroy() {
   }
 }
 
-void FrameData::destroy() {
-  if (isinit_) {
-    destroy_sync();
-    destroy_images();
-    ctx.clear();
-    isinit_ = false;
-  }
-}
-
+void FrameData::init_sync(const VkSemaphoreCreateInfo& semaphoreCreateInfo){
   vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
                     &_swapChainWait);
 }
