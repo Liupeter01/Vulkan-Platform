@@ -1077,8 +1077,15 @@ void VulkanEngine::init_frames(
   VkFenceCreateInfo fenceCreateInfo =
       tools::fence_create_info(VK_FENCE_CREATE_SIGNALED_BIT);
   VkSemaphoreCreateInfo semaphoreCreateInfo = tools::semaphore_create_info();
-  VkSemaphoreCreateInfo timelineSemaphoreCreateInfo =
-      tools::timeline_semaphore_create_info();
+
+  VkSemaphoreTypeCreateInfo type{};
+  type.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+  type.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+  type.initialValue = 0;
+
+  VkSemaphoreCreateInfo timelineSemaphoreCreateInfo = {};
+  timelineSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  timelineSemaphoreCreateInfo.pNext = reinterpret_cast<void*>(&type);
 
   VkCommandPoolCreateInfo graphicCommandPoolInfo =
       tools::command_pool_create_info(

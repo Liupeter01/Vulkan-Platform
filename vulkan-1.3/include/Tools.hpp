@@ -79,23 +79,6 @@ semaphore_create_info(VkSemaphoreCreateFlags flags = 0) {
 }
 
 [[nodiscard]]
-inline static VkSemaphoreCreateInfo
-timeline_semaphore_create_info(VkSemaphoreCreateFlags flags = 0,
-                               uint64_t init_value = 0) {
-
-  VkSemaphoreTypeCreateInfo type{};
-  type.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-  type.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-  type.initialValue = init_value;
-
-  VkSemaphoreCreateInfo info = {};
-  info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-  info.pNext = reinterpret_cast<void *>(&type);
-  info.flags = flags;
-  return info;
-}
-
-[[nodiscard]]
 inline static VkCommandBufferBeginInfo
 command_buffer_begin_info(VkCommandBufferUsageFlags flags /*= 0*/) {
   VkCommandBufferBeginInfo info = {};
