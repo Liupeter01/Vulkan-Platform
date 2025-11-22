@@ -343,50 +343,28 @@ bool VulkanEngine::isDeviceSuitable(const vkb::PhysicalDevice &device) {
 
 void VulkanEngine::draw() {
 
+          // wait until the gpu has finished rendering the last frame.
+          auto& currentFrame = get_current_frame();
+
+          vkWaitForFences(device_, 1, &currentFrame.finalSyncFence_, true,
+                    std::numeric_limits<uint64_t>::max());
+          vkResetFences(device_, 1, &currentFrame.finalSyncFence_);
+
   sceneMgr->update_scene();
 
-  auto &currentFrame = get_current_frame();
   currentFrame.computeWaitValue_ = currentFrame.timelineValue_;
   currentFrame.computeSignalValue_ = ++currentFrame.timelineValue_;
-  currentFrame.graphicsWaitValue_ = currentFrame.computeSignalValue_;
-  currentFrame.graphicsSignalValue_ = ++currentFrame.timelineValue_;
-  currentFrame.presentWaitValue_ = currentFrame.graphicsSignalValue_;
 
   compute();
+
+  currentFrame.graphicsWaitValue_ = currentFrame.computeSignalValue_;
+  currentFrame.graphicsSignalValue_ = ++currentFrame.timelineValue_;
 
   // request image from the swapchain
   uint32_t swapchainImageIndex{};
 
   graphic(swapchainImageIndex);
   presentKHR(swapchainImageIndex);
-}
-
-void VulkanEngine::presentKHR(uint32_t swapchainImageIndex) {
-
-  VkSemaphoreWaitInfo wait{};
-  wait.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;
-  wait.pValues = &get_current_frame().presentWaitValue_;
-  wait.semaphoreCount = 1;
-  wait.pSemaphores = &get_current_frame().timelineSemaphore_;
-
-  vkWaitSemaphores(device_, &wait, std::numeric_limits<uint64_t>::max());
-
-  // we want to wait on the _renderSemaphore for that,
-  // as its necessary that drawing commands have finished before the image is
-  // displayed to the user
-  VkPresentInfoKHR presentInfo = {};
-  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = &swapchain_;
-  presentInfo.pImageIndices = &swapchainImageIndex;
-
-  VkResult e = vkQueuePresentKHR(presentQueue_, &presentInfo);
-  if (e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
-    resize_requested = true;
-    return;
-  } else if (e != VK_SUCCESS && e != VK_SUBOPTIMAL_KHR) {
-    throw std::runtime_error("failed to acquire swap chain image!");
-  }
 }
 
 void VulkanEngine::compute() {
@@ -397,11 +375,6 @@ void VulkanEngine::compute() {
     spdlog::error("[VulkanEngine Error]: Invalid Compute Pass!");
     return;
   }
-
-  // wait until the gpu has finished rendering the last frame.
-  vkWaitForFences(device_, 1, &context->_finishedFence, true,
-                  std::numeric_limits<uint64_t>::max());
-  vkResetFences(device_, 1, &context->_finishedFence);
 
   context->clean_last_frame();
   context->reset_allocator_pools();
@@ -452,11 +425,6 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
     spdlog::error("[VulkanEngine Error]: Invalid Graphic Pass!");
     return;
   }
-
-  // wait until the gpu has finished rendering the last frame.
-  vkWaitForFences(device_, 1, &context->_finishedFence, true,
-                  std::numeric_limits<uint64_t>::max());
-  vkResetFences(device_, 1, &context->_finishedFence);
 
   context->clean_last_frame();
   context->reset_allocator_pools();
@@ -523,7 +491,7 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
 
   VkResult e = vkAcquireNextImageKHR(
       device_, swapchain_, std::numeric_limits<uint64_t>::max(),
-      currentFrame._swapChainWait, nullptr, &swapchainImageIndex);
+      currentFrame.swapChainWait_, nullptr, &swapchainImageIndex);
   if (e == VK_ERROR_OUT_OF_DATE_KHR) {
     resize_requested = true;
   } else if (e != VK_SUCCESS && e != VK_SUBOPTIMAL_KHR) {
@@ -584,31 +552,61 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
 
   VkSemaphoreSubmitInfo swapChainImageWait = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
-      get_current_frame()._swapChainWait, graphicsQueueFamily_);
+      get_current_frame().swapChainWait_, graphicsQueueFamily_);
 
   VkSemaphoreSubmitInfo graphicWait = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
       get_current_frame().timelineSemaphore_, graphicsQueueFamily_,
       currentFrame.graphicsWaitValue_);
 
-  VkSemaphoreSubmitInfo graphicSignal = tools::semaphore_submit_info(
+  VkSemaphoreSubmitInfo graphic2Present = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-      get_current_frame().timelineSemaphore_, graphicsQueueFamily_,
-      currentFrame.graphicsSignalValue_);
+      get_current_frame().graphicToPresent_, graphicsQueueFamily_);
+
+  VkSemaphoreSubmitInfo graphicSignal = tools::semaphore_submit_info(
+            VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+  get_current_frame().timelineSemaphore_, graphicsQueueFamily_,
+            currentFrame.graphicsSignalValue_);
 
   std::array<VkSemaphoreSubmitInfo, 2> waits = {swapChainImageWait,
                                                 graphicWait};
+
+  std::array<VkSemaphoreSubmitInfo, 2> signals= { graphic2Present,
+                                             graphicSignal };
 
   VkSubmitInfo2 info{};
   info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
   info.waitSemaphoreInfoCount = static_cast<uint32_t>(waits.size());
   info.pWaitSemaphoreInfos = waits.data();
-  info.signalSemaphoreInfoCount = 1;
-  info.pSignalSemaphoreInfos = &graphicSignal;
+  info.signalSemaphoreInfoCount = static_cast<uint32_t>(signals.size());
+  info.pSignalSemaphoreInfos = signals.data();
   info.commandBufferInfoCount = 1;
   info.pCommandBufferInfos = &cmdinfo;
 
-  vkQueueSubmit2(graphicsQueue_, 1, &info, context->_finishedFence);
+  vkQueueSubmit2(graphicsQueue_, 1, &info, currentFrame.finalSyncFence_);
+}
+
+void VulkanEngine::presentKHR(uint32_t swapchainImageIndex) {
+
+          // we want to wait on the _renderSemaphore for that,
+          // as its necessary that drawing commands have finished before the image is
+          // displayed to the user
+          VkPresentInfoKHR presentInfo = {};
+          presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+          presentInfo.swapchainCount = 1;
+          presentInfo.pSwapchains = &swapchain_;
+          presentInfo.pImageIndices = &swapchainImageIndex;
+          presentInfo.waitSemaphoreCount = 1;
+          presentInfo.pWaitSemaphores = &get_current_frame().graphicToPresent_;
+
+          VkResult e = vkQueuePresentKHR(presentQueue_, &presentInfo);
+          if (e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
+                    resize_requested = true;
+                    return;
+          }
+          else if (e != VK_SUCCESS && e != VK_SUBOPTIMAL_KHR) {
+                    throw std::runtime_error("failed to acquire swap chain image!");
+          }
 }
 
 std::vector<const char *> VulkanEngine::getRequiredExtensions() {
@@ -1052,6 +1050,7 @@ void VulkanEngine::create_swapchain(uint32_t width, uint32_t height) {
           //.use_default_format_selection()
           .set_desired_format(formatKHR)
           .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR) // V-Sync
+          //.set_desired_present_mode(VK_PRESENT_MODE_IMMEDIATE_KHR) 
           .set_desired_extent(width, height)
           .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
           .build()
@@ -1108,7 +1107,7 @@ void VulkanEngine::init_frames(
        semaphoreCreateInfo, timelineSemaphoreCreateInfo, fenceCreateInfo,
        setCount, poolSizeRatio, extent]() {
         auto ret = std::make_unique<FrameData>(this);
-        ret->init(extent, semaphoreCreateInfo, timelineSemaphoreCreateInfo);
+        ret->init(extent, fenceCreateInfo, semaphoreCreateInfo, timelineSemaphoreCreateInfo);
         ret->ctx[FrameData::ContextPass::COMPUTE] =
             std::make_unique<ComputeFrameContext>(ret.get());
         ret->ctx[FrameData::ContextPass::GRAPHIC] =
