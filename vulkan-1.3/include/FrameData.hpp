@@ -75,6 +75,7 @@ struct FrameData {
   virtual ~FrameData();
 
   void init(VkExtent3D extent,
+            const VkFenceCreateInfo& fenceCreateInfo,
             const VkSemaphoreCreateInfo &binSemaphoreCreateInfo,
             const VkSemaphoreCreateInfo &timelineSemaphoreCreateInfo);
   void destroy();
@@ -94,7 +95,10 @@ struct FrameData {
   void clean_last_frame(ContextPass pass);
 
   // ======== Synchronization Handles ========
-  VkSemaphore _swapChainWait; // Highest priority: Wait before all
+  VkSemaphore swapChainWait_;                     // Highest priority! It's for swapchainimage very important!
+  VkSemaphore timelineSemaphore_;               // Timeline Semaphore, sync all GPU queue
+  VkSemaphore graphicToPresent_;                  // Bin Semaphore, present queue wait for graphic
+  VkFence finalSyncFence_ = VK_NULL_HANDLE;      //graphic queue submit should set this to indicate it's end!
 
   // ======== Timeline Synchronization Handles ========
   uint64_t timelineValue_{};
@@ -108,10 +112,6 @@ struct FrameData {
   uint64_t transferWaitValue_{};
   uint64_t transferSignalValue_{};
 
-  uint64_t presentWaitValue_{};
-
-  VkSemaphore timelineSemaphore_;
-
   // ======== Sub-contexts ========
   std::unordered_map<ContextPass,
                      std::unique_ptr<CommonFrameContext> // MUST NOT BE shared!
@@ -124,7 +124,7 @@ struct FrameData {
 
 protected:
   void init_images(VkExtent3D extent);
-  void init_sync(const VkSemaphoreCreateInfo &semaphoreCreateInfo);
+  void init_sync(const VkFenceCreateInfo& fenceCreateInfo, const VkSemaphoreCreateInfo &semaphoreCreateInfo);
   void init_timeline(const VkSemaphoreCreateInfo &semaphoreCreateInfo);
 
   void destroy_timeline();
