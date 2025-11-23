@@ -121,7 +121,7 @@ FrameData::FrameData(VulkanEngine *eng) : engine_(eng) {
 FrameData::~FrameData() { destroy(); }
 
 void FrameData::init(VkExtent3D extent,
-          const VkFenceCreateInfo& fenceCreateInfo,
+                     const VkFenceCreateInfo &fenceCreateInfo,
                      const VkSemaphoreCreateInfo &binSemaphoreCreateInfo,
                      const VkSemaphoreCreateInfo &timelineSemaphoreCreateInfo) {
   if (isinit_)
@@ -142,10 +142,13 @@ void FrameData::destroy() {
   }
 }
 
-void FrameData::init_sync(const VkFenceCreateInfo& fenceCreateInfo, const VkSemaphoreCreateInfo &semaphoreCreateInfo) {
-          vkCreateFence(engine_->device_, &fenceCreateInfo, nullptr, &finalSyncFence_);
-          vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr, &swapChainWait_);
-          vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr, &graphicToPresent_);
+void FrameData::init_sync(const VkFenceCreateInfo &fenceCreateInfo,
+                          const VkSemaphoreCreateInfo &semaphoreCreateInfo) {
+  vkCreateFence(engine_->device_, &fenceCreateInfo, nullptr, &finalSyncFence_);
+  vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
+                    &swapChainWait_);
+  vkCreateSemaphore(engine_->device_, &semaphoreCreateInfo, nullptr,
+                    &graphicToPresent_);
 }
 
 void FrameData::init_timeline(
@@ -189,8 +192,8 @@ void FrameData::destroy_timeline() {
 }
 
 void FrameData::destroy_sync() {
-          vkDestroyFence(engine_->device_, finalSyncFence_, nullptr);
-          vkDestroySemaphore(engine_->device_, graphicToPresent_, nullptr);
+  vkDestroyFence(engine_->device_, finalSyncFence_, nullptr);
+  vkDestroySemaphore(engine_->device_, graphicToPresent_, nullptr);
   vkDestroySemaphore(engine_->device_, swapChainWait_, nullptr);
 }
 
