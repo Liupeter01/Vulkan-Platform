@@ -187,6 +187,10 @@ void FrameData::clean_last_frame(ContextPass pass) {
   }
 }
 
+bool FrameData::fence_ready() const {
+          return vkGetFenceStatus(engine_->device_, finalSyncFence_) == VK_SUCCESS ? true : false;
+}
+
 void FrameData::destroy_timeline() {
   vkDestroySemaphore(engine_->device_, timelineSemaphore_, nullptr);
 }

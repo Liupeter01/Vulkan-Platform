@@ -93,6 +93,8 @@ struct FrameData {
 
   void clean_last_frame(ContextPass pass);
 
+  bool fence_ready() const;
+
   // ======== Synchronization Handles ========
   VkSemaphore swapChainWait_; // Highest priority! It's for swapchainimage very
                               // important!
