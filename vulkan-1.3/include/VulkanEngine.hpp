@@ -159,7 +159,7 @@ private:
   VkDescriptorPool imguiPool_ = VK_NULL_HANDLE;
 
   // CommandBuffer Part
-  unsigned int frameNumber_ = 0;
+  uint64_t frameNumber_ = 0;
 
   EngineStats stats;
 
@@ -171,6 +171,7 @@ private:
       {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
   };
 
+  FrameData* frame_cache{};
   std::vector<std::unique_ptr<FrameData>> frames_;
 
   bool isComputeQueueSupported = false;

@@ -344,21 +344,28 @@ bool VulkanEngine::isDeviceSuitable(const vkb::PhysicalDevice &device) {
 void VulkanEngine::draw() {
 
   // wait until the gpu has finished rendering the last frame.
-  auto &currentFrame = get_current_frame();
+  frame_cache = nullptr;
+  frame_cache = &get_current_frame();
 
-  vkWaitForFences(device_, 1, &currentFrame.finalSyncFence_, true,
-                  std::numeric_limits<uint64_t>::max());
-  vkResetFences(device_, 1, &currentFrame.finalSyncFence_);
+  if (!frame_cache)[[unlikely]]
+            throw std::runtime_error("[VulkanEngine]: Invalid frame cache!");
+
+  if (!frame_cache->fence_ready()) {
+            // wait until the gpu has finished rendering the last frame.
+            vkWaitForFences(device_, 1, &frame_cache->finalSyncFence_, true,
+                      std::numeric_limits<uint64_t>::max());
+  }
+  vkResetFences(device_, 1, &frame_cache->finalSyncFence_);
 
   sceneMgr->update_scene();
 
-  currentFrame.computeWaitValue_ = currentFrame.timelineValue_;
-  currentFrame.computeSignalValue_ = ++currentFrame.timelineValue_;
+  frame_cache->computeWaitValue_ = frame_cache->timelineValue_;
+  frame_cache->computeSignalValue_ = ++frame_cache->timelineValue_;
 
   compute();
 
-  currentFrame.graphicsWaitValue_ = currentFrame.computeSignalValue_;
-  currentFrame.graphicsSignalValue_ = ++currentFrame.timelineValue_;
+  frame_cache->graphicsWaitValue_ = frame_cache->computeSignalValue_;
+  frame_cache->graphicsSignalValue_ = ++frame_cache->timelineValue_;
 
   // request image from the swapchain
   uint32_t swapchainImageIndex{};
@@ -368,9 +375,8 @@ void VulkanEngine::draw() {
 }
 
 void VulkanEngine::compute() {
-  auto &currentFrame = get_current_frame();
 
-  auto *context = currentFrame.get_context(FrameData::ContextPass::COMPUTE);
+  auto *context = frame_cache->get_context(FrameData::ContextPass::COMPUTE);
   if (!context) {
     spdlog::error("[VulkanEngine Error]: Invalid Compute Pass!");
     return;
@@ -391,19 +397,19 @@ void VulkanEngine::compute() {
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-  sceneMgr->compute(cmd, currentFrame.ctx[FrameData::ContextPass::COMPUTE]);
+  sceneMgr->compute(cmd, frame_cache->ctx[FrameData::ContextPass::COMPUTE]);
 
   vkEndCommandBuffer(cmd);
 
   VkCommandBufferSubmitInfo cmdinfo = tools::command_buffer_submit_info(cmd);
 
   VkSemaphoreSubmitInfo computeWait = tools::semaphore_submit_info(
-      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, currentFrame.timelineSemaphore_,
-      computeQueueFamily_, currentFrame.computeWaitValue_);
+      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, frame_cache->timelineSemaphore_,
+      computeQueueFamily_, frame_cache->computeWaitValue_);
 
   VkSemaphoreSubmitInfo computeSignal = tools::semaphore_submit_info(
-      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, currentFrame.timelineSemaphore_,
-      computeQueueFamily_, currentFrame.computeSignalValue_);
+      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, frame_cache->timelineSemaphore_,
+      computeQueueFamily_, frame_cache->computeSignalValue_);
 
   VkSubmitInfo2 info{};
   info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
@@ -418,9 +424,8 @@ void VulkanEngine::compute() {
 }
 
 void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
-  auto &currentFrame = get_current_frame();
 
-  auto *context = currentFrame.get_context(FrameData::ContextPass::GRAPHIC);
+  auto *context = frame_cache->get_context(FrameData::ContextPass::GRAPHIC);
   if (!context) {
     spdlog::error("[VulkanEngine Error]: Invalid Graphic Pass!");
     return;
@@ -432,16 +437,16 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
   // now that we are sure that the commands finished executing, we can safely
   VkCommandBuffer cmd = context->_commandBuffer;
 
-  VkImage &draw_image = currentFrame.drawImage_->image;   // Draw Image
-  VkImage &depth_image = currentFrame.depthImage_->image; // Depth Image
+  VkImage &draw_image = frame_cache->drawImage_->image;   // Draw Image
+  VkImage &depth_image = frame_cache->depthImage_->image; // Depth Image
 
   drawExtent_.height = static_cast<uint32_t>(
       std::min(swapchainExtent_.height,
-               currentFrame.drawImage_->imageExtent.height) *
+                frame_cache->drawImage_->imageExtent.height) *
       renderScale);
   drawExtent_.width = static_cast<uint32_t>(
       std::min(swapchainExtent_.width,
-               currentFrame.drawImage_->imageExtent.width) *
+                frame_cache->drawImage_->imageExtent.width) *
       renderScale);
 
   // reset the command buffer to begin recording again.
@@ -487,11 +492,11 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
       .createBarrier(cmd);
 
   // Graphic Render
-  sceneMgr->render(cmd, currentFrame.ctx[FrameData::ContextPass::GRAPHIC]);
+  sceneMgr->render(cmd, frame_cache->ctx[FrameData::ContextPass::GRAPHIC]);
 
   VkResult e = vkAcquireNextImageKHR(
       device_, swapchain_, std::numeric_limits<uint64_t>::max(),
-      currentFrame.swapChainWait_, nullptr, &swapchainImageIndex);
+            frame_cache->swapChainWait_, nullptr, &swapchainImageIndex);
   if (e == VK_ERROR_OUT_OF_DATE_KHR) {
     resize_requested = true;
   } else if (e != VK_SUCCESS && e != VK_SUBOPTIMAL_KHR) {
@@ -557,7 +562,7 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
   VkSemaphoreSubmitInfo graphicWait = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
       get_current_frame().timelineSemaphore_, graphicsQueueFamily_,
-      currentFrame.graphicsWaitValue_);
+            frame_cache->graphicsWaitValue_);
 
   VkSemaphoreSubmitInfo graphic2Present = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
@@ -566,7 +571,7 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
   VkSemaphoreSubmitInfo graphicSignal = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
       get_current_frame().timelineSemaphore_, graphicsQueueFamily_,
-      currentFrame.graphicsSignalValue_);
+            frame_cache->graphicsSignalValue_);
 
   std::array<VkSemaphoreSubmitInfo, 2> waits = {swapChainImageWait,
                                                 graphicWait};
@@ -583,7 +588,7 @@ void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
   info.commandBufferInfoCount = 1;
   info.pCommandBufferInfos = &cmdinfo;
 
-  vkQueueSubmit2(graphicsQueue_, 1, &info, currentFrame.finalSyncFence_);
+  vkQueueSubmit2(graphicsQueue_, 1, &info, frame_cache->finalSyncFence_);
 }
 
 void VulkanEngine::presentKHR(uint32_t swapchainImageIndex) {
