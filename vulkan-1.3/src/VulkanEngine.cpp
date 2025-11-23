@@ -414,7 +414,7 @@ void VulkanEngine::compute() {
   info.commandBufferInfoCount = 1;
   info.pCommandBufferInfos = &cmdinfo;
 
-  vkQueueSubmit2(computeQueue_, 1, &info, context->_finishedFence);
+  vkQueueSubmit2(computeQueue_, 1, &info, nullptr);
 }
 
 void VulkanEngine::graphic(uint32_t &swapchainImageIndex) {
