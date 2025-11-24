@@ -2,7 +2,7 @@
 #ifndef _GLOBALDEF_HPP_
 #define _GLOBALDEF_HPP_
 #include <Descriptors.hpp>
-#include <FrameData.hpp>
+#include <frame/FrameData.hpp>
 #include <string>
 #include <vk_mem_alloc.h>
 
