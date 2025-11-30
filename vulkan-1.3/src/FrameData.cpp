@@ -1,7 +1,7 @@
-#include <frame/FrameData.hpp>
 #include <GlobalDef.hpp>
 #include <Tools.hpp>
 #include <VulkanEngine.hpp>
+#include <frame/FrameData.hpp>
 #include <spdlog/spdlog.h>
 
 namespace engine {
@@ -186,7 +186,9 @@ void FrameData::clean_last_frame(ContextPass pass) {
 }
 
 bool FrameData::fence_ready() const {
-          return vkGetFenceStatus(engine_->device_, finalSyncFence_) == VK_SUCCESS ? true : false;
+  return vkGetFenceStatus(engine_->device_, finalSyncFence_) == VK_SUCCESS
+             ? true
+             : false;
 }
 
 void FrameData::destroy_timeline() {

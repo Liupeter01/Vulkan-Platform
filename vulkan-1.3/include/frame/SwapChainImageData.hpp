@@ -5,25 +5,24 @@
 
 namespace engine {
 
-          class VulkanEngine;
-          struct SwapChainImageData {
-                    SwapChainImageData(VulkanEngine* eng);
-                    virtual ~SwapChainImageData();
-                   void init(VkSemaphoreCreateInfo semaphoreCreateInfo,
-                              VkImage image,
-                              VkImageView imageView);
+class VulkanEngine;
+struct SwapChainImageData {
+  SwapChainImageData(VulkanEngine *eng);
+  virtual ~SwapChainImageData();
+  void init(VkSemaphoreCreateInfo semaphoreCreateInfo, VkImage image,
+            VkImageView imageView);
 
-                   void destroy();
+  void destroy();
 
-                   VkImage swapchainImage;         //
-                   VkImageView swapchainImageView; //
+  VkImage swapchainImage;         //
+  VkImageView swapchainImageView; //
 
-                    VkSemaphore present; // Bin Semaphore, present queue wait for graphic
+  VkSemaphore present; // Bin Semaphore, present queue wait for graphic
 
-          private:
-                    bool isinit_ = false;
-                    VulkanEngine* engine_{};
-          };
-}
+private:
+  bool isinit_ = false;
+  VulkanEngine *engine_{};
+};
+} // namespace engine
 
 #endif //_IMAGE_DATA_HPP_

@@ -1,20 +1,20 @@
 #pragma once
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
-#include <tuple>
-#include <frame/FrameData.hpp>
-#include <frame/SwapChainImageData.hpp>
 #include <GlobalDef.hpp>
 #include <VkBootstrap.h>
 #include <Window.hpp>
+#include <builder/QueueSchedulerBuilder.hpp>
+#include <frame/FrameData.hpp>
+#include <frame/SwapChainImageData.hpp>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <nodes/camera/CameraNode.hpp>
 #include <scene/ScenesManager.hpp>
 #include <string>
+#include <tuple>
 #include <vector>
-#include <builder/QueueSchedulerBuilder.hpp>
 
 // IMGUI Support
 #define GLFW_INCLUDE_VULKAN
@@ -72,7 +72,7 @@ protected:
   pickPhysicalDevicesByUser(vkb::PhysicalDeviceSelector &selector,
                             bool enableDefault = true);
 
-  void show_states(const EngineStats& stats);
+  void show_states(const EngineStats &stats);
 
 private:
   void init_vulkan();
@@ -121,15 +121,15 @@ private:
 
   bool isDeviceSuitable(const vkb::PhysicalDevice &device);
 
-  void pre_compute(FrameData& currentFrame);
-  void graphic(FrameData& currentFrame, uint32_t swapchainImageIndex);
-  void post_compute(FrameData& currentFrame, uint32_t swapchainImageIndex);
-  void presentKHR(FrameData& currentFrame, uint32_t swapchainImageIndex);
+  void pre_compute(FrameData &currentFrame);
+  void graphic(FrameData &currentFrame, uint32_t swapchainImageIndex);
+  void post_compute(FrameData &currentFrame, uint32_t swapchainImageIndex);
+  void presentKHR(FrameData &currentFrame, uint32_t swapchainImageIndex);
 
-  FrameData& get_current_frame();
+  FrameData &get_current_frame();
   void switch_to_next_frame();
 
-  SwapChainImageData& get_image_by_index(uint32_t index);
+  SwapChainImageData &get_image_by_index(uint32_t index);
 
 private:
   bool isInit = false;
@@ -166,11 +166,11 @@ private:
   VkDescriptorPool imguiPool_ = VK_NULL_HANDLE;
 
   uint64_t frameNumber_ = 0;
-  FrameData* frame_cache{};
+  FrameData *frame_cache{};
   std::vector<std::unique_ptr<FrameData>> frames_;
 
   uint32_t swapChainImageIndex_ = 0;
-  SwapChainImageData* image_cache{};
+  SwapChainImageData *image_cache{};
   std::vector<std::unique_ptr<SwapChainImageData>> images_;
 
   EngineStats stats;
@@ -189,8 +189,8 @@ private:
   VkQueue graphicsQueue_{};
   uint32_t graphicsQueueFamily_{};
 
-  //VkQueue presentQueue_{};
-  //uint32_t presentQueueFamily_{};
+  // VkQueue presentQueue_{};
+  // uint32_t presentQueueFamily_{};
 
   VkQueue transferQueue_{};
   uint32_t transferQueueFamily_{};
