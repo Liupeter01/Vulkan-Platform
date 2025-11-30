@@ -85,16 +85,16 @@ namespace engine {
                     // ==== allocate PRESENT queue first (must guarantee swapchain safety) ====
                     if (req_present) {
                               presentQueue_ = dispatcher->normalPools_.front();
-                              //dispatcher->normalPools_.erase(dispatcher->normalPools_.begin());
-                              //available--;
+                              dispatcher->normalPools_.erase(dispatcher->normalPools_.begin());
+                              available--;
                               spdlog::info("[QueueScheduler] Present queue allocated.");
                     }
 
                     // ==== allocate IMGUI queue next (optional feature) ====
                     if (req_imgui) {
                               imguiQueue_ = dispatcher->normalPools_.front();
-                              //dispatcher->normalPools_.erase(dispatcher->normalPools_.begin());
-                              //available--;
+                              dispatcher->normalPools_.erase(dispatcher->normalPools_.begin());
+                              available--;
                               spdlog::info("[QueueScheduler] ImGui queue allocated.");
                     }
 
