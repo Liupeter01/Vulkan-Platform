@@ -99,8 +99,6 @@ struct FrameData {
   VkSemaphore swapChainWait_; // Highest priority! It's for swapchainimage very
                               // important!
   VkSemaphore timelineSemaphore_; // Timeline Semaphore, sync all GPU queue
-  VkSemaphore
-      graphicToPresent_; // Bin Semaphore, present queue wait for graphic
   VkFence finalSyncFence_ = VK_NULL_HANDLE; // graphic queue submit should set
                                             // this to indicate it's end!
 
