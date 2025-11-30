@@ -1,7 +1,9 @@
 #pragma once
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
-#include <FrameData.hpp>
+#include <tuple>
+#include <frame/FrameData.hpp>
+#include <frame/SwapChainImageData.hpp>
 #include <GlobalDef.hpp>
 #include <VkBootstrap.h>
 #include <Window.hpp>
@@ -12,6 +14,7 @@
 #include <scene/ScenesManager.hpp>
 #include <string>
 #include <vector>
+#include <builder/QueueSchedulerBuilder.hpp>
 
 // IMGUI Support
 #define GLFW_INCLUDE_VULKAN
@@ -28,6 +31,7 @@ struct CommonFrameContext;
 struct SceneNodeBuilder;
 struct NodeManagerBuilder;
 class ScenesNodesManager;
+struct SwapChainImageData;
 
 namespace node {
 class SceneNode;
@@ -41,6 +45,7 @@ class VulkanEngine {
   friend class node::SceneNode;
   friend class ScenesManager;
   friend struct CommonFrameContext;
+  friend struct SwapChainImageData;
 
 public:
   using CommandSubmitFunc = std::function<void(VkCommandBuffer)>;
@@ -61,14 +66,13 @@ protected:
 
   void imm_command_submit(CommandSubmitFunc &&function);
 
-  FrameData &get_current_frame();
-  void switch_to_next_frame();
-
   vkb::PhysicalDevice
   pickDefaultPhysicalDevice(vkb::PhysicalDeviceSelector &selector);
   vkb::PhysicalDevice
   pickPhysicalDevicesByUser(vkb::PhysicalDeviceSelector &selector,
                             bool enableDefault = true);
+
+  void show_states(const EngineStats& stats);
 
 private:
   void init_vulkan();
@@ -115,13 +119,17 @@ private:
   void draw_imgui(VkCommandBuffer cmd, VkExtent2D drawExtent,
                   VkImageView imageView = VK_NULL_HANDLE);
 
-  void show_states(const EngineStats &stats);
-
   bool isDeviceSuitable(const vkb::PhysicalDevice &device);
 
-  void presentKHR(uint32_t swapchainImageIndex);
-  void compute();
-  void graphic(uint32_t &swapchainImageIndex);
+  void pre_compute(FrameData& currentFrame);
+  void graphic(FrameData& currentFrame, uint32_t swapchainImageIndex);
+  void post_compute(FrameData& currentFrame, uint32_t swapchainImageIndex);
+  void presentKHR(FrameData& currentFrame, uint32_t swapchainImageIndex);
+
+  FrameData& get_current_frame();
+  void switch_to_next_frame();
+
+  SwapChainImageData& get_image_by_index(uint32_t index);
 
 private:
   bool isInit = false;
@@ -148,7 +156,6 @@ private:
   // SwapChain Part
   VkSwapchainKHR swapchain_;
   VkFormat swapchainImageFormat_ = VK_FORMAT_B8G8R8A8_UNORM;
-
   std::vector<VkImage> swapchainImages_;         //
   std::vector<VkImageView> swapchainImageViews_; //
   VkExtent2D swapchainExtent_;
@@ -158,8 +165,13 @@ private:
   // Support IMGUI
   VkDescriptorPool imguiPool_ = VK_NULL_HANDLE;
 
-  // CommandBuffer Part
   uint64_t frameNumber_ = 0;
+  FrameData* frame_cache{};
+  std::vector<std::unique_ptr<FrameData>> frames_;
+
+  uint32_t swapChainImageIndex_ = 0;
+  SwapChainImageData* image_cache{};
+  std::vector<std::unique_ptr<SwapChainImageData>> images_;
 
   EngineStats stats;
 
@@ -171,23 +183,22 @@ private:
       {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
   };
 
-  FrameData* frame_cache{};
-  std::vector<std::unique_ptr<FrameData>> frames_;
-
   bool isComputeQueueSupported = false;
   bool isTransferQueueSupported = false;
 
   VkQueue graphicsQueue_{};
   uint32_t graphicsQueueFamily_{};
 
-  VkQueue presentQueue_{};
-  uint32_t presentQueueFamily_{};
+  //VkQueue presentQueue_{};
+  //uint32_t presentQueueFamily_{};
 
   VkQueue transferQueue_{};
   uint32_t transferQueueFamily_{};
 
   VkQueue computeQueue_{};
   uint32_t computeQueueFamily_{};
+
+  std::unique_ptr<QueueScheduler> queueScheduler_{};
 
   VkExtent2D drawExtent_;
   float renderScale = 1.f;
