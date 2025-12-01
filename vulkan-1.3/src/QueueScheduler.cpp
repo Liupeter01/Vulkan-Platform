@@ -15,7 +15,7 @@ std::size_t QueueDispatcher::dispatch() {
   if (normalCounter <= 1)
     return 0;
 
-  normalIndex = (normalIndex++) % normalCounter;
+  normalIndex = (++normalIndex) % normalCounter;
   return normalIndex;
 }
 
