@@ -445,7 +445,7 @@ void VulkanEngine::pre_compute(FrameData &currentFrame) {
 
 void post_compute(FrameData &currentFrame, uint32_t swapchainImageIndex) {}
 
-void VulkanEngine::graphic(FrameData &currentFrame, Pack& queue,
+void VulkanEngine::graphic(FrameData &currentFrame, Pack &queue,
                            uint32_t swapchainImageIndex) {
 
   auto *context = currentFrame.get_context(FrameData::ContextPass::GRAPHIC);
@@ -517,8 +517,10 @@ void VulkanEngine::graphic(FrameData &currentFrame, Pack& queue,
   // Graphic Render
   sceneMgr->render(cmd, currentFrame.ctx[FrameData::ContextPass::GRAPHIC]);
 
-  VkImage& swapchain_image = get_image_by_index(swapchainImageIndex).swapchainImage; // SwapChain Image
-  VkImageView& image_view = get_image_by_index(swapchainImageIndex).swapchainImageView;
+  VkImage &swapchain_image =
+      get_image_by_index(swapchainImageIndex).swapchainImage; // SwapChain Image
+  VkImageView &image_view =
+      get_image_by_index(swapchainImageIndex).swapchainImageView;
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
@@ -558,8 +560,7 @@ void VulkanEngine::graphic(FrameData &currentFrame, Pack& queue,
       ImageBarrierBuilder(swapchain_image, VK_FORMAT_B8G8R8A8_UNORM)
           .from(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
           .to(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-          .queueIndex(queue.family,
-                      queueScheduler_->present_queue().family)
+          .queueIndex(queue.family, queueScheduler_->present_queue().family)
           .build();
 
   BarrierBuilder{}.add(colorAttach2Present).createBarrier(cmd);
@@ -574,11 +575,11 @@ void VulkanEngine::graphic(FrameData &currentFrame, Pack& queue,
 
   VkSemaphoreSubmitInfo graphicWait = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, currentFrame.timelineSemaphore_,
-            queue.family, currentFrame.graphicsWaitValue_);
+      queue.family, currentFrame.graphicsWaitValue_);
 
   VkSemaphoreSubmitInfo graphic2Present = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-            get_image_by_index(swapchainImageIndex).present, queue.family);
+      get_image_by_index(swapchainImageIndex).present, queue.family);
 
   VkSemaphoreSubmitInfo graphicSignal = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, currentFrame.timelineSemaphore_,
@@ -601,7 +602,7 @@ void VulkanEngine::graphic(FrameData &currentFrame, Pack& queue,
   vkQueueSubmit2(queue.queue, 1, &info, currentFrame.finalSyncFence_);
 }
 
-void VulkanEngine::post_compute(FrameData &currentFrame, Pack& queue,
+void VulkanEngine::post_compute(FrameData &currentFrame, Pack &queue,
                                 uint32_t swapchainImageIndex) {}
 
 void VulkanEngine::presentKHR(FrameData &currentFrame,
@@ -616,7 +617,8 @@ void VulkanEngine::presentKHR(FrameData &currentFrame,
   presentInfo.pSwapchains = &swapchain_;
   presentInfo.pImageIndices = &swapchainImageIndex;
   presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = &get_image_by_index(swapchainImageIndex).present;
+  presentInfo.pWaitSemaphores =
+      &get_image_by_index(swapchainImageIndex).present;
 
   VkResult e =
       vkQueuePresentKHR(queueScheduler_->present_queue().queue, &presentInfo);
@@ -928,8 +930,8 @@ void VulkanEngine::init_imgui() {
   init_info.Instance = instance_;
   init_info.PhysicalDevice = physicalDevice_;
   init_info.Device = device_;
-   init_info.Queue = queueScheduler_->imgui_queue().queue;
-   init_info.QueueFamily = queueScheduler_->imgui_queue().family;
+  init_info.Queue = queueScheduler_->imgui_queue().queue;
+  init_info.QueueFamily = queueScheduler_->imgui_queue().family;
 
   init_info.DescriptorPool = imguiPool_;
   init_info.MinImageCount = static_cast<uint32_t>(FRAMES_IN_FLIGHT);

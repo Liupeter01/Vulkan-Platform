@@ -2,9 +2,9 @@
 #ifndef _MULTI_QUEUE_DEVICE_BUILDER_HPP_
 #define _MULTI_QUEUE_DEVICE_BUILDER_HPP_
 #include <VkBootstrap.h>
+#include <functional>
 #include <list>
 #include <queue>
-#include <functional>
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
