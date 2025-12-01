@@ -4,6 +4,7 @@
 #include <VkBootstrap.h>
 #include <list>
 #include <queue>
+#include <functional>
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
 

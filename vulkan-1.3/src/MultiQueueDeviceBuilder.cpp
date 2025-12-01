@@ -111,13 +111,13 @@ MultiQueueDeviceBuilder::BuildPQ(VkQueueFlagBits requiredFlags) {
 
   PQ pq(cmp);
   for (auto it = blockPool_.begin(); it != blockPool_.end(); ++it) {
-    if (it->count == 0)
+    if (!it->count)
       continue;
     if ((it->flags & requiredFlags) != requiredFlags)
       continue;
 
     PQNode node{it, score(it->flags)};
-    if (node.score == 0)
+    if (!node.score)
       continue;
     pq.push(node);
   }
