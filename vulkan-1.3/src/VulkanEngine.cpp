@@ -351,6 +351,8 @@ void VulkanEngine::draw() {
   frame_cache = nullptr;
   frame_cache = &get_current_frame();
 
+  auto graphic_queue = queueScheduler_->get_queue(VK_QUEUE_GRAPHICS_BIT);
+
   if (!frame_cache) [[unlikely]]
     throw std::runtime_error("[VulkanEngine]: Invalid frame cache!");
 
@@ -387,8 +389,8 @@ void VulkanEngine::draw() {
   // SwapChain Index = {}",
   //           frameNumber_ % FRAMES_IN_FLIGHT, image_index);
 
-  graphic(*frame_cache, image_index);
-  post_compute(*frame_cache, image_index);
+  graphic(*frame_cache, graphic_queue, image_index);
+  post_compute(*frame_cache, graphic_queue, image_index);
   presentKHR(*frame_cache, image_index);
 }
 
@@ -443,7 +445,7 @@ void VulkanEngine::pre_compute(FrameData &currentFrame) {
 
 void post_compute(FrameData &currentFrame, uint32_t swapchainImageIndex) {}
 
-void VulkanEngine::graphic(FrameData &currentFrame,
+void VulkanEngine::graphic(FrameData &currentFrame, Pack& queue,
                            uint32_t swapchainImageIndex) {
 
   auto *context = currentFrame.get_context(FrameData::ContextPass::GRAPHIC);
@@ -515,10 +517,8 @@ void VulkanEngine::graphic(FrameData &currentFrame,
   // Graphic Render
   sceneMgr->render(cmd, currentFrame.ctx[FrameData::ContextPass::GRAPHIC]);
 
-  VkImage &swapchain_image =
-      swapchainImages_[swapchainImageIndex]; // SwapChain Image
-
-  VkImageView &image_view = swapchainImageViews_[swapchainImageIndex];
+  VkImage& swapchain_image = get_image_by_index(swapchainImageIndex).swapchainImage; // SwapChain Image
+  VkImageView& image_view = get_image_by_index(swapchainImageIndex).swapchainImageView;
 
   // transition the draw image and the swapchain image into their correct
   // transfer layouts
@@ -558,7 +558,7 @@ void VulkanEngine::graphic(FrameData &currentFrame,
       ImageBarrierBuilder(swapchain_image, VK_FORMAT_B8G8R8A8_UNORM)
           .from(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
           .to(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-          .queueIndex(graphicsQueueFamily_,
+          .queueIndex(queue.family,
                       queueScheduler_->present_queue().family)
           .build();
 
@@ -570,19 +570,19 @@ void VulkanEngine::graphic(FrameData &currentFrame,
 
   VkSemaphoreSubmitInfo swapChainImageWait = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
-      currentFrame.swapChainWait_, graphicsQueueFamily_);
+      currentFrame.swapChainWait_, queue.family);
 
   VkSemaphoreSubmitInfo graphicWait = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, currentFrame.timelineSemaphore_,
-      graphicsQueueFamily_, currentFrame.graphicsWaitValue_);
+            queue.family, currentFrame.graphicsWaitValue_);
 
   VkSemaphoreSubmitInfo graphic2Present = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-      images_[swapchainImageIndex]->present, graphicsQueueFamily_);
+            get_image_by_index(swapchainImageIndex).present, queue.family);
 
   VkSemaphoreSubmitInfo graphicSignal = tools::semaphore_submit_info(
       VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, currentFrame.timelineSemaphore_,
-      graphicsQueueFamily_, currentFrame.graphicsSignalValue_);
+      queue.family, currentFrame.graphicsSignalValue_);
 
   std::array<VkSemaphoreSubmitInfo, 2> waits = {swapChainImageWait,
                                                 graphicWait};
@@ -598,11 +598,10 @@ void VulkanEngine::graphic(FrameData &currentFrame,
   info.pSignalSemaphoreInfos = signals.data();
   info.commandBufferInfoCount = 1;
   info.pCommandBufferInfos = &cmdinfo;
-
-  vkQueueSubmit2(graphicsQueue_, 1, &info, currentFrame.finalSyncFence_);
+  vkQueueSubmit2(queue.queue, 1, &info, currentFrame.finalSyncFence_);
 }
 
-void VulkanEngine::post_compute(FrameData &currentFrame,
+void VulkanEngine::post_compute(FrameData &currentFrame, Pack& queue,
                                 uint32_t swapchainImageIndex) {}
 
 void VulkanEngine::presentKHR(FrameData &currentFrame,
@@ -617,7 +616,7 @@ void VulkanEngine::presentKHR(FrameData &currentFrame,
   presentInfo.pSwapchains = &swapchain_;
   presentInfo.pImageIndices = &swapchainImageIndex;
   presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = &images_[swapchainImageIndex]->present;
+  presentInfo.pWaitSemaphores = &get_image_by_index(swapchainImageIndex).present;
 
   VkResult e =
       vkQueuePresentKHR(queueScheduler_->present_queue().queue, &presentInfo);
@@ -762,14 +761,6 @@ void VulkanEngine::init_vulkan() {
   spdlog::info(
       "[VulkanEngine Info]: Creating graphic queue with queueFamilyIndex = {}",
       graphicsQueueFamily_);
-
-  // presentQueue_ = vkbDevice.get_queue(vkb::QueueType::present).value();
-  // presentQueueFamily_ =
-  //     vkbDevice.get_queue_index(vkb::QueueType::present).value();
-
-  // spdlog::info(
-  //     "[VulkanEngine Info]: Creating present queue with queueFamilyIndex =
-  //     {}", presentQueueFamily_);
 
   if (!vkb_physicalDevice_.has_separate_transfer_queue()) {
     isTransferQueueSupported = false;
@@ -937,13 +928,12 @@ void VulkanEngine::init_imgui() {
   init_info.Instance = instance_;
   init_info.PhysicalDevice = physicalDevice_;
   init_info.Device = device_;
-  init_info.Queue = graphicsQueue_;
-  // init_info.Queue = queueScheduler_->imgui_queue().queue;
-  // init_info.QueueFamily = queueScheduler_->imgui_queue().family;
+   init_info.Queue = queueScheduler_->imgui_queue().queue;
+   init_info.QueueFamily = queueScheduler_->imgui_queue().family;
 
   init_info.DescriptorPool = imguiPool_;
-  init_info.MinImageCount = 3;
-  init_info.ImageCount = 3;
+  init_info.MinImageCount = static_cast<uint32_t>(FRAMES_IN_FLIGHT);
+  init_info.ImageCount = static_cast<uint32_t>(FRAMES_IN_FLIGHT);
   init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
   init_info.UseDynamicRendering = true;
 
@@ -1202,10 +1192,6 @@ void VulkanEngine::destroy_vulkan() {
 void VulkanEngine::destroy_swapchain() {
   vkDestroySwapchainKHR(device_, swapchain_, nullptr);
 
-  // destroy swapchain resources
-  // for (int i = 0; i < swapchainImageViews_.size(); i++) {
-  //  vkDestroyImageView(device_, swapchainImageViews_[i], nullptr);
-  //}
   for (std::size_t i = 0; i < images_.size(); ++i) {
     images_[i]->destroy();
     images_[i].reset();

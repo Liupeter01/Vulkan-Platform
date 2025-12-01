@@ -122,8 +122,8 @@ private:
   bool isDeviceSuitable(const vkb::PhysicalDevice &device);
 
   void pre_compute(FrameData &currentFrame);
-  void graphic(FrameData &currentFrame, uint32_t swapchainImageIndex);
-  void post_compute(FrameData &currentFrame, uint32_t swapchainImageIndex);
+  void graphic(FrameData &currentFrame, Pack &queue, uint32_t swapchainImageIndex);
+  void post_compute(FrameData &currentFrame, Pack& queue, uint32_t swapchainImageIndex);
   void presentKHR(FrameData &currentFrame, uint32_t swapchainImageIndex);
 
   FrameData &get_current_frame();
