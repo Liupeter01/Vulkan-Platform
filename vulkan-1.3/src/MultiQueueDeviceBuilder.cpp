@@ -180,7 +180,10 @@ void MultiQueueDeviceBuilder::consume(VkQueueFlagBits requiredFlags,
   }
 
   if (!req.allocated) {
-    throw std::runtime_error("Nothing Allocated for this queue!");
+            auto str = fmt::format("[MultiQueueDeviceBuilder Warn]: Nothing Allocated for this {} queue", 
+                      static_cast<uint32_t>(requiredFlags));
+            spdlog::warn(str);
+            throw std::runtime_error(str);
   }
 }
 
