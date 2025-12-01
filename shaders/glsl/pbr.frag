@@ -14,10 +14,10 @@ layout(location = 0) out vec4 outFragColor;
 
 void main()
 {
-    float lightValue = clamp(dot(inNormal, myScene.sunlightDirection.xyz), 0.1f, 1.f);
+  float lightValue = clamp(dot(inNormal, myScene.sunlightDirection.xyz), 0.1f, 1.f);
 
-    vec3 color = inColor * texture(colorTex, inUV).xyz;
-    vec3 ambient = color * myScene.ambientColor.xyz;
+  vec3 color = inColor * texture(colorTex, inUV).xyz;
+  vec3 ambient = color * myScene.ambientColor.xyz;
 
-    outFragColor = vec4(color * lightValue * myScene.sunlightColor.w + ambient, 1.0f);
+  outFragColor = vec4(color * lightValue * myScene.sunlightColor.w + ambient, 1.0f);
 }

@@ -105,15 +105,14 @@ image_subresource_range(VkImageAspectFlags aspectMask) {
 
 [[nodiscard]]
 inline static VkSemaphoreSubmitInfo
-semaphore_submit_info(VkPipelineStageFlags2 stageMask, VkSemaphore semaphore) {
+semaphore_submit_info(VkPipelineStageFlags2 stageMask, VkSemaphore semaphore,
+                      uint32_t queueFamilyIndex = 0, uint64_t value = 0) {
   VkSemaphoreSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  submitInfo.pNext = nullptr;
   submitInfo.semaphore = semaphore;
   submitInfo.stageMask = stageMask;
-  submitInfo.deviceIndex = 0;
-  submitInfo.value = 1;
-
+  submitInfo.deviceIndex = queueFamilyIndex;
+  submitInfo.value = value;
   return submitInfo;
 }
 
@@ -287,7 +286,8 @@ rendering_info(VkExtent2D rect, VkRenderingAttachmentInfo *pColorAttachments,
 [[nodiscard]]
 inline static VkPipelineShaderStageCreateInfo
 shader_stage_create_info(VkDevice &device, const std::string &shaderPath,
-                         VkShaderStageFlagBits stage) {
+                         VkShaderStageFlagBits stage,
+                         const std::string &entry = "main") {
 
   VkShaderModule shaderModule;
 
@@ -297,7 +297,7 @@ shader_stage_create_info(VkDevice &device, const std::string &shaderPath,
   shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   shaderStage.stage = stage;
   shaderStage.module = shaderModule;
-  shaderStage.pName = "main";
+  shaderStage.pName = entry.c_str();
   shaderStage.flags = 0;
   shaderStage.pSpecializationInfo = nullptr;
   return shaderStage;

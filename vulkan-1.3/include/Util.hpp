@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _UTIL_HPP_
 #define _UTIL_HPP_
+#include <builder/BarrierBuilder.hpp>
 #include <fstream>
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -59,36 +60,32 @@ static inline void generate_mipmaps(VkCommandBuffer cmd, VkImage image,
 
   const std::size_t mips = generate_mipmap_levels(imageSize);
 
-  for (std::size_t perviousLevel = 0; perviousLevel < mips - 1;
-       ++perviousLevel) {
+  // assume LOD = 0 already exist!
+  for (std::size_t currLevel = 1; currLevel < mips; ++currLevel) {
 
-    const std::size_t currentLevel = perviousLevel + 1;
+    const std::size_t lastLevel = currLevel - 1;
     VkExtent2D currSize{std::max(imageSize.width >> 1, 1u),
                         std::max(imageSize.height >> 1, 1u)};
 
-    VkImageSubresourceRange subImage{};
-    subImage.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    subImage.baseMipLevel = static_cast<uint32_t>(perviousLevel);
-    subImage.levelCount = 1;
-    subImage.baseArrayLayer = 0;
-    subImage.layerCount = VK_REMAINING_ARRAY_LAYERS;
+    auto imageBarrierLast = ImageBarrierBuilder{image}
+                                .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+                                .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+                                .to(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+                                .withRange(static_cast<uint32_t>(lastLevel), 1)
+                                .build();
 
-    VkImageMemoryBarrier2 imageBarrier{};
-    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-    imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
-    imageBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    imageBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    imageBarrier.subresourceRange = subImage;
-    imageBarrier.image = image;
+    auto imageBarrierCurrent =
+        ImageBarrierBuilder{image}
+            .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+            .from(VK_IMAGE_LAYOUT_UNDEFINED)
+            .to(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+            .withRange(static_cast<uint32_t>(currLevel), 1)
+            .build();
 
-    VkDependencyInfo depInfo{};
-    depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    depInfo.imageMemoryBarrierCount = 1;
-    depInfo.pImageMemoryBarriers = &imageBarrier;
-    vkCmdPipelineBarrier2(cmd, &depInfo);
+    BarrierBuilder{}
+        .add(imageBarrierLast)
+        .add(imageBarrierCurrent)
+        .createBarrier(cmd);
 
     VkImageBlit2 blitRegion{};
     blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
@@ -99,28 +96,43 @@ static inline void generate_mipmaps(VkCommandBuffer cmd, VkImage image,
     blitRegion.dstOffsets[1].y = static_cast<int32_t>(currSize.height);
     blitRegion.dstOffsets[1].z = 1;
 
-    blitRegion.srcSubresource.aspectMask =
-        blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    blitRegion.srcSubresource.layerCount =
-        blitRegion.dstSubresource.layerCount = 1;
-    blitRegion.srcSubresource.mipLevel = static_cast<uint32_t>(perviousLevel);
-    blitRegion.dstSubresource.mipLevel = static_cast<uint32_t>(currentLevel);
+    blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blitRegion.srcSubresource.layerCount = 1;
+    blitRegion.dstSubresource.layerCount = 1;
+    blitRegion.srcSubresource.mipLevel = static_cast<uint32_t>(lastLevel);
+    blitRegion.dstSubresource.mipLevel = static_cast<uint32_t>(currLevel);
 
     VkBlitImageInfo2 blitInfo{};
     blitInfo.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2;
     blitInfo.dstImage = blitInfo.srcImage = image;
-    blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     blitInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     blitInfo.filter = VK_FILTER_LINEAR;
     blitInfo.regionCount = 1;
     blitInfo.pRegions = &blitRegion;
     vkCmdBlitImage2(cmd, &blitInfo);
 
     imageSize = currSize;
+
+    imageBarrierLast = ImageBarrierBuilder{image}
+                           .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+                           .from(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+                           .to(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+                           .withRange(static_cast<uint32_t>(lastLevel), 1)
+                           .build();
+
+    BarrierBuilder{}.add(imageBarrierLast).createBarrier(cmd);
   }
 
-  transition_image(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  auto finalmip = ImageBarrierBuilder{image}
+                      .aspect(VK_IMAGE_ASPECT_COLOR_BIT)
+                      .from(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+                      .to(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+                      .withRange(static_cast<uint32_t>(mips - 1), 1)
+                      .build();
+
+  BarrierBuilder{}.add(finalmip).createBarrier(cmd);
 }
 
 static inline void copy_image_to_image(VkCommandBuffer cmd, VkImage source,

@@ -2,7 +2,7 @@
 #ifndef _GLOBALDEF_HPP_
 #define _GLOBALDEF_HPP_
 #include <Descriptors.hpp>
-#include <FrameData.hpp>
+#include <frame/FrameData.hpp>
 #include <string>
 #include <vk_mem_alloc.h>
 
@@ -14,7 +14,7 @@ namespace engine {
 struct AllocatedBuffer;
 
 struct EngineStats {
-  float frametime{};
+  float frametime{16.0f / 1000.0f};
   int triangle_count{};
   int drawcall_count{};
   float scene_update_time{};

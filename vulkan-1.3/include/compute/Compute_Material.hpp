@@ -11,19 +11,11 @@ namespace engine {
 
 struct ComputePipeline;
 
-struct ComputeShaderPushConstants {
-  glm::vec4 topLeft = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);     // Red
-  glm::vec4 topRight = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);    // Yellow
-  glm::vec4 bottomLeft = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);  // Blue
-  glm::vec4 bottomRight = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
-};
-
-struct ComputeResources {
-  VkImageView colorImageView{};
-};
+enum class ComputePass { UNDEFINED, DEFAULT, SPECIALCONSTANT };
 
 struct ComputeInstance {
   ComputePipeline *pipeline;
+  ComputePass pass = ComputePass::DEFAULT;
   VkDescriptorSet computeSet;
 };
 } // namespace engine

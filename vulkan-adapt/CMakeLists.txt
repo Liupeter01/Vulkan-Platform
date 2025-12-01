@@ -19,7 +19,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glfw glm Vulkan::Vulkan
 
 target_compile_definitions(${PROJECT_NAME}
                            PUBLIC CONFIG_HOME="${CMAKE_SOURCE_DIR}/")
-                           
+
 target_compile_definitions(${PROJECT_NAME}
                            PUBLIC GLSL_SHADER_PATH="${GLSL_SHADER_PATH}/")
 

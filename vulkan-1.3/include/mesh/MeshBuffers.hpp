@@ -30,6 +30,9 @@ struct GPUGeoMeshBuffers {
   std::vector<uint32_t> indicies_;
   VkDeviceAddress vertexBufferAddress{};
 
+  void destroy();
+  void invalid();
+  bool isValid() const;
   void createMesh(std::vector<Vertex> &&vertices,
                   std::vector<uint32_t> &&indices);
 

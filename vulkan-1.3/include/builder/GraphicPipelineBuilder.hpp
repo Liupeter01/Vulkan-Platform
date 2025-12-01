@@ -11,6 +11,13 @@ struct GraphicPipelineBuilder {
   void clear();
   VkPipeline build();
   GraphicPipelineBuilder(VkDevice device);
+  virtual ~GraphicPipelineBuilder();
+
+  struct ShaderStageDesc {
+    std::string path;
+    std::string entry;
+    VkShaderStageFlagBits stage;
+  };
 
   GraphicPipelineBuilder &
   set_depthtest(bool status, VkCompareOp op = VK_COMPARE_OP_GREATER_OR_EQUAL);
@@ -18,9 +25,8 @@ struct GraphicPipelineBuilder {
   GraphicPipelineBuilder &set_multisampling();
   GraphicPipelineBuilder &set_color_attachment_format(VkFormat format);
   GraphicPipelineBuilder &set_depth_format(VkFormat format);
-  GraphicPipelineBuilder &set_shaders(const std::string &vertexShaderPath,
-                                      const std::string &fragmentShaderPath);
-
+  GraphicPipelineBuilder &
+  set_shaders_stages(const std::vector<ShaderStageDesc> &stages);
   GraphicPipelineBuilder &set_blending_additive(bool status);
   GraphicPipelineBuilder &set_blending_alphablend(bool status);
 
