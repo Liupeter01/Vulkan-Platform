@@ -27,6 +27,7 @@ public:
   void update_scene();
   void Draw(const glm::mat4 &parentMatrix, DrawContext &ctx);
 
+  void transfer(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext>& frame);
   void render(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext> &frame);
   void compute(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext> &frame);
 
