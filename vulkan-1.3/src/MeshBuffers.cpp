@@ -71,7 +71,7 @@ void GPUGeoMeshBuffers::createMesh(const Mesh &mesh) {
 }
 
 void GPUGeoMeshBuffers::submitMesh(VkCommandBuffer cmd) {
-  staging.destroy();
+  //staging.destroy();
 
   const std::size_t vertexBufferSize = vertex_.size() * sizeof(vertex_[0]);
   const std::size_t indiciesBufferSize =
