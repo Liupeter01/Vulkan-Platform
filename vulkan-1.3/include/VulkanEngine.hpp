@@ -15,6 +15,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <task/AsyncSubmitHandler.hpp>
 
 // IMGUI Support
 #define GLFW_INCLUDE_VULKAN
@@ -121,10 +122,11 @@ private:
 
   bool isDeviceSuitable(const vkb::PhysicalDevice &device);
 
-  void pre_compute(FrameData &currentFrame);
-  void graphic(FrameData &currentFrame, Pack &queue,
+  void transfer(FrameData& currentFrame, Pack queue);
+  void pre_compute(FrameData &currentFrame, Pack queue);
+  void graphic(FrameData &currentFrame, Pack queue,
                uint32_t swapchainImageIndex);
-  void post_compute(FrameData &currentFrame, Pack &queue,
+  void post_compute(FrameData &currentFrame, Pack queue,
                     uint32_t swapchainImageIndex);
   void presentKHR(FrameData &currentFrame, uint32_t swapchainImageIndex);
 
@@ -132,6 +134,8 @@ private:
   void switch_to_next_frame();
 
   SwapChainImageData &get_image_by_index(uint32_t index);
+
+  void registerSubmitter();
 
 private:
   bool isInit = false;
@@ -226,6 +230,10 @@ private:
 
   VkSampler defaultSamplerLinear_;
   VkSampler defaultSamplerNearest_;
+
+  std::unordered_map<
+            VkQueueFlagBits, 
+            std::unique_ptr<AsyncSubmitHandler>> asyncSubmitter_;
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_

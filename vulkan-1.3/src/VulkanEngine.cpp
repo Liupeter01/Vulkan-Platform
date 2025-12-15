@@ -47,32 +47,19 @@ void VulkanEngine::init() {
   init_scene();
   init_camera();
 
-  if (auto nodemgr = NodeManagerBuilder{this}
-                         .set_debug_color()
-                         .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
-                         .set_options()
-                         .set_root("/root")
-                         .build();
-      nodemgr) {
-
-    (*nodemgr)->name = "default";
-    sceneMgr->addScene((*nodemgr));
-    sceneMgr->submit();
-  }
-
-  // node::SceneNodeConf conf;
-  // conf.globalSceneLayout = sceneDescriptorSetLayout_;
-  //  if (auto mesh = SceneNodeBuilder{this}
-  //                      .set_config(conf)
-  //                      .set_filepath(CONFIG_HOME "assets/gltf/basicmesh.glb")
-  //                      .set_options()
-  //                      .build();
-  //      mesh) {
-  //
-  //    (*mesh)->name = "default";
-  //    sceneMgr->addScene((*mesh));
-  //    sceneMgr->submit();
-  //  }
+   node::SceneNodeConf conf;
+   conf.globalSceneLayout = sceneDescriptorSetLayout_;
+    if (auto mesh = SceneNodeBuilder{this}
+                        .set_config(conf)
+                        .set_filepath(CONFIG_HOME "assets/gltf/structure.glb")
+                        .set_options()
+                        .build();
+        mesh) {
+  
+      (*mesh)->name = "default";
+      sceneMgr->addScene((*mesh));
+      //sceneMgr->submit();
+    }
 }
 
 void VulkanEngine::destroy() {
@@ -352,6 +339,8 @@ void VulkanEngine::draw() {
   frame_cache = &get_current_frame();
 
   auto graphic_queue = queueScheduler_->get_queue(VK_QUEUE_GRAPHICS_BIT);
+  auto compute_queue = queueScheduler_->get_queue(VK_QUEUE_COMPUTE_BIT);
+  auto transfer_queue = queueScheduler_->get_queue(VK_QUEUE_TRANSFER_BIT);
 
   if (!frame_cache) [[unlikely]]
     throw std::runtime_error("[VulkanEngine]: Invalid frame cache!");
@@ -363,10 +352,13 @@ void VulkanEngine::draw() {
   }
   vkResetFences(device_, 1, &frame_cache->finalSyncFence_);
 
+  frame_cache->transferWaitValue_ = frame_cache->timelineValue_;
+  frame_cache->transferSignalValue_ = ++frame_cache->timelineValue_;
+  transfer(*frame_cache, transfer_queue);
+
   frame_cache->computeWaitValue_ = frame_cache->timelineValue_;
   frame_cache->computeSignalValue_ = ++frame_cache->timelineValue_;
-
-  pre_compute(*frame_cache);
+  pre_compute(*frame_cache, compute_queue);
 
   frame_cache->graphicsWaitValue_ = frame_cache->computeSignalValue_;
   frame_cache->graphicsSignalValue_ = ++frame_cache->timelineValue_;
@@ -394,7 +386,69 @@ void VulkanEngine::draw() {
   presentKHR(*frame_cache, image_index);
 }
 
-void VulkanEngine::pre_compute(FrameData &currentFrame) {
+void VulkanEngine::transfer(FrameData& currentFrame, Pack queue) {
+
+          auto* context = frame_cache->get_context(FrameData::ContextPass::TRANSFER);
+          if (!context) {
+                    spdlog::error("[VulkanEngine Error]: Invalid Transfer Pass!");
+                    return;
+          }
+
+          context->clean_last_frame();
+          context->reset_allocator_pools();
+
+          // now that we are sure that the commands finished executing, we can safely
+          VkCommandBuffer cmd = context->_commandBuffer;
+
+          // reset the command buffer to begin recording again.
+          vkResetCommandBuffer(cmd, 0);
+
+          // use command buffer exactly once
+          VkCommandBufferBeginInfo cmdBeginInfo = tools::command_buffer_begin_info(
+                    VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+          vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+
+          sceneMgr->transfer(cmd, frame_cache->ctx[FrameData::ContextPass::TRANSFER]);
+
+          vkEndCommandBuffer(cmd);
+
+          asyncSubmitter_[VK_QUEUE_TRANSFER_BIT]->commit(
+                    [cmd, device = device_, queuePointer = queueScheduler_.get(), cur_frame = &get_current_frame(),
+                    queue = queue.queue, queueFamily = queue.family]() {
+
+                              auto* currentFrameContext = cur_frame->ctx[FrameData::ContextPass::TRANSFER].get();
+
+                              VkCommandBufferSubmitInfo cmdinfo = tools::command_buffer_submit_info(cmd);
+
+                              VkSemaphoreSubmitInfo transferWait = tools::semaphore_submit_info(
+                                        VK_PIPELINE_STAGE_2_TRANSFER_BIT
+                                        , cur_frame->timelineSemaphore_,
+                                        queueFamily, cur_frame->transferWaitValue_);
+
+                              VkSemaphoreSubmitInfo transferSignal = tools::semaphore_submit_info(
+                                        VK_PIPELINE_STAGE_2_TRANSFER_BIT
+                                        , cur_frame->timelineSemaphore_,
+                                        queueFamily, cur_frame->transferSignalValue_);
+
+                              vkWaitForFences(device, 1, &currentFrameContext->_finishedFence, true,
+                                        std::numeric_limits<uint64_t>::max());
+                              vkResetFences(device, 1, &currentFrameContext->_finishedFence);
+
+                              VkSubmitInfo2 info{};
+                              info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+                              info.waitSemaphoreInfoCount = 1;
+                              info.pWaitSemaphoreInfos = &transferWait;
+                              info.signalSemaphoreInfoCount = 1;
+                              info.pSignalSemaphoreInfos = &transferSignal;
+                              info.commandBufferInfoCount = 1;
+                              info.pCommandBufferInfos = &cmdinfo;
+
+                              vkQueueSubmit2(queue, 1, &info, currentFrameContext->_finishedFence);
+                    });
+}
+
+void VulkanEngine::pre_compute(FrameData &currentFrame, Pack queue) {
 
   auto *context = frame_cache->get_context(FrameData::ContextPass::COMPUTE);
   if (!context) {
@@ -421,31 +475,43 @@ void VulkanEngine::pre_compute(FrameData &currentFrame) {
 
   vkEndCommandBuffer(cmd);
 
-  VkCommandBufferSubmitInfo cmdinfo = tools::command_buffer_submit_info(cmd);
+  asyncSubmitter_[VK_QUEUE_TRANSFER_BIT]->commit(
+            [cmd, device = device_, queuePointer = queueScheduler_.get(), cur_frame = &get_current_frame(),
+            queue = queue.queue, queueFamily = queue.family]() {
 
-  VkSemaphoreSubmitInfo computeWait = tools::semaphore_submit_info(
-      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, frame_cache->timelineSemaphore_,
-      computeQueueFamily_, frame_cache->computeWaitValue_);
+            auto* currentFrameContext = cur_frame->ctx[FrameData::ContextPass::COMPUTE].get();
+            auto computeQueueInfo =  queuePointer->get_queue(VK_QUEUE_COMPUTE_BIT);
 
-  VkSemaphoreSubmitInfo computeSignal = tools::semaphore_submit_info(
-      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, frame_cache->timelineSemaphore_,
-      computeQueueFamily_, frame_cache->computeSignalValue_);
+            VkCommandBufferSubmitInfo cmdinfo = tools::command_buffer_submit_info(cmd);
 
-  VkSubmitInfo2 info{};
-  info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-  info.waitSemaphoreInfoCount = 1;
-  info.pWaitSemaphoreInfos = &computeWait;
-  info.signalSemaphoreInfoCount = 1;
-  info.pSignalSemaphoreInfos = &computeSignal;
-  info.commandBufferInfoCount = 1;
-  info.pCommandBufferInfos = &cmdinfo;
+            VkSemaphoreSubmitInfo computeWait = tools::semaphore_submit_info(
+                      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, cur_frame->timelineSemaphore_,
+                      queueFamily, cur_frame->computeWaitValue_);
 
-  vkQueueSubmit2(computeQueue_, 1, &info, nullptr);
+            VkSemaphoreSubmitInfo computeSignal = tools::semaphore_submit_info(
+                      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, cur_frame->timelineSemaphore_,
+                      queueFamily, cur_frame->computeSignalValue_);
+
+            vkWaitForFences(device, 1, &currentFrameContext->_finishedFence, true,
+                      std::numeric_limits<uint64_t>::max());
+            vkResetFences(device, 1, &currentFrameContext->_finishedFence);
+
+            VkSubmitInfo2 info{};
+            info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+            info.waitSemaphoreInfoCount = 1;
+            info.pWaitSemaphoreInfos = &computeWait;
+            info.signalSemaphoreInfoCount = 1;
+            info.pSignalSemaphoreInfos = &computeSignal;
+            info.commandBufferInfoCount = 1;
+            info.pCommandBufferInfos = &cmdinfo;
+
+            vkQueueSubmit2(queue, 1,  &info, currentFrameContext->_finishedFence);
+            });
 }
 
 void post_compute(FrameData &currentFrame, uint32_t swapchainImageIndex) {}
 
-void VulkanEngine::graphic(FrameData &currentFrame, Pack &queue,
+void VulkanEngine::graphic(FrameData &currentFrame, Pack queue,
                            uint32_t swapchainImageIndex) {
 
   auto *context = currentFrame.get_context(FrameData::ContextPass::GRAPHIC);
@@ -602,7 +668,7 @@ void VulkanEngine::graphic(FrameData &currentFrame, Pack &queue,
   vkQueueSubmit2(queue.queue, 1, &info, currentFrame.finalSyncFence_);
 }
 
-void VulkanEngine::post_compute(FrameData &currentFrame, Pack &queue,
+void VulkanEngine::post_compute(FrameData &currentFrame, Pack queue,
                                 uint32_t swapchainImageIndex) {}
 
 void VulkanEngine::presentKHR(FrameData &currentFrame,
@@ -632,6 +698,46 @@ void VulkanEngine::presentKHR(FrameData &currentFrame,
 
 SwapChainImageData &VulkanEngine::get_image_by_index(uint32_t index) {
   return *images_[index];
+}
+
+void VulkanEngine::registerSubmitter() {
+
+          {
+                    auto [_, status] = asyncSubmitter_.try_emplace(VK_QUEUE_GRAPHICS_BIT,
+                              std::make_unique< AsyncSubmitHandler>(VK_QUEUE_GRAPHICS_BIT, *queueScheduler_));
+
+                    if (!status) {
+                              spdlog::error("[VulkanEngine Error]: Create Graphic Task Submitter Error");
+                              std::abort();
+                    }
+
+                    asyncSubmitter_[VK_QUEUE_GRAPHICS_BIT]->start();
+                    spdlog::info("[VulkanEngine Info]: Create Graphic Task Submitter Successful, Starting...");
+          }
+
+          {
+                    auto [_, status] = asyncSubmitter_.try_emplace(VK_QUEUE_COMPUTE_BIT,
+                              std::make_unique< AsyncSubmitHandler>(VK_QUEUE_COMPUTE_BIT, *queueScheduler_));
+                    if (!status) {
+                              spdlog::error("[VulkanEngine Error]: Create Compute Task Submitter Error");
+                              std::abort();
+                    }
+
+                    asyncSubmitter_[VK_QUEUE_COMPUTE_BIT]->start();
+                    spdlog::info("[VulkanEngine Info]: Create Compute Task Submitter Successful, Starting...");
+          }
+
+          {
+                    auto [_, status]  = asyncSubmitter_.try_emplace(VK_QUEUE_TRANSFER_BIT,
+                              std::make_unique< AsyncSubmitHandler>(VK_QUEUE_TRANSFER_BIT, *queueScheduler_));
+                    if (!status) {
+                              spdlog::error("[VulkanEngine Error]: Create Transfer Task Submitter Error");
+                              std::abort();
+                    }
+
+                    asyncSubmitter_[VK_QUEUE_TRANSFER_BIT]->start();
+                    spdlog::info("[VulkanEngine Info]: Create Transfer Task Submitter Successful, Starting...");
+          }
 }
 
 std::vector<const char *> VulkanEngine::getRequiredExtensions() {
@@ -755,6 +861,8 @@ void VulkanEngine::init_vulkan() {
 
   queueScheduler_.reset();
   queueScheduler_ = QueueSchedulerBuilder{multipleQueueBuilder}.build();
+
+  registerSubmitter();
 
   graphicsQueue_ = vkbDevice.get_queue(vkb::QueueType::graphics).value();
   graphicsQueueFamily_ =
@@ -1135,6 +1243,10 @@ void VulkanEngine::init_frames(
       tools::command_pool_create_info(
           computeQueueFamily_, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
+  VkCommandPoolCreateInfo transferCommandPoolInfo =
+            tools::command_pool_create_info(
+                     transferQueueFamily_, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+
   VkExtent3D extent = {window_.getExtent().width, window_.getExtent().height,
                        1};
 
@@ -1143,7 +1255,7 @@ void VulkanEngine::init_frames(
 
   std::generate(
       frames_.begin(), frames_.end(),
-      [this, graphicCommandPoolInfo, computeCommandPoolInfo,
+      [this, graphicCommandPoolInfo, computeCommandPoolInfo, transferCommandPoolInfo,
        semaphoreCreateInfo, timelineSemaphoreCreateInfo, fenceCreateInfo,
        setCount, poolSizeRatio, extent]() {
         auto ret = std::make_unique<FrameData>(this);
@@ -1153,10 +1265,14 @@ void VulkanEngine::init_frames(
             std::make_unique<ComputeFrameContext>(ret.get());
         ret->ctx[FrameData::ContextPass::GRAPHIC] =
             std::make_unique<GraphicFrameContext>(ret.get());
+        ret->ctx[FrameData::ContextPass::TRANSFER] =
+                  std::make_unique<GraphicFrameContext>(ret.get());
         ret->ctx[FrameData::ContextPass::COMPUTE]->init(
             fenceCreateInfo, computeCommandPoolInfo, setCount, poolSizeRatio);
         ret->ctx[FrameData::ContextPass::GRAPHIC]->init(
             fenceCreateInfo, graphicCommandPoolInfo, setCount, poolSizeRatio);
+        ret->ctx[FrameData::ContextPass::TRANSFER]->init(
+                  fenceCreateInfo, transferCommandPoolInfo, setCount, poolSizeRatio);
         return ret;
       });
 }
