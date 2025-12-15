@@ -256,13 +256,14 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
 void SceneNodeBuilder::processSamplers(fastgltf::Asset &gltf) {
   for (fastgltf::Sampler &sampler : gltf.samplers) {
     VkSamplerCreateInfo sampl{};
+    sampl.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     sampl.maxLod = VK_LOD_CLAMP_NONE;
     sampl.minLod = 0.f;
     sampl.mipLodBias = 0.f;
 
-    sampl.anisotropyEnable = VK_TRUE;
-    sampl.maxAnisotropy =
-        engine_->vkb_physicalDevice_.properties.limits.maxSamplerAnisotropy;
+    //sampl.anisotropyEnable = VK_TRUE;
+    //sampl.maxAnisotropy =
+    //    engine_->vkb_physicalDevice_.properties.limits.maxSamplerAnisotropy;
 
     sampl.compareEnable = VK_FALSE;
     sampl.compareOp = VK_COMPARE_OP_ALWAYS;
