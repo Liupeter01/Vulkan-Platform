@@ -19,6 +19,10 @@ std::size_t QueueDispatcher::dispatch() {
   return normalIndex;
 }
 
+std::size_t QueueDispatcher::get_queue_size() const {
+          return normalPools_.size();
+}
+
 Pack QueueDispatcher::get_queue() { return normalPools_[dispatch()]; }
 
 VkQueueFlagBits QueueDispatcher::getQueueType() const { return queueType_; }

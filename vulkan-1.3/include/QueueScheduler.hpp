@@ -20,6 +20,7 @@ struct QueueDispatcher {
 
   QueueDispatcher(const VkQueueFlagBits queueType,
                   std::vector<Pack> &&normalPool);
+  std::size_t get_queue_size() const;
   Pack get_queue();
   virtual std::size_t dispatch();
   VkQueueFlagBits getQueueType() const;
@@ -33,7 +34,9 @@ protected:
   std::vector<Pack> normalPools_;
 };
 
+class AsyncSubmitHandler;
 class QueueScheduler {
+          friend class AsyncSubmitHandler;
   using QueueRequestMappingStruct =
       std::unordered_map<VkQueueFlagBits, QueueRequest>;
   using QueueDispatcherMappingStruct =
