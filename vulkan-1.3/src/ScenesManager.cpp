@@ -265,18 +265,18 @@ void ScenesManager::destroy_scene_set() {
 }
 
 void ScenesManager::transfer(VkCommandBuffer cmd,
-          std::unique_ptr<CommonFrameContext>& frame) {
+                             std::unique_ptr<CommonFrameContext> &frame) {
 
-          auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
+  auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
 
-          for (auto& surface : ctx.OpaqueSurfaces) {
+  for (auto &surface : ctx.OpaqueSurfaces) {
 
-                    if (!surface.isVisible(PV)) {
-                              continue;
-                    }
+    if (!surface.isVisible(PV)) {
+      continue;
+    }
 
-                    surface.parent->submitMesh(cmd);
-          }
+    surface.parent->submitMesh(cmd);
+  }
 }
 
 void ScenesManager::render(VkCommandBuffer cmd,
@@ -314,25 +314,25 @@ void ScenesManager::render(VkCommandBuffer cmd,
   scissor.extent.height = drawExtent.height;
 
   vkCmdSetScissor(cmd, 0, 1, &scissor);
-  
+
   /*deal with other systems*/
   if (particleSysCompute->has_graphic()) {
-            const std::size_t dispatchGroupsX =
-                      particleSysBuffer->getParticleCount() >> 8;
-            if (!dispatchGroupsX) {
-                      spdlog::info("[ParticleMovement] Dispatching {} groups for {} particles",
-                                dispatchGroupsX, particleSysBuffer->getParticleCount());
-            }
+    const std::size_t dispatchGroupsX =
+        particleSysBuffer->getParticleCount() >> 8;
+    if (!dispatchGroupsX) {
+      spdlog::info("[ParticleMovement] Dispatching {} groups for {} particles",
+                   dispatchGroupsX, particleSysBuffer->getParticleCount());
+    }
 
-            particle::ParticleResources res;
-            res.bufferSize = particleSysBuffer->getBufferSize();
-            res.particlesIn = particleSysBuffer->get_in_buffer();
-            res.particlesOut = particleSysBuffer->get_out_buffer();
+    particle::ParticleResources res;
+    res.bufferSize = particleSysBuffer->getBufferSize();
+    res.particlesIn = particleSysBuffer->get_in_buffer();
+    res.particlesOut = particleSysBuffer->get_out_buffer();
 
-            auto ins =
-                      particleSysCompute->generate_instance(res, frame->_frameDescriptor);
-            particleSysCompute->set_dispatch_size(dispatchGroupsX, 1, 1);
-            particleSysCompute->render(cmd, ins);
+    auto ins =
+        particleSysCompute->generate_instance(res, frame->_frameDescriptor);
+    particleSysCompute->set_dispatch_size(dispatchGroupsX, 1, 1);
+    particleSysCompute->render(cmd, ins);
   }
 
   auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
@@ -370,8 +370,9 @@ void ScenesManager::render(VkCommandBuffer cmd,
       last_mesh = surface.parent;
 
       vkCmdBindIndexBuffer(
-                cmd, surface.parent->meshBuffers.indexBuffer.buffer, 0,
-                tools::getIndexType<decltype(surface.parent->meshBuffers.indicies_[0])>());
+          cmd, surface.parent->meshBuffers.indexBuffer.buffer, 0,
+          tools::getIndexType<
+              decltype(surface.parent->meshBuffers.indicies_[0])>());
     }
 
     GPUGeoPushConstants constants{};

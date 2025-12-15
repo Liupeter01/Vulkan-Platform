@@ -20,7 +20,7 @@ std::size_t QueueDispatcher::dispatch() {
 }
 
 std::size_t QueueDispatcher::get_queue_size() const {
-          return normalPools_.size();
+  return normalPools_.size();
 }
 
 Pack QueueDispatcher::get_queue() { return normalPools_[dispatch()]; }

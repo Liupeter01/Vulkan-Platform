@@ -1,77 +1,77 @@
 #pragma once
 #ifndef _LOGIC_WORKER_HPP_
 #define _LOGIC_WORKER_HPP_
-#include <thread>
-#include <queue>
-#include <mutex>
-#include <future>
-#include <functional>
-#include <type_traits>
 #include <condition_variable>
+#include <functional>
+#include <future>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <type_traits>
 #include <vulkan/vulkan.hpp>
 
 namespace engine {
 
-          class LogicWorker {
-                    LogicWorker(const LogicWorker&) = delete;
-                    LogicWorker operator=(const LogicWorker&) = delete;
+class LogicWorker {
+  LogicWorker(const LogicWorker &) = delete;
+  LogicWorker operator=(const LogicWorker &) = delete;
 
-          public:
-                    using Task = std::function<void()>;
-                    LogicWorker(VkQueueFlagBits type);
-                    virtual ~LogicWorker();
+public:
+  using Task = std::function<void()>;
+  LogicWorker(VkQueueFlagBits type);
+  virtual ~LogicWorker();
 
-          public:
-                    void start();
-                    void terminate();
-                    bool state() const;
+public:
+  void start();
+  void terminate();
+  bool state() const;
 
-                    template<typename Func, typename ...Args>
-                    auto commit(Func&& func, Args&&... args)
-                    ->std::future< std::invoke_result_t<std::decay_t<Func>, std::decay_t<Args>...>>{
-                              
-                              if (!isinit_) {
-                                        throw std::runtime_error("You have to call start() first!");
-                              }
+  template <typename Func, typename... Args>
+  auto commit(Func &&func, Args &&...args) -> std::future<
+      std::invoke_result_t<std::decay_t<Func>, std::decay_t<Args>...>> {
 
-                              using RetType = std::invoke_result_t<std::decay_t<Func>, std::decay_t<Args>...>;
-                              using FutureType = std::future<RetType>;
-                              using WrapFuncType = std::packaged_task<RetType()>;
+    if (!isinit_) {
+      throw std::runtime_error("You have to call start() first!");
+    }
 
-                              if (stop_.load(std::memory_order_acquire)) {
-                                        return {};
-                              }
+    using RetType =
+        std::invoke_result_t<std::decay_t<Func>, std::decay_t<Args>...>;
+    using FutureType = std::future<RetType>;
+    using WrapFuncType = std::packaged_task<RetType()>;
 
-                              auto wrapped = std::make_shared<WrapFuncType>(std::bind(
-                                        std::forward<Func>(func), 
-                                        std::forward<Args>(args)...));
+    if (stop_.load(std::memory_order_acquire)) {
+      return {};
+    }
 
-                              FutureType future = wrapped->get_future();
+    auto wrapped = std::make_shared<WrapFuncType>(
+        std::bind(std::forward<Func>(func), std::forward<Args>(args)...));
 
-                              {
-                                        std::lock_guard<std::mutex> _lckg(mtx_);
-                                        queue_.emplace([wrapped]() {wrapped->operator()(); });
-                              }
-                              cv_.notify_one();
-                              return future;
-                    }
+    FutureType future = wrapped->get_future();
 
-          protected:
-                    void run();
+    {
+      std::lock_guard<std::mutex> _lckg(mtx_);
+      queue_.emplace([wrapped]() { wrapped->operator()(); });
+    }
+    cv_.notify_one();
+    return future;
+  }
 
-          protected:
-                    VkQueueFlagBits type_;
+protected:
+  void run();
 
-          private:
-                    bool isinit_ = false;
-                    std::atomic<bool> stop_ = false;
-                    std::atomic<bool> isBusy_ = false;
+protected:
+  VkQueueFlagBits type_;
 
-                    std::thread th_;
-                    std::mutex mtx_;
-                    std::condition_variable cv_;
-                    std::queue<Task> queue_;
-          };
-}
+private:
+  bool isinit_ = false;
+  std::atomic<bool> stop_ = false;
+  std::atomic<bool> isBusy_ = false;
+
+  std::thread th_;
+  std::mutex mtx_;
+  std::condition_variable cv_;
+  std::queue<Task> queue_;
+};
+} // namespace engine
 
 #endif //_LOGIC_WORKER_HPP_

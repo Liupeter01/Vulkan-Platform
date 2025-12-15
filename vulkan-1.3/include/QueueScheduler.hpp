@@ -36,7 +36,7 @@ protected:
 
 class AsyncSubmitHandler;
 class QueueScheduler {
-          friend class AsyncSubmitHandler;
+  friend class AsyncSubmitHandler;
   using QueueRequestMappingStruct =
       std::unordered_map<VkQueueFlagBits, QueueRequest>;
   using QueueDispatcherMappingStruct =
