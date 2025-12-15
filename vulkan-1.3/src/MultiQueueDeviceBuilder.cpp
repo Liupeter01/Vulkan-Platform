@@ -145,6 +145,11 @@ void MultiQueueDeviceBuilder::consume(VkQueueFlagBits requiredFlags,
 
   uint32_t requested = req.requested; // +(req.reserveImgui ? 1u : 0u) +
                                       // (req.presentQueueStatus ? 1u : 0u);
+
+  spdlog::info(
+      "[MultiQueueDeviceBuilder Info]: Now start to allocate {} queue.",
+      static_cast<uint32_t>(requiredFlags));
+
   req.queueType = requiredFlags;
 
   while (requested > 0) {
@@ -180,10 +185,11 @@ void MultiQueueDeviceBuilder::consume(VkQueueFlagBits requiredFlags,
   }
 
   if (!req.allocated) {
-            auto str = fmt::format("[MultiQueueDeviceBuilder Warn]: Nothing Allocated for this {} queue", 
-                      static_cast<uint32_t>(requiredFlags));
-            spdlog::warn(str);
-            throw std::runtime_error(str);
+    auto str = fmt::format(
+        "[MultiQueueDeviceBuilder Warn]: Nothing Allocated for this {} queue",
+        static_cast<uint32_t>(requiredFlags));
+    spdlog::warn(str);
+    throw std::runtime_error(str);
   }
 }
 
