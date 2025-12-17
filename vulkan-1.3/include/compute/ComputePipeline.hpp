@@ -2,6 +2,7 @@
 #ifndef _COMPUTE_COMPUTE_PIPELINE_HPP_
 #define _COMPUTE_COMPUTE_PIPELINE_HPP_
 #include <Util.hpp>
+#include <config.h>
 #include <builder/ComputePipelineBuilder.hpp>
 #include <compute/Compute_Material.hpp>
 #include <spdlog/spdlog.h>
