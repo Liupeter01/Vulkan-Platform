@@ -1,0 +1,10 @@
+#pragma once
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
+
+#cmakedefine01 ENABLE_VALIDATION_LAYERS
+#define CONFIG_HOME "@CMAKE_SOURCE_DIR@/"
+#define GLSL_SHADER_PATH "@GLSL_SHADER_PATH@/"
+#define SLANG_SHADER_PATH  "@SLANG_SHADER_PATH@/"
+
+#endif //_CONFIG_H_

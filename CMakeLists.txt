@@ -51,9 +51,9 @@ if(NOT MSVC)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_compile_definitions(ENABLE_VALIDATION_LAYERS=1)
+set(ENABLE_VALIDATION_LAYERS ON)
 else()
-  add_compile_definitions(ENABLE_VALIDATION_LAYERS=0)
+set(ENABLE_VALIDATION_LAYERS OFF)
 endif()
 
 set(GLSL_SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/shaders/glsl)
