@@ -1,8 +1,8 @@
 #pragma once
 #ifndef _MATERIAL_PIPELINE_HPP_
 #define _MATERIAL_PIPELINE_HPP_
-#include <config.h>
 #include <builder/GraphicPipelineBuilder.hpp>
+#include <config.h>
 #include <material/GLTFPBR_Material.hpp>
 #include <mesh/MeshBuffers.hpp>
 #include <spdlog/spdlog.h>

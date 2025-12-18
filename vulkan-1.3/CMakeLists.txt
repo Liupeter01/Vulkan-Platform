@@ -56,4 +56,5 @@ target_link_libraries(
          fastgltf
          spdlog::spdlog)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
+               ${CMAKE_CURRENT_SOURCE_DIR}/include/config.h)

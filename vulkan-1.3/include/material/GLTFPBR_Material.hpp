@@ -35,7 +35,7 @@ struct MaterialInstance {
   MaterialPipeline *pipeline;
   VkDescriptorSet materialSet;
 
-  VkSampler  samplers;
+  VkSampler samplers;
   std::shared_ptr<AllocatedTexture> texture;
 };
 

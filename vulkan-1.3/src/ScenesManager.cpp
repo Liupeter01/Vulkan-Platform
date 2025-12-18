@@ -261,20 +261,21 @@ void ScenesManager::transfer(VkCommandBuffer cmd,
     }
 
     if (!surface.parent) {
-              continue;
+      continue;
     }
 
     surface.parent->submitMesh(cmd);
-    
+
     if (!surface.material->texture) {
-              continue;
+      continue;
     }
-    
+
     surface.material->texture->uploadBufferToImage(cmd);
-    DescriptorWriter scenewriter{ engine_->device_ };
-    scenewriter.write_image(1, surface.material->texture->getImageView(), surface.material->samplers,
-              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    DescriptorWriter scenewriter{engine_->device_};
+    scenewriter.write_image(1, surface.material->texture->getImageView(),
+                            surface.material->samplers,
+                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
   }
 }
 

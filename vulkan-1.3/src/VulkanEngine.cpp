@@ -7,13 +7,13 @@
 #include <builder/QueueSchedulerBuilder.hpp>
 #include <builder/SceneNodeBuilder.hpp>
 #include <chrono>
+#include <config.h>
 #include <exception>
 #include <interactive/Keyboard_Controller.hpp>
 #include <map>
 #include <numeric>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
-#include <config.h>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
