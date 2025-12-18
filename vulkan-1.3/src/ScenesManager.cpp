@@ -193,21 +193,6 @@ void ScenesManager::destroy_scene() {
   loadedScenes_.clear();
 }
 
-void ScenesManager::submitMesh(VkCommandBuffer cmd) {
-  if (auto mesh = loadedScenes_.find("default")->second->findMesh("Suzanne");
-      mesh) {
-    (*mesh)->submitMesh(cmd);
-  }
-}
-
-void ScenesManager::flushUpload(VkFence fence) {
-
-  if (auto mesh = loadedScenes_.find("default")->second->findMesh("Suzanne");
-      mesh) {
-    (*mesh)->flushUpload(fence);
-  }
-}
-
 void ScenesManager::update_scene_set() {
 
   if (!myScene.sceneDataBuffer) {
@@ -275,7 +260,21 @@ void ScenesManager::transfer(VkCommandBuffer cmd,
       continue;
     }
 
+    if (!surface.parent) {
+              continue;
+    }
+
     surface.parent->submitMesh(cmd);
+    
+    if (!surface.material->texture) {
+              continue;
+    }
+    
+    surface.material->texture->uploadBufferToImage(cmd);
+    DescriptorWriter scenewriter{ engine_->device_ };
+    scenewriter.write_image(1, surface.material->texture->getImageView(), surface.material->samplers,
+              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
   }
 }
 
@@ -454,12 +453,6 @@ bool ScenesManager::addScene(std::shared_ptr<NodeManager> scene) {
 
 ComputeShaderPushConstants &ScenesManager::getComputeData() {
   return imageAttachmentCompute->getPushConstantData();
-}
-
-void ScenesManager::submit() {
-  engine_->imm_command_submit([this](VkCommandBuffer cmd) { submitMesh(cmd); });
-
-  flushUpload(engine_->immFence_);
 }
 
 void ScenesManager::Draw(const glm::mat4 &parentMatrix, DrawContext &ctx) {

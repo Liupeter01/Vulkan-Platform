@@ -37,8 +37,6 @@ public:
   ComputeShaderPushConstants &getComputeData();
   auto &getParticleData() { return particleSysCompute->getPushConstantData(); }
 
-  void submit();
-
   void on_gui();
 
 protected:
@@ -63,9 +61,6 @@ protected:
   void destroy_scene_set();
 
 protected:
-  void submitMesh(VkCommandBuffer cmd);
-  void flushUpload(VkFence fence);
-
   void update_scene_set();
   VkDescriptorSet get_scene_set();
 
