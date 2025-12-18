@@ -370,12 +370,11 @@ void SceneNodeBuilder::processMaterials(fastgltf::Asset &gltf) {
     resources.materialConstantsOffset = index * sizeof(MaterialConstants);
 
     // grab textures from gltf file
-    size_t img_ind, sampler_ind;
     if (mat.pbrData.baseColorTexture.has_value()) {
-     img_ind =
+              size_t img_ind =
           gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex]
               .imageIndex.value();
-      sampler_ind =
+              size_t sampler_ind =
           gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex]
               .samplerIndex.value();
 
@@ -391,6 +390,12 @@ void SceneNodeBuilder::processMaterials(fastgltf::Asset &gltf) {
                                                             scene->pool_);
 
     if (mat.pbrData.baseColorTexture.has_value()) {
+              size_t img_ind =
+                        gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex]
+                        .imageIndex.value();
+              size_t sampler_ind =
+                        gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex]
+                        .samplerIndex.value();
               mat_ins->texture = images_[img_ind];
               mat_ins->samplers = scene->samplers[sampler_ind];
     }
