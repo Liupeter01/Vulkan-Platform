@@ -195,34 +195,53 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
     }
   };
 
+  auto array = [&](const fastgltf::sources::Array& arr,
+            const fastgltf::BufferView& bufferView) {
+                      const stbi_uc* dataPtr =
+                                reinterpret_cast<const stbi_uc*>(arr.bytes.data())
+                                + bufferView.byteOffset;
+
+                      const size_t dataSize = bufferView.byteLength;
+
+                      unsigned char* data = stbi_load_from_memory(
+                                dataPtr,
+                                static_cast<int>(dataSize),
+                                &width,
+                                &height,
+                                &nrChannels,
+                                4);
+
+                      if (!data) {
+                                spdlog::error("stbi failed: {}", stbi_failure_reason());
+                                return;
+                      }
+
+                      VkExtent3D imagesize;
+                      imagesize.width = width;
+                      imagesize.height = height;
+                      imagesize.depth = 1;
+
+                      ret.reset();
+                      ret = std::make_shared<AllocatedTexture>(engine_->device_, engine_->allocator_);
+                      ret->createBuffer(data, imagesize,
+                                VK_FORMAT_R8G8B8A8_UNORM,
+                                VK_IMAGE_USAGE_SAMPLED_BIT , mipMapped);
+                      stbi_image_free(data);
+            };
+
   auto bufferview = [&](fastgltf::sources::BufferView &view) {
     auto &bufferView = gltf.bufferViews[view.bufferViewIndex];
     auto &buffer = gltf.buffers[bufferView.bufferIndex];
+
     std::visit(
-        [&](auto &&vector) {
-          if constexpr (std::is_same_v<std::decay_t<decltype(vector)>,
-                                       fastgltf::sources::Vector>) {
+        [&, array](auto &&arg) {
+                        using T = std::decay_t<decltype(arg)>;
 
-            unsigned char *data = stbi_load_from_memory(
-                reinterpret_cast<unsigned char *>(vector.bytes.data()) +
-                    bufferView.byteOffset,
-                static_cast<int>(bufferView.byteLength), &width, &height,
-                &nrChannels, 4);
-            if (data) {
-              VkExtent3D imagesize;
-              imagesize.width = width;
-              imagesize.height = height;
-              imagesize.depth = 1;
-
-              ret.reset();
-              ret = std::make_shared<AllocatedTexture>(engine_->device_,
-                                                       engine_->allocator_);
-              ret->createBuffer(data, imagesize, VK_FORMAT_R8G8B8A8_UNORM,
-                                VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped);
-
-              stbi_image_free(data);
-            }
+          if constexpr (std::is_same_v<T, fastgltf::sources::Array>) {
+                    array(arg, bufferView);
+                    return;
           }
+          throw std::runtime_error("Other Format Other than Array not supported!");
         },
         buffer.data);
   };
@@ -235,9 +254,16 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
         } else if constexpr (std::is_same_v<ArgsType,
                                             fastgltf::sources::Vector>) {
           vector(args);
-        } else if constexpr (std::is_same_v<ArgsType,
+        }
+        else if constexpr (std::is_same_v<ArgsType,
                                             fastgltf::sources::BufferView>) {
+
+                  if (args.mimeType != fastgltf::MimeType::PNG &&
+                            args.mimeType != fastgltf::MimeType::JPEG) {
+                            throw std::runtime_error("Image bufferView is not an image");
+                  }
           bufferview(args);
+
         } else {
           spdlog::error("[SceneNodeBuilder Error]: Unsupported fastgltf::Image "
                         "source type '{}'. Aborting.",
@@ -336,24 +362,25 @@ void SceneNodeBuilder::processMaterials(fastgltf::Asset &gltf) {
     material_writer->metal_rough_factors.y = mat.pbrData.roughnessFactor;
 
     MaterialResources resources;
-    resources.colorImage = engine_->white_->getImageView();
+    resources.colorImage = engine_->loaderrorImage_->getImageView();
     resources.colorSampler = engine_->defaultSamplerLinear_;
-    resources.metalRoughImage = engine_->white_->getImageView();
+    resources.metalRoughImage =  engine_->loaderrorImage_->getImageView();
     resources.metalRoughSampler = engine_->defaultSamplerLinear_;
     resources.materialConstantsData = scene->materialBuffer->buffer;
     resources.materialConstantsOffset = index * sizeof(MaterialConstants);
 
     // grab textures from gltf file
+    size_t img_ind, sampler_ind;
     if (mat.pbrData.baseColorTexture.has_value()) {
-      size_t img =
+     img_ind =
           gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex]
               .imageIndex.value();
-      size_t sampler =
+      sampler_ind =
           gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex]
               .samplerIndex.value();
 
-      resources.colorImage = images_[img]->getImageView();
-      resources.colorSampler = scene->samplers[sampler];
+      resources.colorImage = images_[img_ind]->getImageView();
+      resources.colorSampler = scene->samplers[sampler_ind];
     }
 
     MaterialPass passType = MaterialPass::OPAQUE;
@@ -362,6 +389,11 @@ void SceneNodeBuilder::processMaterials(fastgltf::Asset &gltf) {
 
     *mat_ins = scene->metalRoughMaterial->generate_instance(passType, resources,
                                                             scene->pool_);
+
+    if (mat.pbrData.baseColorTexture.has_value()) {
+              mat_ins->texture = images_[img_ind];
+              mat_ins->samplers = scene->samplers[sampler_ind];
+    }
     index++;
   }
 
