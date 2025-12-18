@@ -34,6 +34,9 @@ struct MaterialInstance {
   MaterialPass passType;
   MaterialPipeline *pipeline;
   VkDescriptorSet materialSet;
+
+  VkSampler  samplers;
+  std::shared_ptr<AllocatedTexture> texture;
 };
 
 } // namespace engine
