@@ -11,86 +11,142 @@
 #include <glm/glm.hpp>
 
 namespace engine {
-struct AllocatedBuffer;
 
-struct EngineStats {
-  float frametime{16.0f / 1000.0f};
-  int triangle_count{};
-  int drawcall_count{};
-  float scene_update_time{};
-  float mesh_draw_time{};
-};
+          struct EngineStats {
+                    float frametime{ 16.0f / 1000.0f };
+                    int triangle_count{};
+                    int drawcall_count{};
+                    float scene_update_time{};
+                    float mesh_draw_time{};
+          };
 
-struct AllocatedImage {
-  VkImage image;
-  VkImageView imageView;
-  VmaAllocation allocation;
-  VkExtent3D imageExtent;
-  VkFormat imageFormat;
+          namespace v2 {
+                    enum class ResourceState {
+                              CpuOnly,                      // Only in CPU
+                              UploadScheduled,        //  Upload Buffer
+                              GpuResident,                // avaible in GPU
+                              UnInstalled,                  // Removed from GPU, but CPU data still exist
+                              Destroyed                     // completely destroyed
+                    };
 
-  AllocatedImage(VkDevice device, VmaAllocator allocator);
-  virtual ~AllocatedImage();
+                    struct ResourcesStateManager {
+                              ResourcesStateManager(std::string root = "");
 
-  void create_image(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage,
-                    bool mipmapped = false,
-                    const std::string &name = "AllocatedImage");
+                              ResourceState state() const;
+                              bool isGpuResident() const;
+                              bool isCpuOnly() const;
+                              bool isDestroyed() const;
 
-  void destroy();
+                              virtual void recordUpload(VkCommandBuffer cmd) = 0;  //CPU/Uninstall => GPU
+                              virtual void destroy() = 0;                                                     //* => Destroyed!
 
-private:
-  bool isinit_ = false;
-  VkDevice device_;
-  VmaAllocator allocator_;
-};
+                              virtual bool tryUninstall(uint64_t observedValue) = 0;             //GPU =>Uninstall
+                              virtual void forceUninstall() = 0;
 
-struct AllocatedBuffer {
-  AllocatedBuffer(VmaAllocator allocator);
-  virtual ~AllocatedBuffer();
+                              void setUploadCompleteTimeline(uint64_t value);
 
-  VkBuffer buffer = VK_NULL_HANDLE;
-  VmaAllocation allocation{};
-  VmaAllocationInfo info{};
+                              void markTouched(uint64_t frameIndex);
+                              uint64_t framesSinceLastTouch(uint64_t frameIndex) const;
 
-  void create(size_t allocSize, VkBufferUsageFlags usage,
-              VmaMemoryUsage memoryUsage,
-              const std::string &name = "AllocatedBuffer");
-  void destroy();
+                              bool isUploadComplete(uint64_t observed) const;
+                              bool isNoLongerUsed(uint64_t observed) const;
 
-  void *map();
-  void unmap();
-  void clear();
-  void reset(size_t newSize, VkBufferUsageFlags usage,
-             VmaMemoryUsage memoryUsage);
+                    protected:
+                              /*State Machine!*/
+                              void Cpu2Destroy();
+                              void Cpu2UploadScheduled();
+                              void UploadSched2Destroy();
+                              void UploadSched2GpuResident();
+                              void GpuResident2Uninstall();
+                              void GpuResident2Destroy();
+                              void Uninstall2UploadSched();
+                              void Uninstall2Destroy();
+                              ResourceState state_ = ResourceState::CpuOnly;
 
-private:
-  bool isinit = false;
-  VmaAllocator allocator_;
-};
+                    private:
+                              std::string root_ = "";
 
-struct AllocatedTexture {
-  AllocatedTexture(VkDevice device, VmaAllocator allocator);
-  virtual ~AllocatedTexture();
-  void createBuffer(void *data, VkExtent3D size, VkFormat format,
-                    VkImageUsageFlags usage, bool mipmapped = false);
+                              //For Cpu controlled frame
+                              uint64_t lastTouchedFrame_{ };
 
-  VkImage &getImage() const;
-  VkImageView &getImageView() const;
-  void uploadBufferToImage(VkCommandBuffer cmd);
-  void flushUpload(VkFence fence);
-  void invalid();
-  bool isValid() const;
-  void destroy();
+                              // For Gpu Controlled sync
+                              uint64_t waitingTimelineValue_{};
+                    };
 
-private:
-  bool isinit = false;
-  bool pendingUpload_ = false;
-  bool mipmapped_ = false;
-  VkExtent3D extent_;
-  mutable AllocatedImage dstImage_;
-  AllocatedBuffer srcBuffer_;
-  VkDevice device_;
-  VmaAllocator allocator_;
-};
+          }
+
+                    struct AllocatedBuffer;
+
+                    struct AllocatedImage {
+                              VkImage image;
+                              VkImageView imageView;
+                              VmaAllocation allocation;
+                              VkExtent3D imageExtent;
+                              VkFormat imageFormat;
+
+                              AllocatedImage(VkDevice device, VmaAllocator allocator);
+                              virtual ~AllocatedImage();
+
+                              void create_image(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage,
+                                        bool mipmapped = false,
+                                        const std::string& name = "AllocatedImage");
+
+                              void destroy();
+
+                    private:
+                              bool isinit_ = false;
+                              VkDevice device_;
+                              VmaAllocator allocator_;
+                    };
+
+                    struct AllocatedBuffer {
+                              AllocatedBuffer(VmaAllocator allocator);
+                              virtual ~AllocatedBuffer();
+
+                              VkBuffer buffer = VK_NULL_HANDLE;
+                              VmaAllocation allocation{};
+                              VmaAllocationInfo info{};
+
+                              void create(size_t allocSize, VkBufferUsageFlags usage,
+                                        VmaMemoryUsage memoryUsage,
+                                        const std::string& name = "AllocatedBuffer");
+                              void destroy();
+
+                              void* map();
+                              void unmap();
+                              void clear();
+                              void reset(size_t newSize, VkBufferUsageFlags usage,
+                                        VmaMemoryUsage memoryUsage);
+
+                    private:
+                              bool isinit = false;
+                              VmaAllocator allocator_;
+                    };
+
+                    struct AllocatedTexture {
+                              AllocatedTexture(VkDevice device, VmaAllocator allocator);
+                              virtual ~AllocatedTexture();
+                              void createBuffer(void* data, VkExtent3D size, VkFormat format,
+                                        VkImageUsageFlags usage, bool mipmapped = false);
+
+                              VkImage& getImage() const;
+                              VkImageView& getImageView() const;
+                              void uploadBufferToImage(VkCommandBuffer cmd);
+                              void flushUpload(VkFence fence);
+                              void invalid();
+                              bool isValid() const;
+                              void destroy();
+
+                    private:
+                              bool isinit = false;
+                              bool pendingUpload_ = false;
+                              bool mipmapped_ = false;
+                              VkExtent3D extent_;
+                              mutable AllocatedImage dstImage_;
+                              AllocatedBuffer srcBuffer_;
+                              VkDevice device_;
+                              VmaAllocator allocator_;
+                    };
 
 } // namespace engine
 
