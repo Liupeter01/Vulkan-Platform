@@ -4,6 +4,7 @@
 #include <Descriptors.hpp>
 #include <frame/FrameData.hpp>
 #include <string>
+#include <numeric>
 #include <vk_mem_alloc.h>
 
 #define GLM_FORCE_RADIANS // no degresss
@@ -43,12 +44,12 @@ struct ResourcesStateManager {
   virtual bool tryUninstall(uint64_t observedValue) = 0; // GPU =>Uninstall
   virtual void forceUninstall() = 0;
 
-  void setUploadCompleteTimeline(uint64_t value);
+  void setUploadCompleteTimeline(uint64_t value = 0);
 
   void markTouched(uint64_t frameIndex);
   uint64_t framesSinceLastTouch(uint64_t frameIndex) const;
 
-  bool isUploadComplete(uint64_t observed) const;
+  bool isUploadComplete(uint64_t observed = std::numeric_limits<uint64_t>::max()) const;
   bool isNoLongerUsed(uint64_t observed) const;
 
 protected:
@@ -69,7 +70,9 @@ private:
   // For Cpu controlled frame
   uint64_t lastTouchedFrame_{};
 
-  // For Gpu Controlled sync
+  // waitingTimelineValue_ is a logical guard for state transitions.
+  // It does NOT perform or guarantee GPU synchronization.
+  // Actual correctness is enforced by Vulkan queue submission and fences.
   uint64_t waitingTimelineValue_{};
 };
 
