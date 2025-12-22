@@ -43,7 +43,6 @@ protected:
   void __destroyGpuBuffer();
 
 protected:
-  bool isinit_ = false;
   bool configured_{false};
   size_t allocSize_{0};
 

@@ -7,7 +7,7 @@ namespace v2 {
 
 AllocatedBuffer2::AllocatedBuffer2(VmaAllocator allocator,
                                    const std::string &name)
-    : allocator_(allocator), name_(name), staging_(allocator), isinit_(false),
+    : allocator_(allocator), name_(name), staging_(allocator), 
       configured_(false) {}
 
 AllocatedBuffer2::~AllocatedBuffer2() { destroy(); }
@@ -60,6 +60,9 @@ void AllocatedBuffer2::__createGpuBuffer() {
 
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage = memoryUsage_;
+  vmaallocInfo.requiredFlags =
+            VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
   // vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
   // allocate the buffer
@@ -96,21 +99,23 @@ void AllocatedBuffer2::recordUpload(VkCommandBuffer cmd) {
     __createGpuBuffer(); //
   }
 
+  // Switch the state
+  if (st == ResourceState::CpuOnly)
+            Cpu2UploadScheduled();
+  else if (st == ResourceState::UnInstalled)
+            Uninstall2UploadSched();
+
   VkBufferCopy copy{};
   copy.size = allocSize_;
 
+  // NOTE: staging_ uses v1 buffer wrapper; direct .buffer access is intentional.
   vkCmdCopyBuffer(cmd, staging_.buffer, buffer_, 1, &copy);
-
-  // Switch the state
-  if (st == ResourceState::CpuOnly)
-    Cpu2UploadScheduled();
-  else if (st == ResourceState::UnInstalled)
-    Uninstall2UploadSched();
 
   pendingUpload_ = true;
 }
 
 void AllocatedBuffer2::purgeReleaseStaging(uint64_t observedValue) {
+          if (!pendingUpload_) return;
   if (state() == ResourceState::UploadScheduled &&
       this->isUploadComplete(observedValue)) [[likely]] {
 
