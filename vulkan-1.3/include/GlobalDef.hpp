@@ -62,7 +62,7 @@ protected:
   void GpuResident2Destroy();
   void Uninstall2UploadSched();
   void Uninstall2Destroy();
-  ResourceState state_ = ResourceState::CpuOnly;
+  void Any2Destroy();
 
 private:
   std::string root_ = "";
@@ -74,6 +74,9 @@ private:
   // It does NOT perform or guarantee GPU synchronization.
   // Actual correctness is enforced by Vulkan queue submission and fences.
   uint64_t waitingTimelineValue_{};
+
+  //State Machine
+  ResourceState state_ = ResourceState::CpuOnly;
 };
 
 } // namespace v2
