@@ -1,5 +1,6 @@
 #include <QueueScheduler.hpp>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace engine {
 
@@ -155,7 +156,17 @@ Pack QueueScheduler::imgui_queue() {
 
 Pack QueueScheduler::present_queue() {
   if (!reservePresent || !presentQueue_.queue) {
+
+#ifdef __APPLE__
+#if ENABLE_VALIDATION_LAYERS
+    spdlog::warn(
+        "[QueueScheduler Warn]: Present Queue Not Reserved, Using Graphics "
+        "Queue Instead!");
+#endif
+    return queueDispatcher_[VK_QUEUE_GRAPHICS_BIT]->normalPools_.at(0);
+#else
     throw std::runtime_error("Present Queue Not Enabled!");
+#endif
   }
   return presentQueue_;
 }

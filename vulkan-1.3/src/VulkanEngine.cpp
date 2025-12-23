@@ -866,10 +866,18 @@ void VulkanEngine::init_vulkan() {
   MultiQueueDeviceBuilder multipleQueueBuilder{deviceBuilder,
                                                vkb_physicalDevice_};
 
+#ifdef __APPLE__
+  vkb::Device vkbDevice = multipleQueueBuilder.graphics(2, false, true)
+                              .computes(1)
+                              .transfers(1)
+                              .build();
+
+#else
   vkb::Device vkbDevice = multipleQueueBuilder.graphics(5, true, true)
                               .computes(1)
                               .transfers(1)
                               .build();
+#endif
 
   device_ = vkbDevice.device;
 
