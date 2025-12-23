@@ -84,7 +84,7 @@ void NodeManager::Draw(const glm::mat4 &topMatrix, DrawContext &ctx) {
 }
 
 bool NodeManager::attachChildren(const std::string &parentName,
-                                 std::shared_ptr<MeshAsset> asset) {
+                                 std::shared_ptr<mesh::MeshAsset> asset) {
   spdlog::debug(
       "[Scene Info] Attaching single MeshAsset child '{}' to parent '{}'",
       asset->meshName, parentName);
@@ -129,7 +129,7 @@ bool NodeManager::attachChildrens(
 
 bool NodeManager::attachChildrens(
     const std::string &parentName,
-    const std::vector<std::shared_ptr<MeshAsset>> &childrens) {
+    const std::vector<std::shared_ptr<mesh::MeshAsset>> &childrens) {
 
   auto parentNode = findNode(parentName);
   if (!parentNode.has_value()) {
@@ -171,7 +171,7 @@ NodeManager::findNode(const std::string &name) const {
   return std::nullopt;
 }
 
-std::optional<std::shared_ptr<MeshAsset>>
+std::optional<std::shared_ptr<mesh::MeshAsset>>
 NodeManager::findMesh(const std::string &name) const {
   auto it = meshes_.find(name);
   if (it != meshes_.end())

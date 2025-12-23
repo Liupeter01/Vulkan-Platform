@@ -407,8 +407,8 @@ void SceneNodeBuilder::processMeshes(fastgltf::Asset &gltf) {
     std::vector<uint32_t> indices;
     std::vector<Vertex> vertices;
 
-    std::shared_ptr<MeshAsset> newMesh =
-        std::make_shared<MeshAsset>(engine_->device_, engine_->allocator_);
+    std::shared_ptr<mesh::MeshAsset> newMesh =
+        std::make_shared<mesh::MeshAsset>(engine_->device_, engine_->allocator_);
 
     newMesh->meshName = mesh.name.c_str();
     meshes_.push_back(newMesh);
@@ -420,7 +420,7 @@ void SceneNodeBuilder::processMeshes(fastgltf::Asset &gltf) {
     }
 
     for (auto &&primitive : mesh.primitives) {
-      GeoSurface newSurface{};
+      mesh::GeoSurface newSurface{};
       newSurface.startIndex = static_cast<uint32_t>(indices.size());
       newSurface.count = static_cast<uint32_t>(
           gltf.accessors[primitive.indicesAccessor.value()].count);

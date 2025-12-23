@@ -43,7 +43,7 @@ protected:
   std::optional<node::SceneNodeConf> conf_{};
 
   // temporal arrays for all the objects to use while creating the GLTF data
-  std::vector<std::shared_ptr<MeshAsset>> meshes_;
+  std::vector<std::shared_ptr<mesh::MeshAsset>> meshes_;
   std::vector<std::shared_ptr<node::BaseNode>> nodes_;
   std::vector<std::shared_ptr<AllocatedTexture>> images_;
   std::vector<std::shared_ptr<MaterialInstance>> materials_;

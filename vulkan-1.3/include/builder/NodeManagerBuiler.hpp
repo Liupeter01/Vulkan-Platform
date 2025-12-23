@@ -32,7 +32,7 @@ protected:
 
 private:
   std::shared_ptr<NodeManager> nodeMgr_;
-  std::vector<std::shared_ptr<MeshAsset>> assets_;
+  std::vector<std::shared_ptr<mesh::MeshAsset>> assets_;
   VulkanEngine *engine_{};
 };
 } // namespace engine

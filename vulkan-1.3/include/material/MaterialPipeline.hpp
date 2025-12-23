@@ -17,7 +17,7 @@ struct MaterialPipeline {
   void set_vertex_shader(const std::string &path, const std::string &entry);
   void set_fragment_shader(const std::string &path, const std::string &entry);
 
-  template <typename _Ty = GPUGeoPushConstants>
+  template <typename _Ty = mesh::GPUGeoPushConstants>
   void create(MaterialPass pass,
               const std::vector<VkDescriptorSetLayout> &layouts) {
     if (isinit_)

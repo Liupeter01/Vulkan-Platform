@@ -5,6 +5,7 @@
 #include <scene/ScenesManager.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <AllocatedTexture.hpp>
 
 namespace engine {
 
@@ -199,16 +200,16 @@ void ScenesManager::update_scene_set() {
     throw std::runtime_error("Invalid Scene Data Buffer!");
   }
 
-  GPUSceneData *data =
-      reinterpret_cast<GPUSceneData *>(myScene.sceneDataBuffer->map());
-  memcpy(data, &myScene.globalSceneData, sizeof(GPUSceneData));
+  mesh::GPUSceneData *data =
+      reinterpret_cast<mesh::GPUSceneData *>(myScene.sceneDataBuffer->map());
+  memcpy(data, &myScene.globalSceneData, sizeof(mesh::GPUSceneData));
   myScene.sceneDataBuffer->unmap();
 }
 
 VkDescriptorSet ScenesManager::get_scene_set() {
   DescriptorWriter scenewriter{engine_->device_};
   scenewriter.write_buffer(0, myScene.sceneDataBuffer->buffer,
-                           sizeof(GPUSceneData), 0,
+                           sizeof(mesh::GPUSceneData), 0,
                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
   return myScene.sceneDescriptorSet;
@@ -223,19 +224,19 @@ void ScenesManager::create_scene_set() {
       std::make_shared<AllocatedBuffer>(engine_->allocator_);
 
   myScene.sceneDataBuffer->create(
-      sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      sizeof(mesh::GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, "Scene::execute::sceneDataBuffer");
 
-  GPUSceneData *data =
-      reinterpret_cast<GPUSceneData *>(myScene.sceneDataBuffer->map());
-  memcpy(data, &myScene.globalSceneData, sizeof(GPUSceneData));
+  mesh::GPUSceneData *data =
+      reinterpret_cast<mesh::GPUSceneData *>(myScene.sceneDataBuffer->map());
+  memcpy(data, &myScene.globalSceneData, sizeof(mesh::GPUSceneData));
   myScene.sceneDataBuffer->unmap();
 
   VkDescriptorSet sceneSet =
       scenePool_.allocate(myScene.sceneDescriptorSetLayout_);
   DescriptorWriter scenewriter{engine_->device_};
   scenewriter.write_buffer(0, myScene.sceneDataBuffer->buffer,
-                           sizeof(GPUSceneData), 0,
+                           sizeof(mesh::GPUSceneData), 0,
                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   scenewriter.update_set(sceneSet);
 
@@ -265,11 +266,14 @@ void ScenesManager::transfer(VkCommandBuffer cmd,
     }
 
     surface.parent->submitMesh(cmd);
+    //frame->parent_->transferSignalValue_
 
     if (!surface.material->texture) {
       continue;
     }
 
+    //v2::AllocatedTexture2 tex;
+//tex.setUploadCompleteTimeline(frame->parent_->transferSignalValue_);
     surface.material->texture->uploadBufferToImage(cmd);
     DescriptorWriter scenewriter{engine_->device_};
     scenewriter.write_image(1, surface.material->texture->getImageView(),
@@ -282,7 +286,7 @@ void ScenesManager::transfer(VkCommandBuffer cmd,
 void ScenesManager::render(VkCommandBuffer cmd,
                            std::unique_ptr<CommonFrameContext> &frame) {
 
-  MeshAsset *last_mesh{};
+          mesh::MeshAsset *last_mesh{};
   MaterialInstance *last_material{};
   MaterialPipeline *last_pipeline{};
 
@@ -342,6 +346,9 @@ void ScenesManager::render(VkCommandBuffer cmd,
       continue;
     }
 
+    //v2::AllocatedTexture2 tex;
+    //tex.purgeReleaseStaging(frame->parent_->graphicsWaitValue_);
+
     // No Material Set, Then use default
     if (!surface.material) {
       // setup default material   (set = 1, binding = 0, 1, 2)*/
@@ -375,13 +382,13 @@ void ScenesManager::render(VkCommandBuffer cmd,
               decltype(surface.parent->meshBuffers.indicies_[0])>());
     }
 
-    GPUGeoPushConstants constants{};
+    mesh::GPUGeoPushConstants constants{};
     constants.matrix = surface.transform;
     constants.vertexBuffer = surface.vertexBufferAddress;
 
     vkCmdPushConstants(cmd, surface.material->pipeline->getPipelineLayout(),
                        VK_SHADER_STAGE_VERTEX_BIT, 0,
-                       sizeof(GPUGeoPushConstants), &constants);
+                       sizeof(mesh::GPUGeoPushConstants), &constants);
 
     vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
 

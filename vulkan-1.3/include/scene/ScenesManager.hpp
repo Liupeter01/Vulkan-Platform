@@ -81,7 +81,7 @@ private:
 
   struct SceneControl {
     /*  Graphic Scene Control System (set = 0, binding = 0 ) */
-    GPUSceneData globalSceneData{}; // Scene Data For this scene only
+    mesh::GPUSceneData globalSceneData{}; // Scene Data For this scene only
     VkDescriptorSetLayout sceneDescriptorSetLayout_{};
     std::shared_ptr<AllocatedBuffer> sceneDataBuffer;
     VkDescriptorSet sceneDescriptorSet;
