@@ -3,6 +3,7 @@
 #define _ALLOCATED_TEXTURE_HPP_
 #include <GlobalDef.hpp>
 #include <string>
+#include <vector>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
@@ -25,9 +26,7 @@ namespace engine {
                               VkImage image();
                               VkImageView imageView();
 
-                              // Prepare Cpu staging(Transfer src) data
-                              // Note:  recordUpload function WILL NOT ACCEPT DATA MODIFICATION
-                              void updateCpuStaging(const void* data, const std::size_t length);
+                              void perpareTransferData(const void* data, const std::size_t length);
 
                               void purgeReleaseStaging(uint64_t observedValue);
 
@@ -41,11 +40,16 @@ namespace engine {
                               void __createGpuImage();
                               void __destroyGpuImage();
 
+                              // Prepare Cpu Buffer & staging(Transfer src) data
+                              // Note:  recordUpload function WILL NOT ACCEPT DATA MODIFICATION
+                              void updateCpuStaging();
+                              void updateCpuBuffer(const void* data, const std::size_t length);
+
                     protected:
                               std::string name_ = "AllocatedTexture2";
 
                               // staging(CPU)
-                              bool cpuReady_{ false };
+                              bool cpuStaging_{ false };
                               AllocatedBuffer staging_;
 
                     private:
@@ -57,15 +61,20 @@ namespace engine {
                               VkDevice device_;
                               VmaAllocator allocator_;
 
+                              VkImageUsageFlags imageUsage_;
+                              VmaMemoryUsage memoryUsage_;
+                              VkImageAspectFlags aspectFlag_;
+
                               VkImage image_;
                               VkImageView  imageView_;
                               VmaAllocation allocation_;
                               VkExtent3D imageExtent_;
                               VkFormat imageFormat_;
 
-                              VkImageUsageFlags imageUsage_;
-                              VmaMemoryUsage memoryUsage_;
-                              VkImageAspectFlags aspectFlag_;
+                              // CPU-side texture data is owned by std::vector.
+                              // Vulkan buffers are used strictly for GPU transfer.
+                              std::size_t textureSize_{};
+                              std::vector<uint8_t> textureBuffer_;
                     };
           }
 }

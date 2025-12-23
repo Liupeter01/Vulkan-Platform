@@ -4,7 +4,10 @@
 namespace engine {
           namespace v2 {
                     AllocatedTexture2::AllocatedTexture2(VkDevice device, VmaAllocator allocator, const std::string& name)
-                              :ResourcesStateManager(name), name_(name), device_(device), staging_(allocator)
+                              :ResourcesStateManager(name)
+                              , name_(name)
+                              , device_(device)
+                              , staging_(allocator)
                     {}
 
                     AllocatedTexture2::~AllocatedTexture2() {
@@ -33,8 +36,9 @@ namespace engine {
 
                               VmaAllocationCreateInfo rimg_allocinfo = {};
                               rimg_allocinfo.usage = memoryUsage_;
-                              rimg_allocinfo.requiredFlags =
-                                        VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                              if (memoryUsage_ == VMA_MEMORY_USAGE_GPU_ONLY) {
+                                        rimg_allocinfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+                              }
 
                               // allocate and create the image
                               vmaCreateImage(allocator_, &rimg_info, &rimg_allocinfo, &image_, &allocation_,
@@ -70,40 +74,53 @@ namespace engine {
                               }
                     }
 
-                    // Prepare Cpu staging(Transfer src) data
-                    // Note:  recordUpload function WILL NOT ACCEPT DATA MODIFICATION
-                    void AllocatedTexture2::updateCpuStaging(const void* data, const std::size_t length) {
+                    void AllocatedTexture2::perpareTransferData(const void* data, const std::size_t length) {
                               if (!configured_)
                                         throw std::runtime_error("Please configure() first");
 
-                              const size_t data_flat_size =
-                                        imageExtent_.depth * imageExtent_.height * imageExtent_.width * tools::bytes_per_pixel(imageFormat_);
-
-                              if (length != data_flat_size)
+                              if (length != textureSize_)
                                         throw std::runtime_error("size mismatch");
+
+                              updateCpuBuffer(data, length);
+                    }
+
+                    void AllocatedTexture2::updateCpuBuffer(const void* data, const std::size_t length) {
+                              if (!configured_)
+                                        throw std::runtime_error("You Must Configure parameters first!");
+                              if (length != textureSize_)
+                                        throw std::runtime_error("size mismatch");
+                              memcpy(textureBuffer_.data(), data, length);
+                    }
+
+                    // Prepare Cpu staging(Transfer src) data
+                    // Note:  recordUpload function WILL NOT ACCEPT DATA MODIFICATION
+                    void AllocatedTexture2::updateCpuStaging() {
 
                               // Making sure staging buffer is destroyed!
                               staging_.destroy();
-                              staging_.create(data_flat_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+
+                              cpuStaging_ = false;
+
+                              staging_.create(textureBuffer_.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                         VMA_MEMORY_USAGE_CPU_TO_GPU,
                                         name_ + std::string("::staging").c_str());
 
                               void* src = staging_.map();
-                              std::memcpy(reinterpret_cast<unsigned char*>(src), data, data_flat_size);
+                              std::memcpy(reinterpret_cast<unsigned char*>(src), textureBuffer_.data(), textureBuffer_.size());
                               staging_.unmap();
 
-                              cpuReady_ = true;
+                              cpuStaging_ = true;
                     }
 
                     void AllocatedTexture2::purgeReleaseStaging(uint64_t observedValue) {
-                              if (!pendingUpload_) return;
+                              if (!pendingUpload_ || !cpuStaging_) return;
                               if (state() == ResourceState::UploadScheduled &&
                                         this->isUploadComplete(observedValue)) [[likely]] {
 
                                         UploadSched2GpuResident();
 
                                         staging_.destroy(); 
-                                        cpuReady_ = false;
+                                        cpuStaging_ = false;
                                         pendingUpload_ = false;
                                         return;
                               }
@@ -119,7 +136,9 @@ namespace engine {
                                         st == ResourceState::UnInstalled))
                                         return;
 
-                              if (!cpuReady_)
+                              updateCpuStaging();
+
+                              if (!cpuStaging_)
                                         throw std::runtime_error("CPU staging missing");
 
                               if (!gpuAllocated_) {
@@ -131,9 +150,6 @@ namespace engine {
                                         Cpu2UploadScheduled();
                               else if (st == ResourceState::UnInstalled)
                                         Uninstall2UploadSched();
-
-                              const size_t data_flat_size =
-                                        imageExtent_.depth * imageExtent_.height * imageExtent_.width * tools::bytes_per_pixel(imageFormat_);
 
                               util::transition_image(cmd, image(), VK_IMAGE_LAYOUT_UNDEFINED,
                                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -189,9 +205,10 @@ namespace engine {
                     void AllocatedTexture2::destroy() {
                               if (isDestroyed())
                                         return;
+                              textureBuffer_.clear();
                               staging_.destroy();
                               __destroyGpuImage();
-                              this->state_ = ResourceState::Destroyed;
+                              Any2Destroy();
                     }
 
                     // configure Image Size and their usage!
@@ -207,6 +224,11 @@ namespace engine {
                               imageUsage_ = imageUsage;
                               mipMapped_ = mipmapped;
                               memoryUsage_ = memoryUsage;
+
+                              textureSize_ =
+                                        imageExtent_.depth * imageExtent_.height * imageExtent_.width * tools::bytes_per_pixel(imageFormat_);
+
+                              textureBuffer_.resize(textureSize_);
 
                               configured_ = true;
                     }
