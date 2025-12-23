@@ -26,9 +26,9 @@ struct NodeManager : public node::IRenderable {
   bool attachChildrens(
       const std::string &parentName,
       const std::vector<std::shared_ptr<node::BaseNode>> &childrens);
-  bool
-  attachChildrens(const std::string &parentName,
-                  const std::vector<std::shared_ptr<mesh::MeshAsset>> &childrens);
+  bool attachChildrens(
+      const std::string &parentName,
+      const std::vector<std::shared_ptr<mesh::MeshAsset>> &childrens);
 
   [[nodiscard]] std::optional<std::shared_ptr<node::BaseNode>>
   findNode(const std::string &name) const;

@@ -408,7 +408,8 @@ void SceneNodeBuilder::processMeshes(fastgltf::Asset &gltf) {
     std::vector<Vertex> vertices;
 
     std::shared_ptr<mesh::MeshAsset> newMesh =
-        std::make_shared<mesh::MeshAsset>(engine_->device_, engine_->allocator_);
+        std::make_shared<mesh::MeshAsset>(engine_->device_,
+                                          engine_->allocator_);
 
     newMesh->meshName = mesh.name.c_str();
     meshes_.push_back(newMesh);

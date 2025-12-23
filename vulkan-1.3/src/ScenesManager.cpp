@@ -1,3 +1,4 @@
+#include <AllocatedTexture.hpp>
 #include <Descriptors.hpp>
 #include <Tools.hpp>
 #include <VulkanEngine.hpp>
@@ -5,7 +6,6 @@
 #include <scene/ScenesManager.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
-#include <AllocatedTexture.hpp>
 
 namespace engine {
 
@@ -266,14 +266,14 @@ void ScenesManager::transfer(VkCommandBuffer cmd,
     }
 
     surface.parent->submitMesh(cmd);
-    //frame->parent_->transferSignalValue_
+    // frame->parent_->transferSignalValue_
 
     if (!surface.material->texture) {
       continue;
     }
 
-    //v2::AllocatedTexture2 tex;
-//tex.setUploadCompleteTimeline(frame->parent_->transferSignalValue_);
+    // v2::AllocatedTexture2 tex;
+    // tex.setUploadCompleteTimeline(frame->parent_->transferSignalValue_);
     surface.material->texture->uploadBufferToImage(cmd);
     DescriptorWriter scenewriter{engine_->device_};
     scenewriter.write_image(1, surface.material->texture->getImageView(),
@@ -286,7 +286,7 @@ void ScenesManager::transfer(VkCommandBuffer cmd,
 void ScenesManager::render(VkCommandBuffer cmd,
                            std::unique_ptr<CommonFrameContext> &frame) {
 
-          mesh::MeshAsset *last_mesh{};
+  mesh::MeshAsset *last_mesh{};
   MaterialInstance *last_material{};
   MaterialPipeline *last_pipeline{};
 
@@ -346,8 +346,8 @@ void ScenesManager::render(VkCommandBuffer cmd,
       continue;
     }
 
-    //v2::AllocatedTexture2 tex;
-    //tex.purgeReleaseStaging(frame->parent_->graphicsWaitValue_);
+    // v2::AllocatedTexture2 tex;
+    // tex.purgeReleaseStaging(frame->parent_->graphicsWaitValue_);
 
     // No Material Set, Then use default
     if (!surface.material) {

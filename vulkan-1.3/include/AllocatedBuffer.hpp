@@ -31,7 +31,7 @@ public:
                      VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
                  VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY);
 
-  void perpareTransferData(const void* data, const std::size_t length);
+  void perpareTransferData(const void *data, const std::size_t length);
 
   void purgeReleaseStaging(uint64_t observedValue);
 
@@ -44,9 +44,9 @@ protected:
   void __destroyGpuBuffer();
 
   // Prepare Cpu Buffer & staging(Transfer src) data
-// Note:  recordUpload function WILL NOT ACCEPT DATA MODIFICATION
+  // Note:  recordUpload function WILL NOT ACCEPT DATA MODIFICATION
   void updateCpuStaging();
-  void updateCpuBuffer(const void* data, const std::size_t length);
+  void updateCpuBuffer(const void *data, const std::size_t length);
 
 protected:
   bool configured_{false};

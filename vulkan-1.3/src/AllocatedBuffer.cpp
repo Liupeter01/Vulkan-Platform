@@ -29,21 +29,23 @@ void AllocatedBuffer2::configure(const size_t allocSize,
   configured_ = true;
 }
 
-void AllocatedBuffer2::perpareTransferData(const void* data, const std::size_t length) {
-          if (!configured_)
-                    throw std::runtime_error("Please configure() first");
-          if (length != allocSize_)
-                    throw std::runtime_error("size mismatch");
+void AllocatedBuffer2::perpareTransferData(const void *data,
+                                           const std::size_t length) {
+  if (!configured_)
+    throw std::runtime_error("Please configure() first");
+  if (length != allocSize_)
+    throw std::runtime_error("size mismatch");
 
-          updateCpuBuffer(data, length);
+  updateCpuBuffer(data, length);
 }
 
-void AllocatedBuffer2::updateCpuBuffer(const void* data, const std::size_t length) {
-          if (!configured_)
-                    throw std::runtime_error("You Must Configure parameters first!");
-          if (length != allocSize_)
-                    throw std::runtime_error("size mismatch");
-          memcpy(cpuBuffer_.data(), data, length);
+void AllocatedBuffer2::updateCpuBuffer(const void *data,
+                                       const std::size_t length) {
+  if (!configured_)
+    throw std::runtime_error("You Must Configure parameters first!");
+  if (length != allocSize_)
+    throw std::runtime_error("size mismatch");
+  memcpy(cpuBuffer_.data(), data, length);
 }
 
 void AllocatedBuffer2::updateCpuStaging() {
@@ -58,7 +60,8 @@ void AllocatedBuffer2::updateCpuStaging() {
                   name_ + std::string("::staging").c_str());
 
   void *src = staging_.map();
-  std::memcpy(reinterpret_cast<unsigned char*>(src), cpuBuffer_.data(), cpuBuffer_.size());
+  std::memcpy(reinterpret_cast<unsigned char *>(src), cpuBuffer_.data(),
+              cpuBuffer_.size());
   staging_.unmap();
 
   cpuReady_ = true;
@@ -77,7 +80,7 @@ void AllocatedBuffer2::__createGpuBuffer() {
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage = memoryUsage_;
   if (memoryUsage_ == VMA_MEMORY_USAGE_GPU_ONLY) {
-            vmaallocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    vmaallocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
   }
 
   // vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -93,20 +96,20 @@ void AllocatedBuffer2::__createGpuBuffer() {
   gpuAllocated_ = true;
 }
 
-VkDeviceAddress AllocatedBuffer2::getBufferDeviceAddress(){
-          if (!buffer()) {
-                    throw std::runtime_error("Invalid Buffer Address!");
-          }
+VkDeviceAddress AllocatedBuffer2::getBufferDeviceAddress() {
+  if (!buffer()) {
+    throw std::runtime_error("Invalid Buffer Address!");
+  }
 
-          if (!isGpuResident()) {
-                    throw std::runtime_error("GPU Memory Not Uploaded!");
-          }
+  if (!isGpuResident()) {
+    throw std::runtime_error("GPU Memory Not Uploaded!");
+  }
 
-          // find the adress of the vertex buffer
-          VkBufferDeviceAddressInfo deviceAdressInfo{};
-          deviceAdressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-          deviceAdressInfo.buffer = buffer();
-          return vkGetBufferDeviceAddress(device_, &deviceAdressInfo);
+  // find the adress of the vertex buffer
+  VkBufferDeviceAddressInfo deviceAdressInfo{};
+  deviceAdressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+  deviceAdressInfo.buffer = buffer();
+  return vkGetBufferDeviceAddress(device_, &deviceAdressInfo);
 }
 
 void AllocatedBuffer2::__destroyGpuBuffer() {
@@ -136,21 +139,23 @@ void AllocatedBuffer2::recordUpload(VkCommandBuffer cmd) {
 
   // Switch the state
   if (st == ResourceState::CpuOnly)
-            Cpu2UploadScheduled();
+    Cpu2UploadScheduled();
   else if (st == ResourceState::UnInstalled)
-            Uninstall2UploadSched();
+    Uninstall2UploadSched();
 
   VkBufferCopy copy{};
   copy.size = allocSize_;
 
-  // NOTE: staging_ uses v1 buffer wrapper; direct .buffer access is intentional.
+  // NOTE: staging_ uses v1 buffer wrapper; direct .buffer access is
+  // intentional.
   vkCmdCopyBuffer(cmd, staging_.buffer, buffer_, 1, &copy);
 
   pendingUpload_ = true;
 }
 
 void AllocatedBuffer2::purgeReleaseStaging(uint64_t observedValue) {
-          if (!pendingUpload_) return;
+  if (!pendingUpload_)
+    return;
   if (state() == ResourceState::UploadScheduled &&
       this->isUploadComplete(observedValue)) [[likely]] {
 

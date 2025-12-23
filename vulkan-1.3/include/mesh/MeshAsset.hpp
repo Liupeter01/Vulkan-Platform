@@ -44,37 +44,34 @@ struct MeshAsset {
 namespace v1 {}
 
 namespace v2 {
-          struct MeshAsset2 {
-                    MeshAsset2(VkDevice device, VmaAllocator allocator)
-                              : meshBuffers{ device, allocator } {
-                    }
+struct MeshAsset2 {
+  MeshAsset2(VkDevice device, VmaAllocator allocator)
+      : meshBuffers{device, allocator} {}
 
-                    void createAsset(std::vector<Vertex>&& vertices,
-                              std::vector<uint32_t>&& indices) {
-                              meshBuffers.createMesh(std::move(vertices), std::move(indices));
-                    }
+  void createAsset(std::vector<Vertex> &&vertices,
+                   std::vector<uint32_t> &&indices) {
+    meshBuffers.createMesh(std::move(vertices), std::move(indices));
+  }
 
-                    void recordUpload(VkCommandBuffer cmd) {
-                              meshBuffers.recordUpload(cmd);
-                    }
+  void recordUpload(VkCommandBuffer cmd) { meshBuffers.recordUpload(cmd); }
 
-                    void setUploadCompleteTimeline(uint64_t value) {
-                              meshBuffers.setUploadCompleteTimeline(value);
-                    }
+  void setUploadCompleteTimeline(uint64_t value) {
+    meshBuffers.setUploadCompleteTimeline(value);
+  }
 
-                    void purgeReleaseStaging(uint64_t observedValue) {
-                              meshBuffers.purgeReleaseStaging(observedValue);
-                    }
+  void purgeReleaseStaging(uint64_t observedValue) {
+    meshBuffers.purgeReleaseStaging(observedValue);
+  }
 
-                    VkDeviceAddress getVertexDeviceAddr() {
-                              return meshBuffers.getVertexBufferDeviceAddress();
-                    }
+  VkDeviceAddress getVertexDeviceAddr() {
+    return meshBuffers.getVertexBufferDeviceAddress();
+  }
 
-                    std::string meshName;
-                    std::vector<GeoSurface> meshSurfaces;
-                    v2::GPUGeoMeshBuffers2 meshBuffers;
-          };
-}
+  std::string meshName;
+  std::vector<GeoSurface> meshSurfaces;
+  v2::GPUGeoMeshBuffers2 meshBuffers;
+};
+} // namespace v2
 } // namespace mesh
 } // namespace engine
 

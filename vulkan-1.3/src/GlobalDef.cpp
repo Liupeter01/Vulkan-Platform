@@ -172,13 +172,12 @@ void ResourcesStateManager::Uninstall2Destroy() {
   state_ = ResourceState::Destroyed;
 }
 
-void  ResourcesStateManager::Any2Destroy() {
+void ResourcesStateManager::Any2Destroy() {
 #if ENABLE_VALIDATION_LAYERS
-          spdlog::info("[{}::ResourcesStateManager]: Switching State From Any => {}",
-                    root_,
-                    static_cast<int>(ResourceState::Destroyed));
+  spdlog::info("[{}::ResourcesStateManager]: Switching State From Any => {}",
+               root_, static_cast<int>(ResourceState::Destroyed));
 #endif
-          state_ = ResourceState::Destroyed;
+  state_ = ResourceState::Destroyed;
 }
 } // namespace v2
 

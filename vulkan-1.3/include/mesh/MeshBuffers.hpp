@@ -1,8 +1,8 @@
 #pragma once
 #ifndef _MESH_BUFFERS_HPP_
 #define _MESH_BUFFERS_HPP_
-#include <GlobalDef.hpp>
 #include <AllocatedBuffer.hpp>
+#include <GlobalDef.hpp>
 #include <vector>
 
 namespace engine {
@@ -63,37 +63,37 @@ struct GPUSceneData {
   glm::vec4 sunlightColor{1, 1, 1, 1};
 };
 
-namespace v1{}
+namespace v1 {}
 
 namespace v2 {
-          struct GPUGeoMeshBuffers2 {
-                    GPUGeoMeshBuffers2(VkDevice device, VmaAllocator allocator);
-                    virtual ~GPUGeoMeshBuffers2();
+struct GPUGeoMeshBuffers2 {
+  GPUGeoMeshBuffers2(VkDevice device, VmaAllocator allocator);
+  virtual ~GPUGeoMeshBuffers2();
 
-                    ::engine::v2::AllocatedBuffer2 vertexBuffer_;
-                    ::engine::v2::AllocatedBuffer2 indexBuffer_;
+  ::engine::v2::AllocatedBuffer2 vertexBuffer_;
+  ::engine::v2::AllocatedBuffer2 indexBuffer_;
 
-                    std::vector<Vertex> vertex_;
-                    std::vector<uint32_t> indicies_;
+  std::vector<Vertex> vertex_;
+  std::vector<uint32_t> indicies_;
 
-                    void destroy();
-                    void createMesh(std::vector<Vertex>&& vertices,
-                              std::vector<uint32_t>&& indices);
+  void destroy();
+  void createMesh(std::vector<Vertex> &&vertices,
+                  std::vector<uint32_t> &&indices);
 
-                    void createMesh(const Mesh& mesh);
-                    VkDeviceAddress getVertexBufferDeviceAddress();
+  void createMesh(const Mesh &mesh);
+  VkDeviceAddress getVertexBufferDeviceAddress();
 
-                    void recordUpload(VkCommandBuffer cmd);
-                    void setUploadCompleteTimeline(uint64_t value);
-                    void purgeReleaseStaging(uint64_t observedValue);
+  void recordUpload(VkCommandBuffer cmd);
+  void setUploadCompleteTimeline(uint64_t value);
+  void purgeReleaseStaging(uint64_t observedValue);
 
-          private:
-                    bool isinit_ = false;
-                    VkDevice device_;
-                    VmaAllocator allocator_;
-          };
+private:
+  bool isinit_ = false;
+  VkDevice device_;
+  VmaAllocator allocator_;
+};
 
-}
+} // namespace v2
 
 } // namespace mesh
 } // namespace engine

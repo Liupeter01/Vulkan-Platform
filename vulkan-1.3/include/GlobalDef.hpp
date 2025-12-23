@@ -3,8 +3,8 @@
 #define _GLOBALDEF_HPP_
 #include <Descriptors.hpp>
 #include <frame/FrameData.hpp>
-#include <string>
 #include <numeric>
+#include <string>
 #include <vk_mem_alloc.h>
 
 #define GLM_FORCE_RADIANS // no degresss
@@ -49,7 +49,8 @@ struct ResourcesStateManager {
   void markTouched(uint64_t frameIndex);
   uint64_t framesSinceLastTouch(uint64_t frameIndex) const;
 
-  bool isUploadComplete(uint64_t observed = std::numeric_limits<uint64_t>::max()) const;
+  bool isUploadComplete(
+      uint64_t observed = std::numeric_limits<uint64_t>::max()) const;
   bool isNoLongerUsed(uint64_t observed) const;
 
 protected:
@@ -75,7 +76,7 @@ private:
   // Actual correctness is enforced by Vulkan queue submission and fences.
   uint64_t waitingTimelineValue_{};
 
-  //State Machine
+  // State Machine
   ResourceState state_ = ResourceState::CpuOnly;
 };
 
