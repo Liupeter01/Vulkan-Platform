@@ -2,6 +2,7 @@
 #ifndef _MESH_BUFFERS_HPP_
 #define _MESH_BUFFERS_HPP_
 #include <GlobalDef.hpp>
+#include <AllocatedBuffer.hpp>
 #include <vector>
 
 namespace engine {
@@ -18,7 +19,7 @@ struct Mesh {
   std::vector<uint32_t> indices;
 };
 
-inline namespace mesh {
+namespace mesh {
 struct GPUGeoMeshBuffers {
   GPUGeoMeshBuffers(VkDevice device, VmaAllocator allocator);
   virtual ~GPUGeoMeshBuffers();
@@ -61,6 +62,38 @@ struct GPUSceneData {
   glm::vec4 sunlightDirection{0, 0, 1, 5}; // w for sun power
   glm::vec4 sunlightColor{1, 1, 1, 1};
 };
+
+namespace v1{}
+
+namespace v2 {
+          struct GPUGeoMeshBuffers2 {
+                    GPUGeoMeshBuffers2(VkDevice device, VmaAllocator allocator);
+                    virtual ~GPUGeoMeshBuffers2();
+
+                    ::engine::v2::AllocatedBuffer2 vertexBuffer_;
+                    ::engine::v2::AllocatedBuffer2 indexBuffer_;
+
+                    std::vector<Vertex> vertex_;
+                    std::vector<uint32_t> indicies_;
+
+                    void destroy();
+                    void createMesh(std::vector<Vertex>&& vertices,
+                              std::vector<uint32_t>&& indices);
+
+                    void createMesh(const Mesh& mesh);
+                    VkDeviceAddress getVertexBufferDeviceAddress();
+
+                    void recordUpload(VkCommandBuffer cmd);
+                    void setUploadCompleteTimeline(uint64_t value);
+                    void purgeReleaseStaging(uint64_t observedValue);
+
+          private:
+                    bool isinit_ = false;
+                    VkDevice device_;
+                    VmaAllocator allocator_;
+          };
+
+}
 
 } // namespace mesh
 } // namespace engine
