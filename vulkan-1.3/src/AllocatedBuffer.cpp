@@ -5,9 +5,9 @@
 namespace engine {
 namespace v2 {
 
-AllocatedBuffer2::AllocatedBuffer2(VmaAllocator allocator,
+AllocatedBuffer2::AllocatedBuffer2(VkDevice device, VmaAllocator allocator,
                                    const std::string &name)
-    : allocator_(allocator), name_(name), staging_(allocator), 
+    : allocator_(allocator), name_(name), staging_(allocator), device_(device),
       configured_(false) {}
 
 AllocatedBuffer2::~AllocatedBuffer2() { destroy(); }
@@ -24,25 +24,41 @@ void AllocatedBuffer2::configure(const size_t allocSize,
   bufferUsage_ = bufferUsage;
   memoryUsage_ = memoryUsage;
 
+  cpuBuffer_.resize(allocSize_);
+
   configured_ = true;
 }
 
-void AllocatedBuffer2::updateCpuStaging(const void *data,
-                                        const std::size_t length) {
+void AllocatedBuffer2::perpareTransferData(const void* data, const std::size_t length) {
+          if (!configured_)
+                    throw std::runtime_error("Please configure() first");
+          if (length != allocSize_)
+                    throw std::runtime_error("size mismatch");
 
-  if (!configured_)
-    throw std::runtime_error("Please configure() first");
-  if (length != allocSize_)
-    throw std::runtime_error("size mismatch");
+          updateCpuBuffer(data, length);
+}
+
+void AllocatedBuffer2::updateCpuBuffer(const void* data, const std::size_t length) {
+          if (!configured_)
+                    throw std::runtime_error("You Must Configure parameters first!");
+          if (length != allocSize_)
+                    throw std::runtime_error("size mismatch");
+          memcpy(cpuBuffer_.data(), data, length);
+}
+
+void AllocatedBuffer2::updateCpuStaging() {
 
   // Making sure staging buffer is destroyed!
   staging_.destroy();
-  staging_.create(length, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+
+  cpuReady_ = false;
+
+  staging_.create(allocSize_, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                   VMA_MEMORY_USAGE_CPU_ONLY,
                   name_ + std::string("::staging").c_str());
 
   void *src = staging_.map();
-  std::memcpy(reinterpret_cast<unsigned char *>(src), data, length);
+  std::memcpy(reinterpret_cast<unsigned char*>(src), cpuBuffer_.data(), cpuBuffer_.size());
   staging_.unmap();
 
   cpuReady_ = true;
@@ -60,8 +76,9 @@ void AllocatedBuffer2::__createGpuBuffer() {
 
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage = memoryUsage_;
-  vmaallocInfo.requiredFlags =
-            VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  if (memoryUsage_ == VMA_MEMORY_USAGE_GPU_ONLY) {
+            vmaallocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+  }
 
   // vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
@@ -74,6 +91,22 @@ void AllocatedBuffer2::__createGpuBuffer() {
 #endif // ENABLE_VALIDATION_LAYERS
 
   gpuAllocated_ = true;
+}
+
+VkDeviceAddress AllocatedBuffer2::getBufferDeviceAddress(){
+          if (!buffer()) {
+                    throw std::runtime_error("Invalid Buffer Address!");
+          }
+
+          if (!isGpuResident()) {
+                    throw std::runtime_error("GPU Memory Not Uploaded!");
+          }
+
+          // find the adress of the vertex buffer
+          VkBufferDeviceAddressInfo deviceAdressInfo{};
+          deviceAdressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+          deviceAdressInfo.buffer = buffer();
+          return vkGetBufferDeviceAddress(device_, &deviceAdressInfo);
 }
 
 void AllocatedBuffer2::__destroyGpuBuffer() {
@@ -91,6 +124,8 @@ void AllocatedBuffer2::recordUpload(VkCommandBuffer cmd) {
   if (!(st == ResourceState::UploadScheduled || st == ResourceState::CpuOnly ||
         st == ResourceState::UnInstalled))
     return;
+
+  updateCpuStaging();
 
   if (!cpuReady_)
     throw std::runtime_error("CPU staging missing");
@@ -156,8 +191,9 @@ void AllocatedBuffer2::destroy() {
   if (isDestroyed())
     return;
   staging_.destroy();
+  cpuBuffer_.clear();
   __destroyGpuBuffer();
-  this->state_ = ResourceState::Destroyed;
+  Any2Destroy();
 }
 } // namespace v2
 } // namespace engine

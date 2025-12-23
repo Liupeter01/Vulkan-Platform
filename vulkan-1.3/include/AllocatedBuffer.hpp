@@ -3,6 +3,7 @@
 #define _ALLOCATED_BUFFER_HPP_
 #include <GlobalDef.hpp>
 #include <string>
+#include <vector>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
@@ -11,7 +12,7 @@ namespace v2 {
 
 class AllocatedBuffer2 : public ResourcesStateManager {
 public:
-  AllocatedBuffer2(VmaAllocator allocator,
+  AllocatedBuffer2(VkDevice device, VmaAllocator allocator,
                    const std::string &name = "AllocateBuffer2");
 
   virtual ~AllocatedBuffer2();
@@ -30,17 +31,22 @@ public:
                      VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
                  VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY);
 
-  // Prepare Cpu staging(Transfer src) data
-  // Note:  recordUpload function WILL NOT ACCEPT DATA MODIFICATION
-  void updateCpuStaging(const void *data, const std::size_t length);
+  void perpareTransferData(const void* data, const std::size_t length);
 
   void purgeReleaseStaging(uint64_t observedValue);
 
   VkBuffer buffer();
 
+  VkDeviceAddress getBufferDeviceAddress();
+
 protected:
   void __createGpuBuffer();
   void __destroyGpuBuffer();
+
+  // Prepare Cpu Buffer & staging(Transfer src) data
+// Note:  recordUpload function WILL NOT ACCEPT DATA MODIFICATION
+  void updateCpuStaging();
+  void updateCpuBuffer(const void* data, const std::size_t length);
 
 protected:
   bool configured_{false};
@@ -53,6 +59,7 @@ protected:
 private:
   std::string name_ = "AllocatedBuffer2";
   VmaAllocator allocator_;
+  VkDevice device_ = VK_NULL_HANDLE;
 
   VkBufferUsageFlags bufferUsage_ = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                                     VK_BUFFER_USAGE_TRANSFER_DST_BIT |
@@ -67,6 +74,10 @@ private:
   bool gpuAllocated_{false};
 
   bool pendingUpload_{false};
+
+  // CPU-side texture data is owned by std::vector.
+  // Vulkan buffers are used strictly for GPU transfer.
+  std::vector<uint8_t> cpuBuffer_;
 };
 } // namespace v2
 } // namespace engine
