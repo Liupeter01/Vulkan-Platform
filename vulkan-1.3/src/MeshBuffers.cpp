@@ -3,115 +3,117 @@
 namespace engine {
 
 namespace mesh {
-GPUGeoMeshBuffers::GPUGeoMeshBuffers(VkDevice device, VmaAllocator allocator)
-    : device_{device}, allocator_(allocator), indexBuffer{allocator},
-      vertexBuffer{allocator}, staging{allocator}, isinit(false) {}
 
-GPUGeoMeshBuffers::~GPUGeoMeshBuffers() { destroy(); }
+          namespace v1 {
+                    GPUGeoMeshBuffers::GPUGeoMeshBuffers(VkDevice device, VmaAllocator allocator)
+                              : device_{ device }, allocator_(allocator), indexBuffer{ allocator },
+                              vertexBuffer{ allocator }, staging{ allocator }, isinit(false) {
+                    }
 
-void GPUGeoMeshBuffers::destroy() {
-  if (isinit) {
-    indexBuffer.destroy();
-    vertexBuffer.destroy();
-    staging.destroy();
-    isinit = false;
-  }
-}
+                    GPUGeoMeshBuffers::~GPUGeoMeshBuffers() { destroy(); }
 
-void GPUGeoMeshBuffers::invalid() {
-  destroy();
-  pendingUpload_ = false;
-}
+                    void GPUGeoMeshBuffers::destroy() {
+                              if (isinit) {
+                                        indexBuffer.destroy();
+                                        vertexBuffer.destroy();
+                                        staging.destroy();
+                                        isinit = false;
+                              }
+                    }
 
-bool GPUGeoMeshBuffers::isValid() const { return isinit; }
+                    void GPUGeoMeshBuffers::invalid() {
+                              destroy();
+                              pendingUpload_ = false;
+                    }
 
-void GPUGeoMeshBuffers::createMesh(std::vector<Vertex> &&vertices,
-                                   std::vector<uint32_t> &&indices) {
+                    bool GPUGeoMeshBuffers::isValid() const { return isinit; }
 
-  if (isinit)
-    return;
+                    void GPUGeoMeshBuffers::createMesh(std::vector<Vertex>&& vertices,
+                              std::vector<uint32_t>&& indices) {
 
-  vertex_ = std::move(vertices);
-  indicies_ = std::move(indices);
+                              if (isinit)
+                                        return;
 
-  const std::size_t vertexBufferSize = vertex_.size() * sizeof(vertex_[0]);
-  const std::size_t indiciesBufferSize =
-      indicies_.size() * sizeof(indicies_[0]);
+                              vertex_ = std::move(vertices);
+                              indicies_ = std::move(indices);
 
-  vertexBuffer.create(
-      vertexBufferSize,
-      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                              const std::size_t vertexBufferSize = vertex_.size() * sizeof(vertex_[0]);
+                              const std::size_t indiciesBufferSize =
+                                        indicies_.size() * sizeof(indicies_[0]);
 
-          // Shader Device Addr
-          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+                              vertexBuffer.create(
+                                        vertexBufferSize,
+                                        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
 
-      VMA_MEMORY_USAGE_GPU_ONLY, "GPUGeoMeshBuffers::VertexBuffer");
+                                        // Shader Device Addr
+                                        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 
-  indexBuffer.create(
-      indiciesBufferSize,
-      VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                        VMA_MEMORY_USAGE_GPU_ONLY, "GPUGeoMeshBuffers::VertexBuffer");
 
-      VMA_MEMORY_USAGE_GPU_ONLY, "GPUGeoMeshBuffers::IndiciesBuffer");
+                              indexBuffer.create(
+                                        indiciesBufferSize,
+                                        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 
-  // find the adress of the vertex buffer
-  VkBufferDeviceAddressInfo deviceAdressInfo{};
-  deviceAdressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-  deviceAdressInfo.buffer = vertexBuffer.buffer;
-  vertexBufferAddress = vkGetBufferDeviceAddress(device_, &deviceAdressInfo);
+                                        VMA_MEMORY_USAGE_GPU_ONLY, "GPUGeoMeshBuffers::IndiciesBuffer");
 
-  isinit = true;
-}
+                              // find the adress of the vertex buffer
+                              VkBufferDeviceAddressInfo deviceAdressInfo{};
+                              deviceAdressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+                              deviceAdressInfo.buffer = vertexBuffer.buffer;
+                              vertexBufferAddress = vkGetBufferDeviceAddress(device_, &deviceAdressInfo);
 
-void GPUGeoMeshBuffers::createMesh(const Mesh &mesh) {
+                              isinit = true;
+                    }
 
-  vertex_ = mesh.vertices;
-  indicies_ = mesh.indices;
+                    void GPUGeoMeshBuffers::createMesh(const Mesh& mesh) {
 
-  createMesh(std::move(vertex_), std::move(indicies_));
-}
+                              vertex_ = mesh.vertices;
+                              indicies_ = mesh.indices;
 
-void GPUGeoMeshBuffers::submitMesh(VkCommandBuffer cmd) {
-  // staging.destroy();
+                              createMesh(std::move(vertex_), std::move(indicies_));
+                    }
 
-  const std::size_t vertexBufferSize = vertex_.size() * sizeof(vertex_[0]);
-  const std::size_t indiciesBufferSize =
-      indicies_.size() * sizeof(indicies_[0]);
+                    void GPUGeoMeshBuffers::submitMesh(VkCommandBuffer cmd) {
+                              // staging.destroy();
 
-  staging.create(indiciesBufferSize + vertexBufferSize,
-                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+                              const std::size_t vertexBufferSize = vertex_.size() * sizeof(vertex_[0]);
+                              const std::size_t indiciesBufferSize =
+                                        indicies_.size() * sizeof(indicies_[0]);
 
-  void *src = staging.map();
-  memcpy(reinterpret_cast<unsigned char *>(src), vertex_.data(),
-         vertexBufferSize);
-  memcpy(reinterpret_cast<unsigned char *>(src) + vertexBufferSize,
-         indicies_.data(), indiciesBufferSize);
-  staging.unmap();
+                              staging.create(indiciesBufferSize + vertexBufferSize,
+                                        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 
-  VkBufferCopy vertexCopy{};
-  vertexCopy.size = vertexBufferSize;
+                              void* src = staging.map();
+                              memcpy(reinterpret_cast<unsigned char*>(src), vertex_.data(),
+                                        vertexBufferSize);
+                              memcpy(reinterpret_cast<unsigned char*>(src) + vertexBufferSize,
+                                        indicies_.data(), indiciesBufferSize);
+                              staging.unmap();
 
-  VkBufferCopy indexCopy{};
-  indexCopy.srcOffset = vertexBufferSize;
-  indexCopy.size = indiciesBufferSize;
+                              VkBufferCopy vertexCopy{};
+                              vertexCopy.size = vertexBufferSize;
 
-  vkCmdCopyBuffer(cmd, staging.buffer, vertexBuffer.buffer, 1, &vertexCopy);
-  vkCmdCopyBuffer(cmd, staging.buffer, indexBuffer.buffer, 1, &indexCopy);
+                              VkBufferCopy indexCopy{};
+                              indexCopy.srcOffset = vertexBufferSize;
+                              indexCopy.size = indiciesBufferSize;
 
-  pendingUpload_ = true;
-}
+                              vkCmdCopyBuffer(cmd, staging.buffer, vertexBuffer.buffer, 1, &vertexCopy);
+                              vkCmdCopyBuffer(cmd, staging.buffer, indexBuffer.buffer, 1, &indexCopy);
 
-void GPUGeoMeshBuffers::flushUpload(VkFence fence) {
-  if (!pendingUpload_)
-    return;
+                              pendingUpload_ = true;
+                    }
 
-  vkWaitForFences(device_, 1, &fence, true,
-                  std::numeric_limits<uint64_t>::max());
+                    void GPUGeoMeshBuffers::flushUpload(VkFence fence) {
+                              if (!pendingUpload_)
+                                        return;
 
-  // staging.destroy();
-  pendingUpload_ = false;
-}
+                              vkWaitForFences(device_, 1, &fence, true,
+                                        std::numeric_limits<uint64_t>::max());
 
-namespace v1 {}
+                              // staging.destroy();
+                              pendingUpload_ = false;
+                    }
+          }
 
 namespace v2 {
 GPUGeoMeshBuffers2::GPUGeoMeshBuffers2(VkDevice device, VmaAllocator allocator)
@@ -185,6 +187,20 @@ void GPUGeoMeshBuffers2::purgeReleaseStaging(uint64_t observedValue) {
   vertexBuffer_.purgeReleaseStaging(observedValue);
   indexBuffer_.purgeReleaseStaging(observedValue);
 }
+
+void GPUGeoMeshBuffers2::updateUploadingStatus(uint64_t observedValue) {
+          vertexBuffer_.updateUploadingStatus(observedValue);
+          indexBuffer_.updateUploadingStatus(observedValue);
+}
+
+::engine::v2::AllocatedBuffer2& GPUGeoMeshBuffers2::getVertexBuffer() {
+          return vertexBuffer_;
+}
+
+::engine::v2::AllocatedBuffer2& GPUGeoMeshBuffers2::getIndexBuffer() {
+          return indexBuffer_;
+}
+
 } // namespace v2
 
 } // namespace mesh
