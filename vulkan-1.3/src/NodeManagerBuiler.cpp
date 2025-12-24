@@ -86,10 +86,10 @@ std::optional<std::shared_ptr<NodeManager>> NodeManagerBuilder::build() {
 
 void NodeManagerBuilder::processMeshes(fastgltf::Asset &gltf) {
 
-  std::vector<std::shared_ptr<mesh::MeshAsset>> meshes;
+  std::vector<std::shared_ptr<mesh::v2::MeshAsset2>> meshes;
   for (const fastgltf::Mesh &mesh : gltf.meshes) {
 
-    mesh::MeshAsset meshAssets{engine_->device_, engine_->allocator_};
+            mesh::v2::MeshAsset2 meshAssets{engine_->device_, engine_->allocator_};
     meshAssets.meshName = mesh.name;
 
     std::vector<uint32_t> indices;
@@ -175,7 +175,7 @@ void NodeManagerBuilder::processMeshes(fastgltf::Asset &gltf) {
       }
     }
 
-    auto ptr = std::make_shared<mesh::MeshAsset>(std::move(meshAssets));
+    auto ptr = std::make_shared<mesh::v2::MeshAsset2>(std::move(meshAssets));
     ptr->createAsset(std::move(vertices), std::move(indices));
     meshes.emplace_back(ptr);
   }
