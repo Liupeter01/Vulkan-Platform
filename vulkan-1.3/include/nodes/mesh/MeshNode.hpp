@@ -10,7 +10,7 @@ struct MeshNode : public BaseNode {
 
   void Draw(const glm::mat4 &topMatrix, DrawContext &ctx) override;
 
-  std::shared_ptr<mesh::MeshAsset> mesh_{};
+  std::shared_ptr<mesh::v2::MeshAsset2> mesh_{};
 };
 } // namespace node
 } // namespace engine

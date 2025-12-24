@@ -88,12 +88,12 @@ void MeshNode::Draw(const glm::mat4 &topMatrix, DrawContext &ctx) {
     object.transform = nodeMatrix;
     object.firstIndex = surface.startIndex;
     object.indexCount = surface.count;
-    object.indexBuffer = mesh_->meshBuffers.indexBuffer.buffer;
-    object.vertexBufferAddress = mesh_->meshBuffers.vertexBufferAddress;
+    object.indexBuffer = mesh_->meshBuffers.indexBuffer_.buffer();
+    //object.vertexBufferAddress = mesh_->meshBuffers.vertexBufferAddress;
     object.material = surface.material.get();
     object.mesh_name = this->node_name;
     object.bounds = surface.bounds;
-    object.parent = mesh_.get();
+    object.parent = mesh_;
     ctx.OpaqueSurfaces.push_back(std::move(object));
   }
 
