@@ -16,6 +16,7 @@
 #include <task/AsyncSubmitHandler.hpp>
 #include <tuple>
 #include <vector>
+#include <AllocatedTexture.hpp>
 
 // IMGUI Support
 #define GLFW_INCLUDE_VULKAN
@@ -109,8 +110,8 @@ private:
   void destroy_swapchain();
   void destroy_vulkan();
 
-  void submit_default_color(VkCommandBuffer cmd);
-  void flush_default_color(VkFence fence);
+  void submit_default_color(uint64_t timeline, VkCommandBuffer cmd);
+  void purge_remove_color_staging(uint64_t observed);
 
 private:
   [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
@@ -222,11 +223,11 @@ private:
   VkDescriptorSetLayout sceneDescriptorSetLayout_{};
 
   // Default Color => Default Materal
-  std::shared_ptr<AllocatedTexture> white_{};
-  std::shared_ptr<AllocatedTexture> grey_{};
-  std::shared_ptr<AllocatedTexture> black_{};
-  std::shared_ptr<AllocatedTexture> magenta_{};
-  std::shared_ptr<AllocatedTexture> loaderrorImage_{};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> white_{};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> grey_{};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> black_{};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> magenta_{};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> loaderrorImage_{};
 
   VkSampler defaultSamplerLinear_;
   VkSampler defaultSamplerNearest_;
