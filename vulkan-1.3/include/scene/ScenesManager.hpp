@@ -10,7 +10,9 @@
 #include <particle/sprite/PointSpriteParticleSystem3D.hpp>
 #include <string>
 #include <tuple>
+#include <atomic>
 #include <unordered_map>
+#include <AllocatedBuffer.hpp>
 
 namespace engine {
 class ScenesManager {
@@ -76,6 +78,9 @@ protected:
 private:
   bool isinit = false;
   VulkanEngine *engine_{};
+  std::once_flag transfer_once_;
+  std::once_flag graphic_once_;
+  std::once_flag compute_once_;
 
   DrawContext ctx{}; // Export ALL subsurfaces
 
@@ -83,13 +88,13 @@ private:
     /*  Graphic Scene Control System (set = 0, binding = 0 ) */
     mesh::GPUSceneData globalSceneData{}; // Scene Data For this scene only
     VkDescriptorSetLayout sceneDescriptorSetLayout_{};
-    std::shared_ptr<AllocatedBuffer> sceneDataBuffer;
+    std::shared_ptr<   ::engine::v1::AllocatedBuffer> sceneDataBuffer;
     VkDescriptorSet sceneDescriptorSet;
   } myScene{};
 
   struct DefaultMaterial {
     MaterialInstance defaultMateral{};
-    std::shared_ptr<AllocatedBuffer> materialBuffer{};
+    std::shared_ptr<   ::engine::v1::AllocatedBuffer> materialBuffer{};
   } defaultMaterial{};
 
   // Node System(MeshNode, ...) or Scene Mgr
