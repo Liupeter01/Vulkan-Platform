@@ -73,12 +73,12 @@ private:
   DescriptorPoolAllocator pool_;
 
   // storage for all the data on a given glTF file
-  std::unordered_map<std::string, std::shared_ptr<AllocatedTexture>> images_;
+  std::unordered_map<std::string, std::shared_ptr<::engine::v2::AllocatedTexture2>> images_;
   std::unordered_map<std::string, std::shared_ptr<MaterialInstance>> materials_;
 
   std::unique_ptr<GLTFMetallic_Roughness> metalRoughMaterial = nullptr;
 
-  std::shared_ptr<AllocatedBuffer> materialBuffer = nullptr;
+  std::shared_ptr<   ::engine::v1::AllocatedBuffer> materialBuffer = nullptr;
 
   std::vector<VkSampler> samplers;
 };
