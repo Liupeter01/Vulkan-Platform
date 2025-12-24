@@ -1094,11 +1094,16 @@ void VulkanEngine::init_default_color() {
   magenta_.reset();
   loaderrorImage_.reset();
 
-  white_ = std::make_shared<::engine::v2::AllocatedTexture2>(device_, allocator_);
-  grey_ = std::make_shared<::engine::v2::AllocatedTexture2>(device_, allocator_);
-  black_ = std::make_shared<::engine::v2::AllocatedTexture2>(device_, allocator_);
-  magenta_ = std::make_shared<::engine::v2::AllocatedTexture2>(device_, allocator_);
-  loaderrorImage_ = std::make_shared<::engine::v2::AllocatedTexture2>(device_, allocator_);
+  white_ =
+      std::make_shared<::engine::v2::AllocatedTexture2>(device_, allocator_);
+  grey_ =
+      std::make_shared<::engine::v2::AllocatedTexture2>(device_, allocator_);
+  black_ =
+      std::make_shared<::engine::v2::AllocatedTexture2>(device_, allocator_);
+  magenta_ =
+      std::make_shared<::engine::v2::AllocatedTexture2>(device_, allocator_);
+  loaderrorImage_ =
+      std::make_shared<::engine::v2::AllocatedTexture2>(device_, allocator_);
 
   uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
   uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
@@ -1114,33 +1119,36 @@ void VulkanEngine::init_default_color() {
   }
 
   const auto standard_size = tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM);
-  const auto checkerboard_size = tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM) * 256;
+  const auto checkerboard_size =
+      tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM) * 256;
 
-  white_->configure(VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-            VK_IMAGE_USAGE_SAMPLED_BIT);
+  white_->configure(VkExtent3D{1, 1, 1}, VK_FORMAT_R8G8B8A8_UNORM,
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                        VK_IMAGE_USAGE_SAMPLED_BIT);
 
-  grey_->configure(VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-            VK_IMAGE_USAGE_SAMPLED_BIT);
+  grey_->configure(VkExtent3D{1, 1, 1}, VK_FORMAT_R8G8B8A8_UNORM,
+                   VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                       VK_IMAGE_USAGE_SAMPLED_BIT);
 
-  black_->configure(VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-            VK_IMAGE_USAGE_SAMPLED_BIT);
+  black_->configure(VkExtent3D{1, 1, 1}, VK_FORMAT_R8G8B8A8_UNORM,
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                        VK_IMAGE_USAGE_SAMPLED_BIT);
 
-  magenta_->configure(VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-            VK_IMAGE_USAGE_SAMPLED_BIT);
+  magenta_->configure(VkExtent3D{1, 1, 1}, VK_FORMAT_R8G8B8A8_UNORM,
+                      VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                          VK_IMAGE_USAGE_SAMPLED_BIT);
 
-  loaderrorImage_->configure(VkExtent3D{ 16, 16, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-            VK_IMAGE_USAGE_SAMPLED_BIT);
+  loaderrorImage_->configure(VkExtent3D{16, 16, 1}, VK_FORMAT_R8G8B8A8_UNORM,
+                             VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                 VK_IMAGE_USAGE_SAMPLED_BIT);
 
-  white_->perpareTransferData(reinterpret_cast<void*>(&white), standard_size);
-  grey_->perpareTransferData(reinterpret_cast<void*>(&grey), standard_size);
-  black_->perpareTransferData(reinterpret_cast<void*>(&black), standard_size);
-  magenta_->perpareTransferData(reinterpret_cast<void*>(&magenta), standard_size);
-  loaderrorImage_->perpareTransferData(reinterpret_cast<void*>(pixels.data()), checkerboard_size);
+  white_->perpareTransferData(reinterpret_cast<void *>(&white), standard_size);
+  grey_->perpareTransferData(reinterpret_cast<void *>(&grey), standard_size);
+  black_->perpareTransferData(reinterpret_cast<void *>(&black), standard_size);
+  magenta_->perpareTransferData(reinterpret_cast<void *>(&magenta),
+                                standard_size);
+  loaderrorImage_->perpareTransferData(reinterpret_cast<void *>(pixels.data()),
+                                       checkerboard_size);
 
   white_->createGpuImage();
   grey_->createGpuImage();
@@ -1364,26 +1372,27 @@ void VulkanEngine::destroy_immediate_commands() {
   vkDestroyCommandPool(device_, immCommandPool_, nullptr);
 }
 
-void VulkanEngine::submit_default_color(uint64_t timeline, VkCommandBuffer cmd) {
-          black_->setUploadCompleteTimeline(timeline);
-          white_->setUploadCompleteTimeline(timeline);
-          grey_->setUploadCompleteTimeline(timeline);
-          magenta_->setUploadCompleteTimeline(timeline);
-          loaderrorImage_->setUploadCompleteTimeline(timeline);
+void VulkanEngine::submit_default_color(uint64_t timeline,
+                                        VkCommandBuffer cmd) {
+  black_->setUploadCompleteTimeline(timeline);
+  white_->setUploadCompleteTimeline(timeline);
+  grey_->setUploadCompleteTimeline(timeline);
+  magenta_->setUploadCompleteTimeline(timeline);
+  loaderrorImage_->setUploadCompleteTimeline(timeline);
 
-          black_->recordUpload(cmd);
-          white_->recordUpload(cmd);
-          grey_->recordUpload(cmd);
-          magenta_->recordUpload(cmd);
-          loaderrorImage_->recordUpload(cmd);
+  black_->recordUpload(cmd);
+  white_->recordUpload(cmd);
+  grey_->recordUpload(cmd);
+  magenta_->recordUpload(cmd);
+  loaderrorImage_->recordUpload(cmd);
 }
 
 void VulkanEngine::purge_remove_color_staging(uint64_t observed) {
-          black_->purgeReleaseStaging(observed);
-          white_->purgeReleaseStaging(observed);
-          grey_->purgeReleaseStaging(observed);
-          magenta_->purgeReleaseStaging(observed);
-          loaderrorImage_->purgeReleaseStaging(observed);
+  black_->purgeReleaseStaging(observed);
+  white_->purgeReleaseStaging(observed);
+  grey_->purgeReleaseStaging(observed);
+  magenta_->purgeReleaseStaging(observed);
+  loaderrorImage_->purgeReleaseStaging(observed);
 }
 
 FrameData &VulkanEngine::get_current_frame() {

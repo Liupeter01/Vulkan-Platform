@@ -90,7 +90,7 @@ struct ParticleSysDataBuffer<
     /*Ping-Pong Swap Buffer*/
     for (auto &buf : buffers) {
       buf.reset();
-      buf = std::make_shared<   ::engine::v1::AllocatedBuffer>(allocator_);
+      buf = std::make_shared<::engine::v1::AllocatedBuffer>(allocator_);
       buf->create(bufferSize,
                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
@@ -154,7 +154,7 @@ struct ParticleSysDataBuffer<
   bool index = 0;
   std::size_t particleCount{0};
   std::size_t particleSize = sizeof(ParticleType);
-  std::array<std::shared_ptr<   ::engine::v1::AllocatedBuffer>, 2> buffers;
+  std::array<std::shared_ptr<::engine::v1::AllocatedBuffer>, 2> buffers;
 
 protected:
   std::random_device rd;

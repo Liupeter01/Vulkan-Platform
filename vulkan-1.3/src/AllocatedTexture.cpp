@@ -4,116 +4,113 @@
 
 namespace engine {
 
-          namespace v1 {
-                    AllocatedTexture::AllocatedTexture(VkDevice device, VmaAllocator allocator)
-                              : allocator_(allocator), device_{ device }, dstImage_{ device, allocator },
-                              srcBuffer_{ allocator } {
-                    }
+namespace v1 {
+AllocatedTexture::AllocatedTexture(VkDevice device, VmaAllocator allocator)
+    : allocator_(allocator), device_{device}, dstImage_{device, allocator},
+      srcBuffer_{allocator} {}
 
-                    AllocatedTexture::~AllocatedTexture() { destroy(); }
+AllocatedTexture::~AllocatedTexture() { destroy(); }
 
-                    void AllocatedTexture::createBuffer(void* data, VkExtent3D size,
-                              VkFormat format, VkImageUsageFlags usage,
-                              bool mipmapped) {
+void AllocatedTexture::createBuffer(void *data, VkExtent3D size,
+                                    VkFormat format, VkImageUsageFlags usage,
+                                    bool mipmapped) {
 
-                              if (isinit)
-                                        return;
-                              extent_ = size;
-                              const size_t data_flat_size =
-                                        size.depth * size.height * size.width * tools::bytes_per_pixel(format);
+  if (isinit)
+    return;
+  extent_ = size;
+  const size_t data_flat_size =
+      size.depth * size.height * size.width * tools::bytes_per_pixel(format);
 
-                              srcBuffer_.create(data_flat_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                        VMA_MEMORY_USAGE_CPU_TO_GPU, "AllocatedTexture::SrcBuffer");
+  srcBuffer_.create(data_flat_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VMA_MEMORY_USAGE_CPU_TO_GPU, "AllocatedTexture::SrcBuffer");
 
-                              void* mapped = srcBuffer_.map();
-                              memcpy(mapped, data, data_flat_size);
-                              srcBuffer_.unmap();
+  void *mapped = srcBuffer_.map();
+  memcpy(mapped, data, data_flat_size);
+  srcBuffer_.unmap();
 
-                              dstImage_.create_image(size, format,
-                                        usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                        mipmapped, "AllocatedTexture::DstImage");
+  dstImage_.create_image(size, format,
+                         usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                             VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                         mipmapped, "AllocatedTexture::DstImage");
 
-                              mipmapped_ = mipmapped;
+  mipmapped_ = mipmapped;
 
-                              isinit = true;
-                    }
+  isinit = true;
+}
 
-                    VkImage& AllocatedTexture::getImage() const { return dstImage_.image; }
+VkImage &AllocatedTexture::getImage() const { return dstImage_.image; }
 
-                    VkImageView& AllocatedTexture::getImageView() const {
-                              return dstImage_.imageView;
-                    }
+VkImageView &AllocatedTexture::getImageView() const {
+  return dstImage_.imageView;
+}
 
-                    void AllocatedTexture::uploadBufferToImage(VkCommandBuffer cmd) {
+void AllocatedTexture::uploadBufferToImage(VkCommandBuffer cmd) {
 
-                              util::transition_image(cmd, dstImage_.image, VK_IMAGE_LAYOUT_UNDEFINED,
-                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  util::transition_image(cmd, dstImage_.image, VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-                              VkBufferImageCopy copyRegion{};
-                              copyRegion.bufferOffset = 0;
-                              copyRegion.bufferRowLength = 0;
-                              copyRegion.bufferImageHeight = 0;
-                              copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                              copyRegion.imageSubresource.mipLevel = 0; // LOD0
-                              copyRegion.imageSubresource.baseArrayLayer = 0;
-                              copyRegion.imageSubresource.layerCount = 1;
-                              copyRegion.imageExtent = extent_;
+  VkBufferImageCopy copyRegion{};
+  copyRegion.bufferOffset = 0;
+  copyRegion.bufferRowLength = 0;
+  copyRegion.bufferImageHeight = 0;
+  copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  copyRegion.imageSubresource.mipLevel = 0; // LOD0
+  copyRegion.imageSubresource.baseArrayLayer = 0;
+  copyRegion.imageSubresource.layerCount = 1;
+  copyRegion.imageExtent = extent_;
 
-                              vkCmdCopyBufferToImage(cmd, srcBuffer_.buffer, dstImage_.image,
-                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+  vkCmdCopyBufferToImage(cmd, srcBuffer_.buffer, dstImage_.image,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
-                              if (mipmapped_) {
-                                        util::generate_mipmaps(
-                                                  cmd, dstImage_.image,
-                                                  { dstImage_.imageExtent.width, dstImage_.imageExtent.height });
-                              }
-                              else {
-                                        util::transition_image(cmd, dstImage_.image,
-                                                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-                              }
+  if (mipmapped_) {
+    util::generate_mipmaps(
+        cmd, dstImage_.image,
+        {dstImage_.imageExtent.width, dstImage_.imageExtent.height});
+  } else {
+    util::transition_image(cmd, dstImage_.image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  }
 
-                              pendingUpload_ = true;
-                    }
+  pendingUpload_ = true;
+}
 
-                    void AllocatedTexture::invalid() {
-                              destroy();
-                              pendingUpload_ = false;
-                    }
+void AllocatedTexture::invalid() {
+  destroy();
+  pendingUpload_ = false;
+}
 
-                    bool AllocatedTexture::isValid() const { return isinit; }
+bool AllocatedTexture::isValid() const { return isinit; }
 
-                    void AllocatedTexture::flushUpload(VkFence fence) {
-                              if (!pendingUpload_)
-                                        return;
+void AllocatedTexture::flushUpload(VkFence fence) {
+  if (!pendingUpload_)
+    return;
 
-                              vkWaitForFences(device_, 1, &fence, true,
-                                        std::numeric_limits<uint64_t>::max());
+  vkWaitForFences(device_, 1, &fence, true,
+                  std::numeric_limits<uint64_t>::max());
 
-                              // srcBuffer_.destroy();
-                              pendingUpload_ = false;
-                    }
+  // srcBuffer_.destroy();
+  pendingUpload_ = false;
+}
 
-                    void AllocatedTexture::destroy() {
-                              if (isinit) {
-                                        srcBuffer_.destroy();
-                                        dstImage_.destroy();
-                                        isinit = false;
-                              }
-                    }
-          }
+void AllocatedTexture::destroy() {
+  if (isinit) {
+    srcBuffer_.destroy();
+    dstImage_.destroy();
+    isinit = false;
+  }
+}
+} // namespace v1
 
 namespace v2 {
-          // NOTE:
+// NOTE:
 // AllocatedTexture2 constructor DOES NOT create any GPU resource.
 // User MUST call configure(...) before calling createGpuImage().
 // This is intentional to decouple description from allocation.
 AllocatedTexture2::AllocatedTexture2(VkDevice device, VmaAllocator allocator,
                                      const std::string &name)
-    : ResourcesStateManager(name), name_(name), device_(device),allocator_(allocator),
-      staging_(allocator) {
-}
+    : ResourcesStateManager(name), name_(name), device_(device),
+      allocator_(allocator), staging_(allocator) {}
 
 AllocatedTexture2::~AllocatedTexture2() { destroy(); }
 
@@ -215,22 +212,22 @@ void AllocatedTexture2::updateCpuStaging() {
 }
 
 void AllocatedTexture2::updateUploadingStatus(uint64_t observedValue) {
-          if (pendingUpload_) {
-          
-                    if (state() == ResourceState::UploadScheduled &&
-                              this->isUploadComplete(observedValue)) [[likely]] {
+  if (pendingUpload_) {
 
-                              UploadSched2GpuResident();
-                    }
-       
-                    pendingUpload_ = false;
-          }
+    if (state() == ResourceState::UploadScheduled &&
+        this->isUploadComplete(observedValue)) [[likely]] {
+
+      UploadSched2GpuResident();
+    }
+
+    pendingUpload_ = false;
+  }
 }
 
 void AllocatedTexture2::purgeReleaseStaging(uint64_t observedValue) {
-  if (cpuStaging_){
-            staging_.destroy();
-            cpuStaging_ = false;
+  if (cpuStaging_) {
+    staging_.destroy();
+    cpuStaging_ = false;
   }
 }
 
@@ -250,7 +247,7 @@ void AllocatedTexture2::recordUpload(VkCommandBuffer cmd) {
   }
 
   assert(imageUsage_ & VK_IMAGE_USAGE_TRANSFER_DST_BIT &&
-            "Image must be created with TRANSFER_DST_BIT for upload");
+         "Image must be created with TRANSFER_DST_BIT for upload");
 
   // Switch the state
   if (st == ResourceState::CpuOnly)
@@ -317,15 +314,15 @@ void AllocatedTexture2::destroy() {
 }
 
 bool AllocatedTexture2::createGpuImage() {
-          if (!configured_)
-                    throw std::runtime_error("You Must Configure parameters first!");
+  if (!configured_)
+    throw std::runtime_error("You Must Configure parameters first!");
 
-          if (gpuAllocated_) {
-                    spdlog::warn("[AllocatedTexture2 Warn]: Gpu Image Has Already Allocated!");
-                    return false;
-          }
-          __createGpuImage();
-          return true;
+  if (gpuAllocated_) {
+    spdlog::warn("[AllocatedTexture2 Warn]: Gpu Image Has Already Allocated!");
+    return false;
+  }
+  __createGpuImage();
+  return true;
 }
 
 // Configure texture parameters (extent, format, usage, mip levels, etc).

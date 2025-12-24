@@ -89,7 +89,7 @@ void MeshNode::Draw(const glm::mat4 &topMatrix, DrawContext &ctx) {
     object.firstIndex = surface.startIndex;
     object.indexCount = surface.count;
     object.indexBuffer = mesh_->meshBuffers.indexBuffer_.buffer();
-    //object.vertexBufferAddress = mesh_->meshBuffers.vertexBufferAddress;
+    // object.vertexBufferAddress = mesh_->meshBuffers.vertexBufferAddress;
     object.material = surface.material.get();
     object.mesh_name = this->node_name;
     object.bounds = surface.bounds;

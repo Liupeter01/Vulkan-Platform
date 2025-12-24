@@ -21,28 +21,27 @@ struct GeoSurface {
 };
 
 namespace v1 {
-          struct MeshAsset {
-                    MeshAsset(VkDevice device, VmaAllocator allocator)
-                              : meshBuffers{ device, allocator } {
-                    }
+struct MeshAsset {
+  MeshAsset(VkDevice device, VmaAllocator allocator)
+      : meshBuffers{device, allocator} {}
 
-                    void createAsset(std::vector<Vertex>&& vertices,
-                              std::vector<uint32_t>&& indices) {
-                              meshBuffers.createMesh(std::move(vertices), std::move(indices));
-                    }
+  void createAsset(std::vector<Vertex> &&vertices,
+                   std::vector<uint32_t> &&indices) {
+    meshBuffers.createMesh(std::move(vertices), std::move(indices));
+  }
 
-                    void submitMesh(VkCommandBuffer cmd) { meshBuffers.submitMesh(cmd); }
-                    void flushUpload(VkFence fence) { meshBuffers.flushUpload(fence); }
+  void submitMesh(VkCommandBuffer cmd) { meshBuffers.submitMesh(cmd); }
+  void flushUpload(VkFence fence) { meshBuffers.flushUpload(fence); }
 
-                    VkDeviceAddress getVertexDeviceAddr() {
-                              return meshBuffers.vertexBufferAddress;
-                    }
+  VkDeviceAddress getVertexDeviceAddr() {
+    return meshBuffers.vertexBufferAddress;
+  }
 
-                    std::string meshName;
-                    std::vector<GeoSurface> meshSurfaces;
-                    mesh::v1::GPUGeoMeshBuffers meshBuffers;
-          };
-}
+  std::string meshName;
+  std::vector<GeoSurface> meshSurfaces;
+  mesh::v1::GPUGeoMeshBuffers meshBuffers;
+};
+} // namespace v1
 
 namespace v2 {
 struct MeshAsset2 {
@@ -65,20 +64,16 @@ struct MeshAsset2 {
   }
 
   void updateUploadingStatus(uint64_t observedValue) {
-            meshBuffers.updateUploadingStatus(observedValue);
+    meshBuffers.updateUploadingStatus(observedValue);
   }
 
   VkDeviceAddress getVertexDeviceAddr() {
     return meshBuffers.getVertexBufferDeviceAddress();
   }
 
-  auto& getVertexBuffer() {
-            return meshBuffers.getVertexBuffer();
-  }
+  auto &getVertexBuffer() { return meshBuffers.getVertexBuffer(); }
 
-  auto& getIndexBuffer() {
-            return meshBuffers.getIndexBuffer();
-  }
+  auto &getIndexBuffer() { return meshBuffers.getIndexBuffer(); }
 
   std::string meshName;
   std::vector<GeoSurface> meshSurfaces;

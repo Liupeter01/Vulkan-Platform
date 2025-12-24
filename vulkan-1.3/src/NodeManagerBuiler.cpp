@@ -89,7 +89,7 @@ void NodeManagerBuilder::processMeshes(fastgltf::Asset &gltf) {
   std::vector<std::shared_ptr<mesh::v2::MeshAsset2>> meshes;
   for (const fastgltf::Mesh &mesh : gltf.meshes) {
 
-            mesh::v2::MeshAsset2 meshAssets{engine_->device_, engine_->allocator_};
+    mesh::v2::MeshAsset2 meshAssets{engine_->device_, engine_->allocator_};
     meshAssets.meshName = mesh.name;
 
     std::vector<uint32_t> indices;

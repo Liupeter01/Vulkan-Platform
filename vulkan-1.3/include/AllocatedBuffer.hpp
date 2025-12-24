@@ -9,33 +9,33 @@
 
 namespace engine {
 
-          namespace v1 {
+namespace v1 {
 
-                    struct AllocatedBuffer {
-                              AllocatedBuffer(VmaAllocator allocator);
-                              virtual ~AllocatedBuffer();
+struct AllocatedBuffer {
+  AllocatedBuffer(VmaAllocator allocator);
+  virtual ~AllocatedBuffer();
 
-                              VkBuffer buffer = VK_NULL_HANDLE;
-                              VmaAllocation allocation{};
-                              VmaAllocationInfo info{};
+  VkBuffer buffer = VK_NULL_HANDLE;
+  VmaAllocation allocation{};
+  VmaAllocationInfo info{};
 
-                              void create(size_t allocSize, VkBufferUsageFlags usage,
-                                        VmaMemoryUsage memoryUsage,
-                                        const std::string& name = "AllocatedBuffer");
-                              void destroy();
+  void create(size_t allocSize, VkBufferUsageFlags usage,
+              VmaMemoryUsage memoryUsage,
+              const std::string &name = "AllocatedBuffer");
+  void destroy();
 
-                              void* map();
-                              void unmap();
-                              void clear();
-                              void reset(size_t newSize, VkBufferUsageFlags usage,
-                                        VmaMemoryUsage memoryUsage);
+  void *map();
+  void unmap();
+  void clear();
+  void reset(size_t newSize, VkBufferUsageFlags usage,
+             VmaMemoryUsage memoryUsage);
 
-                    private:
-                              bool isinit = false;
-                              VmaAllocator allocator_;
-                    };
+private:
+  bool isinit = false;
+  VmaAllocator allocator_;
+};
 
-          }
+} // namespace v1
 
 namespace v2 {
 

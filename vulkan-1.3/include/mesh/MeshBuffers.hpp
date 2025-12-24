@@ -34,36 +34,36 @@ struct GPUSceneData {
 
 namespace v1 {
 
-          struct GPUGeoMeshBuffers {
-                    GPUGeoMeshBuffers(VkDevice device, VmaAllocator allocator);
-                    virtual ~GPUGeoMeshBuffers();
+struct GPUGeoMeshBuffers {
+  GPUGeoMeshBuffers(VkDevice device, VmaAllocator allocator);
+  virtual ~GPUGeoMeshBuffers();
 
-                    ::engine::v1::AllocatedBuffer indexBuffer;
-                    ::engine::v1::AllocatedBuffer vertexBuffer;
+  ::engine::v1::AllocatedBuffer indexBuffer;
+  ::engine::v1::AllocatedBuffer vertexBuffer;
 
-                    std::vector<Vertex> vertex_;
-                    std::vector<uint32_t> indicies_;
-                    VkDeviceAddress vertexBufferAddress{};
+  std::vector<Vertex> vertex_;
+  std::vector<uint32_t> indicies_;
+  VkDeviceAddress vertexBufferAddress{};
 
-                    void destroy();
-                    void invalid();
-                    bool isValid() const;
-                    void createMesh(std::vector<Vertex>&& vertices,
-                              std::vector<uint32_t>&& indices);
+  void destroy();
+  void invalid();
+  bool isValid() const;
+  void createMesh(std::vector<Vertex> &&vertices,
+                  std::vector<uint32_t> &&indices);
 
-                    void createMesh(const Mesh& mesh);
-                    void submitMesh(VkCommandBuffer cmd);
-                    void flushUpload(VkFence fence);
+  void createMesh(const Mesh &mesh);
+  void submitMesh(VkCommandBuffer cmd);
+  void flushUpload(VkFence fence);
 
-          private:
-                    bool isinit = false;
-                    VkDevice device_;
-                    VmaAllocator allocator_;
+private:
+  bool isinit = false;
+  VkDevice device_;
+  VmaAllocator allocator_;
 
-                    bool pendingUpload_ = false;
-                    ::engine::v1::AllocatedBuffer staging;
-          };
-}
+  bool pendingUpload_ = false;
+  ::engine::v1::AllocatedBuffer staging;
+};
+} // namespace v1
 
 namespace v2 {
 struct GPUGeoMeshBuffers2 {
@@ -88,8 +88,8 @@ struct GPUGeoMeshBuffers2 {
   void purgeReleaseStaging(uint64_t observedValue);
   void updateUploadingStatus(uint64_t observedValue);
 
-  ::engine::v2::AllocatedBuffer2& getVertexBuffer();
-  ::engine::v2::AllocatedBuffer2& getIndexBuffer();
+  ::engine::v2::AllocatedBuffer2 &getVertexBuffer();
+  ::engine::v2::AllocatedBuffer2 &getIndexBuffer();
 
 private:
   bool isinit_ = false;

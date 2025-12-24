@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
+#include <AllocatedTexture.hpp>
 #include <GlobalDef.hpp>
 #include <VkBootstrap.h>
 #include <Window.hpp>
@@ -16,7 +17,6 @@
 #include <task/AsyncSubmitHandler.hpp>
 #include <tuple>
 #include <vector>
-#include <AllocatedTexture.hpp>
 
 // IMGUI Support
 #define GLFW_INCLUDE_VULKAN

@@ -4,72 +4,71 @@
 
 namespace engine {
 
-          namespace v1 {
-                    AllocatedBuffer::AllocatedBuffer(VmaAllocator allocator)
-                              : allocator_(allocator), isinit(false) {
-                    }
-                    AllocatedBuffer::~AllocatedBuffer() { destroy(); }
+namespace v1 {
+AllocatedBuffer::AllocatedBuffer(VmaAllocator allocator)
+    : allocator_(allocator), isinit(false) {}
+AllocatedBuffer::~AllocatedBuffer() { destroy(); }
 
-                    void AllocatedBuffer::create(size_t allocSize, VkBufferUsageFlags usage,
-                              VmaMemoryUsage memoryUsage,
-                              const std::string& name) {
+void AllocatedBuffer::create(size_t allocSize, VkBufferUsageFlags usage,
+                             VmaMemoryUsage memoryUsage,
+                             const std::string &name) {
 
-                              if (isinit)
-                                        return;
+  if (isinit)
+    return;
 
-                              VkBufferCreateInfo bufferInfo{};
-                              bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-                              bufferInfo.size = allocSize;
-                              bufferInfo.usage = usage;
+  VkBufferCreateInfo bufferInfo{};
+  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bufferInfo.size = allocSize;
+  bufferInfo.usage = usage;
 
-                              VmaAllocationCreateInfo vmaallocInfo = {};
-                              vmaallocInfo.usage = memoryUsage;
-                              vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+  VmaAllocationCreateInfo vmaallocInfo = {};
+  vmaallocInfo.usage = memoryUsage;
+  vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-                              // allocate the buffer
-                              vmaCreateBuffer(allocator_, &bufferInfo, &vmaallocInfo, &buffer, &allocation,
-                                        &info);
+  // allocate the buffer
+  vmaCreateBuffer(allocator_, &bufferInfo, &vmaallocInfo, &buffer, &allocation,
+                  &info);
 
 #if ENABLE_VALIDATION_LAYERS
-                              vmaSetAllocationName(allocator_, allocation, name.c_str());
+  vmaSetAllocationName(allocator_, allocation, name.c_str());
 #endif // ENABLE_VALIDATION_LAYERS
 
-                              isinit = true;
-                    }
+  isinit = true;
+}
 
-                    void AllocatedBuffer::clear() {
-                              if (info.pMappedData && info.size > 0) {
-                                        std::memset(info.pMappedData, 0, info.size);
-                              }
-                    }
-                    void AllocatedBuffer::reset(size_t newSize, VkBufferUsageFlags usage,
-                              VmaMemoryUsage memoryUsage) {
+void AllocatedBuffer::clear() {
+  if (info.pMappedData && info.size > 0) {
+    std::memset(info.pMappedData, 0, info.size);
+  }
+}
+void AllocatedBuffer::reset(size_t newSize, VkBufferUsageFlags usage,
+                            VmaMemoryUsage memoryUsage) {
 
-                              destroy();
-                              create(newSize, usage, memoryUsage);
-                    }
+  destroy();
+  create(newSize, usage, memoryUsage);
+}
 
-                    void* AllocatedBuffer::map() {
-                              void* src;
-                              vmaMapMemory(allocator_, allocation, &src);
-                              return src;
-                    }
-                    void AllocatedBuffer::unmap() { vmaUnmapMemory(allocator_, allocation); }
+void *AllocatedBuffer::map() {
+  void *src;
+  vmaMapMemory(allocator_, allocation, &src);
+  return src;
+}
+void AllocatedBuffer::unmap() { vmaUnmapMemory(allocator_, allocation); }
 
-                    void AllocatedBuffer::destroy() {
-                              if (isinit) {
-                                        vmaDestroyBuffer(allocator_, buffer, allocation);
-                                        isinit = false;
-                              }
-                    }
-          }
+void AllocatedBuffer::destroy() {
+  if (isinit) {
+    vmaDestroyBuffer(allocator_, buffer, allocation);
+    isinit = false;
+  }
+}
+} // namespace v1
 
 namespace v2 {
 
 AllocatedBuffer2::AllocatedBuffer2(VkDevice device, VmaAllocator allocator,
                                    const std::string &name)
-    : ResourcesStateManager(name), allocator_(allocator), name_(name), staging_(allocator), device_(device),
-      configured_(false) {}
+    : ResourcesStateManager(name), allocator_(allocator), name_(name),
+      staging_(allocator), device_(device), configured_(false) {}
 
 AllocatedBuffer2::~AllocatedBuffer2() { destroy(); }
 
@@ -215,24 +214,24 @@ void AllocatedBuffer2::recordUpload(VkCommandBuffer cmd) {
 }
 
 void AllocatedBuffer2::updateUploadingStatus(uint64_t observedValue) {
-          if (pendingUpload_) {
+  if (pendingUpload_) {
 
-                    if (state() == ResourceState::UploadScheduled &&
-                              this->isUploadComplete(observedValue)) [[likely]] {
+    if (state() == ResourceState::UploadScheduled &&
+        this->isUploadComplete(observedValue)) [[likely]] {
 
-                              UploadSched2GpuResident();
-                    }
+      UploadSched2GpuResident();
+    }
 
-                    pendingUpload_ = false;
-          }
+    pendingUpload_ = false;
+  }
 }
 
 void AllocatedBuffer2::purgeReleaseStaging(uint64_t observedValue) {
 
-          if (cpuReady_) {
-                    staging_.destroy();
-                    cpuReady_ = false;
-          }
+  if (cpuReady_) {
+    staging_.destroy();
+    cpuReady_ = false;
+  }
 }
 
 bool AllocatedBuffer2::tryUninstall(uint64_t observedValue) {

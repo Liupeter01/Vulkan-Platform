@@ -1,9 +1,9 @@
+#include <Tools.hpp>
 #include <VulkanEngine.hpp>
 #include <builder/SceneNodeBuilder.hpp>
 #include <nodes/mesh/MeshNode.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
-#include <Tools.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -166,16 +166,17 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
       imagesize.depth = 1;
 
       ret.reset();
-      ret = std::make_shared<::engine::v2::AllocatedTexture2>(engine_->device_,
-                                               engine_->allocator_, "SceneNodeBuilder::extract_image");
+      ret = std::make_shared<::engine::v2::AllocatedTexture2>(
+          engine_->device_, engine_->allocator_,
+          "SceneNodeBuilder::extract_image");
 
       ret->configure(imagesize, VK_FORMAT_R8G8B8A8_UNORM,
-                VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                VK_IMAGE_USAGE_SAMPLED_BIT,
-                mipMapped);
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                         VK_IMAGE_USAGE_SAMPLED_BIT,
+                     mipMapped);
 
       const auto size = imagesize.depth * imagesize.height * imagesize.width *
-                tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM);
+                        tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM);
 
       ret->perpareTransferData(data, size);
       ret->createGpuImage();
@@ -194,16 +195,17 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
       imagesize.depth = 1;
 
       ret.reset();
-      ret = std::make_shared<::engine::v2::AllocatedTexture2>(engine_->device_,
-                engine_->allocator_, "SceneNodeBuilder::extract_image");
+      ret = std::make_shared<::engine::v2::AllocatedTexture2>(
+          engine_->device_, engine_->allocator_,
+          "SceneNodeBuilder::extract_image");
 
       ret->configure(imagesize, VK_FORMAT_R8G8B8A8_UNORM,
-                VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                VK_IMAGE_USAGE_SAMPLED_BIT,
-                mipMapped);
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                         VK_IMAGE_USAGE_SAMPLED_BIT,
+                     mipMapped);
 
       const auto size = imagesize.depth * imagesize.height * imagesize.width *
-                tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM);
+                        tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM);
 
       ret->perpareTransferData(data, size);
       ret->createGpuImage();
@@ -233,16 +235,16 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
     imagesize.depth = 1;
 
     ret.reset();
-    ret = std::make_shared<::engine::v2::AllocatedTexture2>(engine_->device_,
-              engine_->allocator_, "SceneNodeBuilder::extract_image");
+    ret = std::make_shared<::engine::v2::AllocatedTexture2>(
+        engine_->device_, engine_->allocator_,
+        "SceneNodeBuilder::extract_image");
 
     ret->configure(imagesize, VK_FORMAT_R8G8B8A8_UNORM,
-              VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-              VK_IMAGE_USAGE_SAMPLED_BIT,
-              mipMapped);
+                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                   mipMapped);
 
     const auto size = imagesize.depth * imagesize.height * imagesize.width *
-              tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM);
+                      tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM);
 
     ret->perpareTransferData(data, size);
     ret->createGpuImage();
@@ -351,7 +353,7 @@ void SceneNodeBuilder::processImages(fastgltf::Asset &gltf, bool mipMapped) {
 void SceneNodeBuilder::processMaterials(fastgltf::Asset &gltf) {
   scene->materialBuffer.reset();
   scene->materialBuffer =
-      std::make_unique<   ::engine::v1::AllocatedBuffer>(engine_->allocator_);
+      std::make_unique<::engine::v1::AllocatedBuffer>(engine_->allocator_);
   scene->materialBuffer->create(
       sizeof(MaterialConstants) * gltf.materials.size(),
       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
@@ -434,7 +436,7 @@ void SceneNodeBuilder::processMeshes(fastgltf::Asset &gltf) {
 
     std::shared_ptr<::engine::mesh::v2::MeshAsset2> newMesh =
         std::make_shared<::engine::mesh::v2::MeshAsset2>(engine_->device_,
-                                          engine_->allocator_);
+                                                         engine_->allocator_);
 
     newMesh->meshName = mesh.name.c_str();
     meshes_.push_back(newMesh);

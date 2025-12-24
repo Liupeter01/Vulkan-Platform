@@ -1,8 +1,8 @@
 #pragma once
 #ifndef _GLTF_PBR_MATERIAL_
 #define _GLTF_PBR_MATERIAL_
-#include <GlobalDef.hpp>
 #include <AllocatedTexture.hpp>
+#include <GlobalDef.hpp>
 
 #define GLM_FORCE_RADIANS // no degresss
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

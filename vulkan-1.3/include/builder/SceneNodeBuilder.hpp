@@ -1,10 +1,10 @@
 #pragma once
 #ifndef _SCENE_NODE_BUILDER_HPP_
 #define _SCENE_NODE_BUILDER_HPP_
+#include <AllocatedTexture.hpp>
 #include <GlobalDef.hpp>
 #include <filesystem>
 #include <nodes/scene/SceneNode.hpp>
-#include <AllocatedTexture.hpp>
 
 namespace engine {
 

@@ -50,7 +50,8 @@ protected:
 
 protected:
   std::shared_ptr<node::BaseNode> sceneRoot_ = nullptr;
-  std::unordered_map<std::string, std::shared_ptr<mesh::v2::MeshAsset2>> meshes_;
+  std::unordered_map<std::string, std::shared_ptr<mesh::v2::MeshAsset2>>
+      meshes_;
   std::unordered_map<std::string, std::shared_ptr<node::BaseNode>> nodes_;
 
 private:

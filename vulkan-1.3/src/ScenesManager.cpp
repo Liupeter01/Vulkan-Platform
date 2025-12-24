@@ -80,7 +80,7 @@ void ScenesManager::init_default_material() {
 
   defaultMaterial.materialBuffer.reset();
   defaultMaterial.materialBuffer =
-      std::make_shared<   ::engine::v1::AllocatedBuffer>(engine_->allocator_);
+      std::make_shared<::engine::v1::AllocatedBuffer>(engine_->allocator_);
 
   if (!defaultMaterial.materialBuffer) {
     spdlog::error("[ScenesManager Error]: Create Default Graphic Material "
@@ -220,7 +220,7 @@ void ScenesManager::create_scene_set() {
   }
   myScene.sceneDataBuffer.reset();
   myScene.sceneDataBuffer =
-      std::make_shared<   ::engine::v1::AllocatedBuffer>(engine_->allocator_);
+      std::make_shared<::engine::v1::AllocatedBuffer>(engine_->allocator_);
 
   myScene.sceneDataBuffer->create(
       sizeof(mesh::GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -252,34 +252,38 @@ void ScenesManager::destroy_scene_set() {
 void ScenesManager::transfer(VkCommandBuffer cmd,
                              std::unique_ptr<CommonFrameContext> &frame) {
 
-          std::call_once(transfer_once_, [this, cmd](uint64_t value) {
-                    engine_->submit_default_color(value, cmd);
-
-                    }, frame->parent_->transferSignalValue_);
+  std::call_once(
+      transfer_once_,
+      [this, cmd](uint64_t value) {
+        engine_->submit_default_color(value, cmd);
+      },
+      frame->parent_->transferSignalValue_);
 
   auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
 
   for (auto &surface : ctx.OpaqueSurfaces) {
 
-            std::shared_ptr<mesh::v2::MeshAsset2> obj = surface.parent.lock();
+    std::shared_ptr<mesh::v2::MeshAsset2> obj = surface.parent.lock();
 
-            if (!obj) {
-                      continue;
-            }
-
-    if (!surface.isVisible(PV)) {
-              //Maybe LRU in the future
+    if (!obj) {
       continue;
     }
 
-   const  auto vertexState = obj->getVertexBuffer().state();
+    if (!surface.isVisible(PV)) {
+      // Maybe LRU in the future
+      continue;
+    }
+
+    const auto vertexState = obj->getVertexBuffer().state();
     const auto indexState = obj->getIndexBuffer().state();
 
-    if (((vertexState == v2::ResourceState::CpuOnly) && (indexState == v2::ResourceState::CpuOnly)) ||
-              ((vertexState == v2::ResourceState::UnInstalled) && (indexState == v2::ResourceState::UnInstalled))) {
-    
-              obj->setUploadCompleteTimeline(frame->parent_->transferSignalValue_);
-              obj->recordUpload(cmd);
+    if (((vertexState == v2::ResourceState::CpuOnly) &&
+         (indexState == v2::ResourceState::CpuOnly)) ||
+        ((vertexState == v2::ResourceState::UnInstalled) &&
+         (indexState == v2::ResourceState::UnInstalled))) {
+
+      obj->setUploadCompleteTimeline(frame->parent_->transferSignalValue_);
+      obj->recordUpload(cmd);
     }
 
     if (!surface.material->texture) {
@@ -287,10 +291,12 @@ void ScenesManager::transfer(VkCommandBuffer cmd,
     }
 
     const auto textureState = surface.material->texture->state();
-    if ((textureState == v2::ResourceState::CpuOnly) || (textureState == v2::ResourceState::UnInstalled) ) {
+    if ((textureState == v2::ResourceState::CpuOnly) ||
+        (textureState == v2::ResourceState::UnInstalled)) {
 
-              surface.material->texture->setUploadCompleteTimeline(frame->parent_->transferSignalValue_);
-              surface.material->texture->recordUpload(cmd);
+      surface.material->texture->setUploadCompleteTimeline(
+          frame->parent_->transferSignalValue_);
+      surface.material->texture->recordUpload(cmd);
     }
   }
 }
@@ -298,7 +304,7 @@ void ScenesManager::transfer(VkCommandBuffer cmd,
 void ScenesManager::render(VkCommandBuffer cmd,
                            std::unique_ptr<CommonFrameContext> &frame) {
 
- ::engine::mesh::v2::MeshAsset2* last_mesh{};
+  ::engine::mesh::v2::MeshAsset2 *last_mesh{};
   MaterialInstance *last_material{};
   MaterialPipeline *last_pipeline{};
 
@@ -351,61 +357,65 @@ void ScenesManager::render(VkCommandBuffer cmd,
     particleSysCompute->render(cmd, ins);
   }
 
-  std::call_once(graphic_once_, [this, cmd, &frame](uint64_t value) {
+  std::call_once(
+      graphic_once_,
+      [this, cmd, &frame](uint64_t value) {
+        init_default_material();
 
-            init_default_material();
-
-            frame->destroy_by_deferred([value, eng = engine_]() {
-                      if (eng) {
-                                eng->purge_remove_color_staging(value);
-                      }
-                      });
-
-            }, frame->parent_->graphicsWaitValue_);
+        frame->destroy_by_deferred([value, eng = engine_]() {
+          if (eng) {
+            eng->purge_remove_color_staging(value);
+          }
+        });
+      },
+      frame->parent_->graphicsWaitValue_);
 
   auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
   for (auto &surface : ctx.OpaqueSurfaces) {
 
-            std::shared_ptr<mesh::v2::MeshAsset2> obj = surface.parent.lock();
+    std::shared_ptr<mesh::v2::MeshAsset2> obj = surface.parent.lock();
 
-            if (!obj) {
-                      continue;
-            }
+    if (!obj) {
+      continue;
+    }
 
     if (!surface.isVisible(PV)) {
       continue;
     }
 
-    const  auto vertexState = obj->getVertexBuffer().state();
+    const auto vertexState = obj->getVertexBuffer().state();
     const auto indexState = obj->getIndexBuffer().state();
 
     if ((vertexState == v2::ResourceState::UploadScheduled) ||
-              (indexState == v2::ResourceState::UploadScheduled)) {
+        (indexState == v2::ResourceState::UploadScheduled)) {
 
-              obj->updateUploadingStatus( frame->parent_->graphicsWaitValue_);
+      obj->updateUploadingStatus(frame->parent_->graphicsWaitValue_);
 
-              frame->destroy_by_deferred([obj, value = frame->parent_->graphicsWaitValue_]() {
-                        obj->purgeReleaseStaging(value);
-                        });
+      frame->destroy_by_deferred(
+          [obj, value = frame->parent_->graphicsWaitValue_]() {
+            obj->purgeReleaseStaging(value);
+          });
     }
 
     if (surface.material->texture) {
-              const auto textureState = surface.material->texture->state();
-              if (textureState == v2::ResourceState::UploadScheduled) {
+      const auto textureState = surface.material->texture->state();
+      if (textureState == v2::ResourceState::UploadScheduled) {
 
-                        DescriptorWriter scenewriter{ engine_->device_ };
-                        scenewriter.write_image(1, surface.material->texture->imageView(),
-                                  surface.material->samplers,
-                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                  VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        DescriptorWriter scenewriter{engine_->device_};
+        scenewriter.write_image(1, surface.material->texture->imageView(),
+                                surface.material->samplers,
+                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-                        surface.material->texture->updateUploadingStatus(frame->parent_->graphicsWaitValue_);
+        surface.material->texture->updateUploadingStatus(
+            frame->parent_->graphicsWaitValue_);
 
-                        frame->destroy_by_deferred([obj = surface.material->texture, 
-                                  value = frame->parent_->graphicsWaitValue_]() {
-                                  obj->purgeReleaseStaging(value);
-                                  });
-              }
+        frame->destroy_by_deferred(
+            [obj = surface.material->texture,
+             value = frame->parent_->graphicsWaitValue_]() {
+              obj->purgeReleaseStaging(value);
+            });
+      }
     }
 
     // No Material Set, Then use default
@@ -437,8 +447,7 @@ void ScenesManager::render(VkCommandBuffer cmd,
 
       vkCmdBindIndexBuffer(
           cmd, obj->meshBuffers.indexBuffer_.buffer(), 0,
-          tools::getIndexType<
-              decltype(obj->meshBuffers.indicies_[0])>());
+          tools::getIndexType<decltype(obj->meshBuffers.indicies_[0])>());
     }
 
     mesh::GPUGeoPushConstants constants{};
