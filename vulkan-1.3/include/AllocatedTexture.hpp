@@ -6,8 +6,39 @@
 #include <vector>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
+#include <AllocatedBuffer.hpp>
 
 namespace engine {
+
+          namespace v1 {
+
+                    struct AllocatedTexture {
+                              AllocatedTexture(VkDevice device, VmaAllocator allocator);
+                              virtual ~AllocatedTexture();
+                              void createBuffer(void* data, VkExtent3D size, VkFormat format,
+                                        VkImageUsageFlags usage, bool mipmapped = false);
+
+                              VkImage& getImage() const;
+                              VkImageView& getImageView() const;
+                              void uploadBufferToImage(VkCommandBuffer cmd);
+                              void flushUpload(VkFence fence);
+                              void invalid();
+                              bool isValid() const;
+                              void destroy();
+
+                    private:
+                              bool isinit = false;
+                              bool pendingUpload_ = false;
+                              bool mipmapped_ = false;
+                              VkExtent3D extent_;
+                              mutable AllocatedImage dstImage_;
+                              ::engine::v1::AllocatedBuffer srcBuffer_;
+                              VkDevice device_;
+                              VmaAllocator allocator_;
+                    };
+
+          }
+
 namespace v2 {
 
 class AllocatedTexture2 : public ResourcesStateManager {
@@ -51,7 +82,7 @@ protected:
 
   // staging(CPU)
   bool cpuStaging_{false};
-  AllocatedBuffer staging_;
+  ::engine::v1::AllocatedBuffer staging_;
 
 private:
   bool configured_{false};

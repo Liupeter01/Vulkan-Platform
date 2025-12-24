@@ -8,6 +8,35 @@
 #include <vulkan/vulkan.hpp>
 
 namespace engine {
+
+          namespace v1 {
+
+                    struct AllocatedBuffer {
+                              AllocatedBuffer(VmaAllocator allocator);
+                              virtual ~AllocatedBuffer();
+
+                              VkBuffer buffer = VK_NULL_HANDLE;
+                              VmaAllocation allocation{};
+                              VmaAllocationInfo info{};
+
+                              void create(size_t allocSize, VkBufferUsageFlags usage,
+                                        VmaMemoryUsage memoryUsage,
+                                        const std::string& name = "AllocatedBuffer");
+                              void destroy();
+
+                              void* map();
+                              void unmap();
+                              void clear();
+                              void reset(size_t newSize, VkBufferUsageFlags usage,
+                                        VmaMemoryUsage memoryUsage);
+
+                    private:
+                              bool isinit = false;
+                              VmaAllocator allocator_;
+                    };
+
+          }
+
 namespace v2 {
 
 class AllocatedBuffer2 : public ResourcesStateManager {
@@ -55,7 +84,7 @@ protected:
 
   // staging(CPU)
   bool cpuReady_{false};
-  AllocatedBuffer staging_;
+  ::engine::v1::AllocatedBuffer staging_;
 
 private:
   std::string name_ = "AllocatedBuffer2";

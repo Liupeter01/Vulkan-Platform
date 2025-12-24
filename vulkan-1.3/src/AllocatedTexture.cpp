@@ -3,6 +3,107 @@
 #include <spdlog/spdlog.h>
 
 namespace engine {
+
+          namespace v1 {
+                    AllocatedTexture::AllocatedTexture(VkDevice device, VmaAllocator allocator)
+                              : allocator_(allocator), device_{ device }, dstImage_{ device, allocator },
+                              srcBuffer_{ allocator } {
+                    }
+
+                    AllocatedTexture::~AllocatedTexture() { destroy(); }
+
+                    void AllocatedTexture::createBuffer(void* data, VkExtent3D size,
+                              VkFormat format, VkImageUsageFlags usage,
+                              bool mipmapped) {
+
+                              if (isinit)
+                                        return;
+                              extent_ = size;
+                              const size_t data_flat_size =
+                                        size.depth * size.height * size.width * tools::bytes_per_pixel(format);
+
+                              srcBuffer_.create(data_flat_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                        VMA_MEMORY_USAGE_CPU_TO_GPU, "AllocatedTexture::SrcBuffer");
+
+                              void* mapped = srcBuffer_.map();
+                              memcpy(mapped, data, data_flat_size);
+                              srcBuffer_.unmap();
+
+                              dstImage_.create_image(size, format,
+                                        usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                        mipmapped, "AllocatedTexture::DstImage");
+
+                              mipmapped_ = mipmapped;
+
+                              isinit = true;
+                    }
+
+                    VkImage& AllocatedTexture::getImage() const { return dstImage_.image; }
+
+                    VkImageView& AllocatedTexture::getImageView() const {
+                              return dstImage_.imageView;
+                    }
+
+                    void AllocatedTexture::uploadBufferToImage(VkCommandBuffer cmd) {
+
+                              util::transition_image(cmd, dstImage_.image, VK_IMAGE_LAYOUT_UNDEFINED,
+                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+                              VkBufferImageCopy copyRegion{};
+                              copyRegion.bufferOffset = 0;
+                              copyRegion.bufferRowLength = 0;
+                              copyRegion.bufferImageHeight = 0;
+                              copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                              copyRegion.imageSubresource.mipLevel = 0; // LOD0
+                              copyRegion.imageSubresource.baseArrayLayer = 0;
+                              copyRegion.imageSubresource.layerCount = 1;
+                              copyRegion.imageExtent = extent_;
+
+                              vkCmdCopyBufferToImage(cmd, srcBuffer_.buffer, dstImage_.image,
+                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+
+                              if (mipmapped_) {
+                                        util::generate_mipmaps(
+                                                  cmd, dstImage_.image,
+                                                  { dstImage_.imageExtent.width, dstImage_.imageExtent.height });
+                              }
+                              else {
+                                        util::transition_image(cmd, dstImage_.image,
+                                                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                              }
+
+                              pendingUpload_ = true;
+                    }
+
+                    void AllocatedTexture::invalid() {
+                              destroy();
+                              pendingUpload_ = false;
+                    }
+
+                    bool AllocatedTexture::isValid() const { return isinit; }
+
+                    void AllocatedTexture::flushUpload(VkFence fence) {
+                              if (!pendingUpload_)
+                                        return;
+
+                              vkWaitForFences(device_, 1, &fence, true,
+                                        std::numeric_limits<uint64_t>::max());
+
+                              // srcBuffer_.destroy();
+                              pendingUpload_ = false;
+                    }
+
+                    void AllocatedTexture::destroy() {
+                              if (isinit) {
+                                        srcBuffer_.destroy();
+                                        dstImage_.destroy();
+                                        isinit = false;
+                              }
+                    }
+          }
+
 namespace v2 {
           // NOTE:
 // AllocatedTexture2 constructor DOES NOT create any GPU resource.
