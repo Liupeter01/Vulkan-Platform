@@ -33,6 +33,7 @@ public:
 
   void perpareTransferData(const void *data, const std::size_t length);
 
+  void updateUploadingStatus(uint64_t observedValue);
   void purgeReleaseStaging(uint64_t observedValue);
 
   VkBuffer buffer();

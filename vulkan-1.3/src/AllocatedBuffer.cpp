@@ -7,7 +7,7 @@ namespace v2 {
 
 AllocatedBuffer2::AllocatedBuffer2(VkDevice device, VmaAllocator allocator,
                                    const std::string &name)
-    : allocator_(allocator), name_(name), staging_(allocator), device_(device),
+    : ResourcesStateManager(name), allocator_(allocator), name_(name), staging_(allocator), device_(device),
       configured_(false) {}
 
 AllocatedBuffer2::~AllocatedBuffer2() { destroy(); }
@@ -153,23 +153,25 @@ void AllocatedBuffer2::recordUpload(VkCommandBuffer cmd) {
   pendingUpload_ = true;
 }
 
+void AllocatedBuffer2::updateUploadingStatus(uint64_t observedValue) {
+          if (pendingUpload_) {
+
+                    if (state() == ResourceState::UploadScheduled &&
+                              this->isUploadComplete(observedValue)) [[likely]] {
+
+                              UploadSched2GpuResident();
+                    }
+
+                    pendingUpload_ = false;
+          }
+}
+
 void AllocatedBuffer2::purgeReleaseStaging(uint64_t observedValue) {
-  if (!pendingUpload_)
-    return;
-  if (state() == ResourceState::UploadScheduled &&
-      this->isUploadComplete(observedValue)) [[likely]] {
 
-    UploadSched2GpuResident();
-
-    staging_.destroy();
-    cpuReady_ = false;
-    pendingUpload_ = false;
-    return;
-  }
-
-#if ENABLE_VALIDATION_LAYERS
-  spdlog::warn("[{}]: Purge Release Staging Failed!", name_);
-#endif
+          if (cpuReady_) {
+                    staging_.destroy();
+                    cpuReady_ = false;
+          }
 }
 
 bool AllocatedBuffer2::tryUninstall(uint64_t observedValue) {
