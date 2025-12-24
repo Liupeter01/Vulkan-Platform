@@ -1,12 +1,18 @@
 #include <AllocatedTexture.hpp>
 #include <Tools.hpp>
+#include <spdlog/spdlog.h>
 
 namespace engine {
 namespace v2 {
+          // NOTE:
+// AllocatedTexture2 constructor DOES NOT create any GPU resource.
+// User MUST call configure(...) before calling createGpuImage().
+// This is intentional to decouple description from allocation.
 AllocatedTexture2::AllocatedTexture2(VkDevice device, VmaAllocator allocator,
                                      const std::string &name)
-    : ResourcesStateManager(name), name_(name), device_(device),
-      staging_(allocator) {}
+    : ResourcesStateManager(name), name_(name), device_(device),allocator_(allocator),
+      staging_(allocator) {
+}
 
 AllocatedTexture2::~AllocatedTexture2() { destroy(); }
 
@@ -107,23 +113,24 @@ void AllocatedTexture2::updateCpuStaging() {
   cpuStaging_ = true;
 }
 
+void AllocatedTexture2::updateUploadingStatus(uint64_t observedValue) {
+          if (pendingUpload_) {
+          
+                    if (state() == ResourceState::UploadScheduled &&
+                              this->isUploadComplete(observedValue)) [[likely]] {
+
+                              UploadSched2GpuResident();
+                    }
+       
+                    pendingUpload_ = false;
+          }
+}
+
 void AllocatedTexture2::purgeReleaseStaging(uint64_t observedValue) {
-  if (!pendingUpload_ || !cpuStaging_)
-    return;
-  if (state() == ResourceState::UploadScheduled &&
-      this->isUploadComplete(observedValue)) [[likely]] {
-
-    UploadSched2GpuResident();
-
-    staging_.destroy();
-    cpuStaging_ = false;
-    pendingUpload_ = false;
-    return;
+  if (cpuStaging_){
+            staging_.destroy();
+            cpuStaging_ = false;
   }
-
-#if ENABLE_VALIDATION_LAYERS
-  spdlog::warn("[{}]: Purge Release Staging Failed!", name_);
-#endif
 }
 
 void AllocatedTexture2::recordUpload(VkCommandBuffer cmd) {
@@ -140,6 +147,9 @@ void AllocatedTexture2::recordUpload(VkCommandBuffer cmd) {
   if (!gpuAllocated_) {
     __createGpuImage(); //
   }
+
+  assert(imageUsage_ & VK_IMAGE_USAGE_TRANSFER_DST_BIT &&
+            "Image must be created with TRANSFER_DST_BIT for upload");
 
   // Switch the state
   if (st == ResourceState::CpuOnly)
@@ -205,7 +215,21 @@ void AllocatedTexture2::destroy() {
   Any2Destroy();
 }
 
-// configure Image Size and their usage!
+bool AllocatedTexture2::createGpuImage() {
+          if (!configured_)
+                    throw std::runtime_error("You Must Configure parameters first!");
+
+          if (gpuAllocated_) {
+                    spdlog::warn("[AllocatedTexture2 Warn]: Gpu Image Has Already Allocated!");
+                    return false;
+          }
+          __createGpuImage();
+          return true;
+}
+
+// Configure texture parameters (extent, format, usage, mip levels, etc).
+// This function MUST be called exactly once before createGpuImage().
+// After configuration, parameters are immutable.
 void AllocatedTexture2::configure(VkExtent3D extent, VkFormat format,
                                   VkImageUsageFlags imageUsage, bool mipmapped,
                                   VmaMemoryUsage memoryUsage) {

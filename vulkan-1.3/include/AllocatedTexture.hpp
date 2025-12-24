@@ -26,6 +26,7 @@ public:
 
   void perpareTransferData(const void *data, const std::size_t length);
 
+  void updateUploadingStatus(uint64_t observedValue);
   void purgeReleaseStaging(uint64_t observedValue);
 
   // virtual functions
@@ -33,6 +34,8 @@ public:
   bool tryUninstall(uint64_t observedValue) override; // GPU =>Uninstall
   void forceUninstall() override;
   void destroy() override;
+
+  bool createGpuImage();
 
 protected:
   void __createGpuImage();
