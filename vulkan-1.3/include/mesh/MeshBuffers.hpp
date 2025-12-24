@@ -2,7 +2,6 @@
 #ifndef _MESH_BUFFERS_HPP_
 #define _MESH_BUFFERS_HPP_
 #include <AllocatedBuffer.hpp>
-#include <GlobalDef.hpp>
 #include <vector>
 
 namespace engine {
@@ -39,8 +38,8 @@ namespace v1 {
                     GPUGeoMeshBuffers(VkDevice device, VmaAllocator allocator);
                     virtual ~GPUGeoMeshBuffers();
 
-                    AllocatedBuffer indexBuffer;
-                    AllocatedBuffer vertexBuffer;
+                    ::engine::v1::AllocatedBuffer indexBuffer;
+                    ::engine::v1::AllocatedBuffer vertexBuffer;
 
                     std::vector<Vertex> vertex_;
                     std::vector<uint32_t> indicies_;
@@ -62,7 +61,7 @@ namespace v1 {
                     VmaAllocator allocator_;
 
                     bool pendingUpload_ = false;
-                    AllocatedBuffer staging;
+                    ::engine::v1::AllocatedBuffer staging;
           };
 }
 
