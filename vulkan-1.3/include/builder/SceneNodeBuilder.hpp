@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _SCENE_NODE_BUILDER_HPP_
 #define _SCENE_NODE_BUILDER_HPP_
+#include <AllocatedTexture.hpp>
 #include <GlobalDef.hpp>
 #include <filesystem>
 #include <nodes/scene/SceneNode.hpp>
@@ -25,7 +26,7 @@ protected:
   static VkFilter extract_filter(fastgltf::Filter filter);
   static VkSamplerMipmapMode extract_mipmap_mode(fastgltf::Filter filter);
 
-  [[nodiscard]] std::optional<std::shared_ptr<AllocatedTexture>>
+  [[nodiscard]] std::optional<std::shared_ptr<::engine::v2::AllocatedTexture2>>
   extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
                 bool mipMapped = false);
 
@@ -43,9 +44,9 @@ protected:
   std::optional<node::SceneNodeConf> conf_{};
 
   // temporal arrays for all the objects to use while creating the GLTF data
-  std::vector<std::shared_ptr<MeshAsset>> meshes_;
+  std::vector<std::shared_ptr<::engine::mesh::v2::MeshAsset2>> meshes_;
   std::vector<std::shared_ptr<node::BaseNode>> nodes_;
-  std::vector<std::shared_ptr<AllocatedTexture>> images_;
+  std::vector<std::shared_ptr<::engine::v2::AllocatedTexture2>> images_;
   std::vector<std::shared_ptr<MaterialInstance>> materials_;
 
 private:

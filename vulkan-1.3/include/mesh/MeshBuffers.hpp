@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _MESH_BUFFERS_HPP_
 #define _MESH_BUFFERS_HPP_
-#include <GlobalDef.hpp>
+#include <AllocatedBuffer.hpp>
 #include <vector>
 
 namespace engine {
@@ -18,13 +18,28 @@ struct Mesh {
   std::vector<uint32_t> indices;
 };
 
-inline namespace mesh {
+namespace mesh {
+struct GPUGeoPushConstants {
+  glm::mat4 matrix;
+  VkDeviceAddress vertexBuffer;
+};
+
+struct GPUSceneData {
+  glm::mat4 view{1.f};
+  glm::mat4 proj{1.f};
+  glm::vec4 ambientColor{0.1f};
+  glm::vec4 sunlightDirection{0, 0, 1, 5}; // w for sun power
+  glm::vec4 sunlightColor{1, 1, 1, 1};
+};
+
+namespace v1 {
+
 struct GPUGeoMeshBuffers {
   GPUGeoMeshBuffers(VkDevice device, VmaAllocator allocator);
   virtual ~GPUGeoMeshBuffers();
 
-  AllocatedBuffer indexBuffer;
-  AllocatedBuffer vertexBuffer;
+  ::engine::v1::AllocatedBuffer indexBuffer;
+  ::engine::v1::AllocatedBuffer vertexBuffer;
 
   std::vector<Vertex> vertex_;
   std::vector<uint32_t> indicies_;
@@ -46,21 +61,43 @@ private:
   VmaAllocator allocator_;
 
   bool pendingUpload_ = false;
-  AllocatedBuffer staging;
+  ::engine::v1::AllocatedBuffer staging;
+};
+} // namespace v1
+
+namespace v2 {
+struct GPUGeoMeshBuffers2 {
+  GPUGeoMeshBuffers2(VkDevice device, VmaAllocator allocator);
+  virtual ~GPUGeoMeshBuffers2();
+
+  ::engine::v2::AllocatedBuffer2 vertexBuffer_;
+  ::engine::v2::AllocatedBuffer2 indexBuffer_;
+
+  std::vector<Vertex> vertex_;
+  std::vector<uint32_t> indicies_;
+
+  void destroy();
+  void createMesh(std::vector<Vertex> &&vertices,
+                  std::vector<uint32_t> &&indices);
+
+  void createMesh(const Mesh &mesh);
+  VkDeviceAddress getVertexBufferDeviceAddress();
+
+  void recordUpload(VkCommandBuffer cmd);
+  void setUploadCompleteTimeline(uint64_t value);
+  void purgeReleaseStaging(uint64_t observedValue);
+  void updateUploadingStatus(uint64_t observedValue);
+
+  ::engine::v2::AllocatedBuffer2 &getVertexBuffer();
+  ::engine::v2::AllocatedBuffer2 &getIndexBuffer();
+
+private:
+  bool isinit_ = false;
+  VkDevice device_;
+  VmaAllocator allocator_;
 };
 
-struct GPUGeoPushConstants {
-  glm::mat4 matrix;
-  VkDeviceAddress vertexBuffer;
-};
-
-struct GPUSceneData {
-  glm::mat4 view{1.f};
-  glm::mat4 proj{1.f};
-  glm::vec4 ambientColor{0.1f};
-  glm::vec4 sunlightDirection{0, 0, 1, 5}; // w for sun power
-  glm::vec4 sunlightColor{1, 1, 1, 1};
-};
+} // namespace v2
 
 } // namespace mesh
 } // namespace engine

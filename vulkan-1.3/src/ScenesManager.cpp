@@ -1,3 +1,4 @@
+#include <AllocatedTexture.hpp>
 #include <Descriptors.hpp>
 #include <Tools.hpp>
 #include <VulkanEngine.hpp>
@@ -23,7 +24,6 @@ void ScenesManager::init() {
 
   init_default_compute();
   init_particle_sys();
-  init_default_material();
   isinit = true;
 }
 
@@ -80,7 +80,7 @@ void ScenesManager::init_default_material() {
 
   defaultMaterial.materialBuffer.reset();
   defaultMaterial.materialBuffer =
-      std::make_shared<AllocatedBuffer>(engine_->allocator_);
+      std::make_shared<::engine::v1::AllocatedBuffer>(engine_->allocator_);
 
   if (!defaultMaterial.materialBuffer) {
     spdlog::error("[ScenesManager Error]: Create Default Graphic Material "
@@ -100,9 +100,9 @@ void ScenesManager::init_default_material() {
   defaultMaterial.materialBuffer->unmap();
 
   MaterialResources materialResources;
-  materialResources.colorImage = engine_->white_->getImageView();
+  materialResources.colorImage = engine_->white_->imageView();
   materialResources.colorSampler = engine_->defaultSamplerLinear_;
-  materialResources.metalRoughImage = engine_->white_->getImageView();
+  materialResources.metalRoughImage = engine_->white_->imageView();
   materialResources.metalRoughSampler = engine_->defaultSamplerLinear_;
   materialResources.materialConstantsData =
       defaultMaterial.materialBuffer->buffer;
@@ -199,16 +199,16 @@ void ScenesManager::update_scene_set() {
     throw std::runtime_error("Invalid Scene Data Buffer!");
   }
 
-  GPUSceneData *data =
-      reinterpret_cast<GPUSceneData *>(myScene.sceneDataBuffer->map());
-  memcpy(data, &myScene.globalSceneData, sizeof(GPUSceneData));
+  mesh::GPUSceneData *data =
+      reinterpret_cast<mesh::GPUSceneData *>(myScene.sceneDataBuffer->map());
+  memcpy(data, &myScene.globalSceneData, sizeof(mesh::GPUSceneData));
   myScene.sceneDataBuffer->unmap();
 }
 
 VkDescriptorSet ScenesManager::get_scene_set() {
   DescriptorWriter scenewriter{engine_->device_};
   scenewriter.write_buffer(0, myScene.sceneDataBuffer->buffer,
-                           sizeof(GPUSceneData), 0,
+                           sizeof(mesh::GPUSceneData), 0,
                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
   return myScene.sceneDescriptorSet;
@@ -220,22 +220,22 @@ void ScenesManager::create_scene_set() {
   }
   myScene.sceneDataBuffer.reset();
   myScene.sceneDataBuffer =
-      std::make_shared<AllocatedBuffer>(engine_->allocator_);
+      std::make_shared<::engine::v1::AllocatedBuffer>(engine_->allocator_);
 
   myScene.sceneDataBuffer->create(
-      sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      sizeof(mesh::GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, "Scene::execute::sceneDataBuffer");
 
-  GPUSceneData *data =
-      reinterpret_cast<GPUSceneData *>(myScene.sceneDataBuffer->map());
-  memcpy(data, &myScene.globalSceneData, sizeof(GPUSceneData));
+  mesh::GPUSceneData *data =
+      reinterpret_cast<mesh::GPUSceneData *>(myScene.sceneDataBuffer->map());
+  memcpy(data, &myScene.globalSceneData, sizeof(mesh::GPUSceneData));
   myScene.sceneDataBuffer->unmap();
 
   VkDescriptorSet sceneSet =
       scenePool_.allocate(myScene.sceneDescriptorSetLayout_);
   DescriptorWriter scenewriter{engine_->device_};
   scenewriter.write_buffer(0, myScene.sceneDataBuffer->buffer,
-                           sizeof(GPUSceneData), 0,
+                           sizeof(mesh::GPUSceneData), 0,
                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   scenewriter.update_set(sceneSet);
 
@@ -252,37 +252,59 @@ void ScenesManager::destroy_scene_set() {
 void ScenesManager::transfer(VkCommandBuffer cmd,
                              std::unique_ptr<CommonFrameContext> &frame) {
 
+  std::call_once(
+      transfer_once_,
+      [this, cmd](uint64_t value) {
+        engine_->submit_default_color(value, cmd);
+      },
+      frame->parent_->transferSignalValue_);
+
   auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
 
   for (auto &surface : ctx.OpaqueSurfaces) {
 
+    std::shared_ptr<mesh::v2::MeshAsset2> obj = surface.parent.lock();
+
+    if (!obj) {
+      continue;
+    }
+
     if (!surface.isVisible(PV)) {
+      // Maybe LRU in the future
       continue;
     }
 
-    if (!surface.parent) {
-      continue;
-    }
+    const auto vertexState = obj->getVertexBuffer().state();
+    const auto indexState = obj->getIndexBuffer().state();
 
-    surface.parent->submitMesh(cmd);
+    if (((vertexState == v2::ResourceState::CpuOnly) &&
+         (indexState == v2::ResourceState::CpuOnly)) ||
+        ((vertexState == v2::ResourceState::UnInstalled) &&
+         (indexState == v2::ResourceState::UnInstalled))) {
+
+      obj->setUploadCompleteTimeline(frame->parent_->transferSignalValue_);
+      obj->recordUpload(cmd);
+    }
 
     if (!surface.material->texture) {
       continue;
     }
 
-    surface.material->texture->uploadBufferToImage(cmd);
-    DescriptorWriter scenewriter{engine_->device_};
-    scenewriter.write_image(1, surface.material->texture->getImageView(),
-                            surface.material->samplers,
-                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    const auto textureState = surface.material->texture->state();
+    if ((textureState == v2::ResourceState::CpuOnly) ||
+        (textureState == v2::ResourceState::UnInstalled)) {
+
+      surface.material->texture->setUploadCompleteTimeline(
+          frame->parent_->transferSignalValue_);
+      surface.material->texture->recordUpload(cmd);
+    }
   }
 }
 
 void ScenesManager::render(VkCommandBuffer cmd,
                            std::unique_ptr<CommonFrameContext> &frame) {
 
-  MeshAsset *last_mesh{};
+  ::engine::mesh::v2::MeshAsset2 *last_mesh{};
   MaterialInstance *last_material{};
   MaterialPipeline *last_pipeline{};
 
@@ -335,11 +357,65 @@ void ScenesManager::render(VkCommandBuffer cmd,
     particleSysCompute->render(cmd, ins);
   }
 
+  std::call_once(
+      graphic_once_,
+      [this, cmd, &frame](uint64_t value) {
+        init_default_material();
+
+        frame->destroy_by_deferred([value, eng = engine_]() {
+          if (eng) {
+            eng->purge_remove_color_staging(value);
+          }
+        });
+      },
+      frame->parent_->graphicsWaitValue_);
+
   auto PV = myScene.globalSceneData.proj * myScene.globalSceneData.view;
   for (auto &surface : ctx.OpaqueSurfaces) {
 
+    std::shared_ptr<mesh::v2::MeshAsset2> obj = surface.parent.lock();
+
+    if (!obj) {
+      continue;
+    }
+
     if (!surface.isVisible(PV)) {
       continue;
+    }
+
+    const auto vertexState = obj->getVertexBuffer().state();
+    const auto indexState = obj->getIndexBuffer().state();
+
+    if ((vertexState == v2::ResourceState::UploadScheduled) ||
+        (indexState == v2::ResourceState::UploadScheduled)) {
+
+      obj->updateUploadingStatus(frame->parent_->graphicsWaitValue_);
+
+      frame->destroy_by_deferred(
+          [obj, value = frame->parent_->graphicsWaitValue_]() {
+            obj->purgeReleaseStaging(value);
+          });
+    }
+
+    if (surface.material->texture) {
+      const auto textureState = surface.material->texture->state();
+      if (textureState == v2::ResourceState::UploadScheduled) {
+
+        DescriptorWriter scenewriter{engine_->device_};
+        scenewriter.write_image(1, surface.material->texture->imageView(),
+                                surface.material->samplers,
+                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+        surface.material->texture->updateUploadingStatus(
+            frame->parent_->graphicsWaitValue_);
+
+        frame->destroy_by_deferred(
+            [obj = surface.material->texture,
+             value = frame->parent_->graphicsWaitValue_]() {
+              obj->purgeReleaseStaging(value);
+            });
+      }
     }
 
     // No Material Set, Then use default
@@ -366,22 +442,21 @@ void ScenesManager::render(VkCommandBuffer cmd,
     }
 
     // Its different from last mesh! So we should resubmit the vertices!
-    if (last_mesh != surface.parent) {
-      last_mesh = surface.parent;
+    if (last_mesh != obj.get()) {
+      last_mesh = obj.get();
 
       vkCmdBindIndexBuffer(
-          cmd, surface.parent->meshBuffers.indexBuffer.buffer, 0,
-          tools::getIndexType<
-              decltype(surface.parent->meshBuffers.indicies_[0])>());
+          cmd, obj->meshBuffers.indexBuffer_.buffer(), 0,
+          tools::getIndexType<decltype(obj->meshBuffers.indicies_[0])>());
     }
 
-    GPUGeoPushConstants constants{};
+    mesh::GPUGeoPushConstants constants{};
     constants.matrix = surface.transform;
-    constants.vertexBuffer = surface.vertexBufferAddress;
+    constants.vertexBuffer = obj->getVertexDeviceAddr();
 
     vkCmdPushConstants(cmd, surface.material->pipeline->getPipelineLayout(),
                        VK_SHADER_STAGE_VERTEX_BIT, 0,
-                       sizeof(GPUGeoPushConstants), &constants);
+                       sizeof(mesh::GPUGeoPushConstants), &constants);
 
     vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
 

@@ -1,3 +1,4 @@
+#include <Tools.hpp>
 #include <VulkanEngine.hpp>
 #include <builder/SceneNodeBuilder.hpp>
 #include <nodes/mesh/MeshNode.hpp>
@@ -142,12 +143,12 @@ SceneNodeBuilder::extract_mipmap_mode(fastgltf::Filter filter) {
   }
 }
 
-std::optional<std::shared_ptr<AllocatedTexture>>
+std::optional<std::shared_ptr<::engine::v2::AllocatedTexture2>>
 SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
                                 bool mipMapped) {
 
   int width, height, nrChannels;
-  std::shared_ptr<AllocatedTexture> ret{nullptr};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> ret{nullptr};
 
   auto uri = [&](fastgltf::sources::URI &filePath) {
     assert(filePath.fileByteOffset == 0); // We don't support offsets with stbi.
@@ -165,12 +166,20 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
       imagesize.depth = 1;
 
       ret.reset();
-      ret = std::make_shared<AllocatedTexture>(engine_->device_,
-                                               engine_->allocator_);
-      ret->createBuffer(data, imagesize, VK_FORMAT_R8G8B8A8_UNORM,
-                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                            VK_IMAGE_USAGE_SAMPLED_BIT,
-                        mipMapped);
+      ret = std::make_shared<::engine::v2::AllocatedTexture2>(
+          engine_->device_, engine_->allocator_,
+          "SceneNodeBuilder::extract_image");
+
+      ret->configure(imagesize, VK_FORMAT_R8G8B8A8_UNORM,
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                         VK_IMAGE_USAGE_SAMPLED_BIT,
+                     mipMapped);
+
+      const auto size = imagesize.depth * imagesize.height * imagesize.width *
+                        tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM);
+
+      ret->perpareTransferData(data, size);
+      ret->createGpuImage();
       stbi_image_free(data);
     }
   };
@@ -186,11 +195,20 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
       imagesize.depth = 1;
 
       ret.reset();
-      ret = std::make_shared<AllocatedTexture>(engine_->device_,
-                                               engine_->allocator_);
-      ret->createBuffer(data, imagesize, VK_FORMAT_R8G8B8A8_UNORM,
-                        VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped);
+      ret = std::make_shared<::engine::v2::AllocatedTexture2>(
+          engine_->device_, engine_->allocator_,
+          "SceneNodeBuilder::extract_image");
 
+      ret->configure(imagesize, VK_FORMAT_R8G8B8A8_UNORM,
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                         VK_IMAGE_USAGE_SAMPLED_BIT,
+                     mipMapped);
+
+      const auto size = imagesize.depth * imagesize.height * imagesize.width *
+                        tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM);
+
+      ret->perpareTransferData(data, size);
+      ret->createGpuImage();
       stbi_image_free(data);
     }
   };
@@ -217,10 +235,19 @@ SceneNodeBuilder::extract_image(fastgltf::Asset &gltf, fastgltf::Image &image,
     imagesize.depth = 1;
 
     ret.reset();
-    ret = std::make_shared<AllocatedTexture>(engine_->device_,
-                                             engine_->allocator_);
-    ret->createBuffer(data, imagesize, VK_FORMAT_R8G8B8A8_UNORM,
-                      VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped);
+    ret = std::make_shared<::engine::v2::AllocatedTexture2>(
+        engine_->device_, engine_->allocator_,
+        "SceneNodeBuilder::extract_image");
+
+    ret->configure(imagesize, VK_FORMAT_R8G8B8A8_UNORM,
+                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                   mipMapped);
+
+    const auto size = imagesize.depth * imagesize.height * imagesize.width *
+                      tools::bytes_per_pixel(VK_FORMAT_R8G8B8A8_UNORM);
+
+    ret->perpareTransferData(data, size);
+    ret->createGpuImage();
     stbi_image_free(data);
   };
 
@@ -326,7 +353,7 @@ void SceneNodeBuilder::processImages(fastgltf::Asset &gltf, bool mipMapped) {
 void SceneNodeBuilder::processMaterials(fastgltf::Asset &gltf) {
   scene->materialBuffer.reset();
   scene->materialBuffer =
-      std::make_unique<AllocatedBuffer>(engine_->allocator_);
+      std::make_unique<::engine::v1::AllocatedBuffer>(engine_->allocator_);
   scene->materialBuffer->create(
       sizeof(MaterialConstants) * gltf.materials.size(),
       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
@@ -357,9 +384,9 @@ void SceneNodeBuilder::processMaterials(fastgltf::Asset &gltf) {
     material_writer->metal_rough_factors.y = mat.pbrData.roughnessFactor;
 
     MaterialResources resources;
-    resources.colorImage = engine_->loaderrorImage_->getImageView();
+    resources.colorImage = engine_->loaderrorImage_->imageView();
     resources.colorSampler = engine_->defaultSamplerLinear_;
-    resources.metalRoughImage = engine_->loaderrorImage_->getImageView();
+    resources.metalRoughImage = engine_->loaderrorImage_->imageView();
     resources.metalRoughSampler = engine_->defaultSamplerLinear_;
     resources.materialConstantsData = scene->materialBuffer->buffer;
     resources.materialConstantsOffset = index * sizeof(MaterialConstants);
@@ -373,7 +400,7 @@ void SceneNodeBuilder::processMaterials(fastgltf::Asset &gltf) {
           gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex]
               .samplerIndex.value();
 
-      resources.colorImage = images_[img_ind]->getImageView();
+      resources.colorImage = images_[img_ind]->imageView();
       resources.colorSampler = scene->samplers[sampler_ind];
     }
 
@@ -407,8 +434,9 @@ void SceneNodeBuilder::processMeshes(fastgltf::Asset &gltf) {
     std::vector<uint32_t> indices;
     std::vector<Vertex> vertices;
 
-    std::shared_ptr<MeshAsset> newMesh =
-        std::make_shared<MeshAsset>(engine_->device_, engine_->allocator_);
+    std::shared_ptr<::engine::mesh::v2::MeshAsset2> newMesh =
+        std::make_shared<::engine::mesh::v2::MeshAsset2>(engine_->device_,
+                                                         engine_->allocator_);
 
     newMesh->meshName = mesh.name.c_str();
     meshes_.push_back(newMesh);
@@ -420,7 +448,7 @@ void SceneNodeBuilder::processMeshes(fastgltf::Asset &gltf) {
     }
 
     for (auto &&primitive : mesh.primitives) {
-      GeoSurface newSurface{};
+      mesh::GeoSurface newSurface{};
       newSurface.startIndex = static_cast<uint32_t>(indices.size());
       newSurface.count = static_cast<uint32_t>(
           gltf.accessors[primitive.indicesAccessor.value()].count);

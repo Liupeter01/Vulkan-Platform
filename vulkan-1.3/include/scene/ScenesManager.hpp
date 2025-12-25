@@ -1,6 +1,8 @@
 #pragma once
 #ifndef _SCENES_NODES_MANAGER_HPP_
 #define _SCENES_NODES_MANAGER_HPP_
+#include <AllocatedBuffer.hpp>
+#include <atomic>
 #include <compute/Compute_ImageAttachment.hpp>
 #include <material/GLTFMetallic_Roughness.hpp>
 #include <memory>
@@ -76,20 +78,23 @@ protected:
 private:
   bool isinit = false;
   VulkanEngine *engine_{};
+  std::once_flag transfer_once_;
+  std::once_flag graphic_once_;
+  std::once_flag compute_once_;
 
   DrawContext ctx{}; // Export ALL subsurfaces
 
   struct SceneControl {
     /*  Graphic Scene Control System (set = 0, binding = 0 ) */
-    GPUSceneData globalSceneData{}; // Scene Data For this scene only
+    mesh::GPUSceneData globalSceneData{}; // Scene Data For this scene only
     VkDescriptorSetLayout sceneDescriptorSetLayout_{};
-    std::shared_ptr<AllocatedBuffer> sceneDataBuffer;
+    std::shared_ptr<::engine::v1::AllocatedBuffer> sceneDataBuffer;
     VkDescriptorSet sceneDescriptorSet;
   } myScene{};
 
   struct DefaultMaterial {
     MaterialInstance defaultMateral{};
-    std::shared_ptr<AllocatedBuffer> materialBuffer{};
+    std::shared_ptr<::engine::v1::AllocatedBuffer> materialBuffer{};
   } defaultMaterial{};
 
   // Node System(MeshNode, ...) or Scene Mgr

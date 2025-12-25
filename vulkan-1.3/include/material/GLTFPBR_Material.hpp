@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _GLTF_PBR_MATERIAL_
 #define _GLTF_PBR_MATERIAL_
+#include <AllocatedTexture.hpp>
 #include <GlobalDef.hpp>
 
 #define GLM_FORCE_RADIANS // no degresss
@@ -36,7 +37,7 @@ struct MaterialInstance {
   VkDescriptorSet materialSet;
 
   VkSampler samplers;
-  std::shared_ptr<AllocatedTexture> texture;
+  std::shared_ptr<::engine::v2::AllocatedTexture2> texture;
 };
 
 } // namespace engine
