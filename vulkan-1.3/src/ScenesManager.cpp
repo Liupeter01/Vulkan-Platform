@@ -141,10 +141,9 @@ void ScenesManager::init_particle_sys() {
   particleSysBuffer.reset();
   particleSysBuffer =
       std::make_unique<ParticleSysDataBuffer<particle::GPUParticle>>(
-          engine_->device_, engine_->allocator_,
-          ParticleSysDataBuffer<
-              particle::GPUParticle>::ParticleDimension::Particle3D);
-  particleSysBuffer->create(8192 * 2);
+          engine_->device_, engine_->allocator_);
+  particleSysBuffer->configure(8192 * 2, ParticleSysDataBuffer<particle::GPUParticle>::ParticleDimension::Particle2D);
+  particleSysBuffer->perpareTransferData();
 
   particleSysCompute.reset();
   particleSysCompute =
@@ -158,10 +157,6 @@ void ScenesManager::init_particle_sys() {
   particleSysCompute->setGlobalLayout(myScene.sceneDescriptorSetLayout_,
                                       myScene.sceneDescriptorSet);
   particleSysCompute->init();
-
-  engine_->imm_command_submit(
-      [&](VkCommandBuffer cmd) { particleSysBuffer->submit(cmd); });
-  particleSysBuffer->flush(engine_->immFence_);
 }
 
 void ScenesManager::on_gui() {
@@ -256,6 +251,8 @@ void ScenesManager::transfer(VkCommandBuffer cmd,
       transfer_once_,
       [this, cmd](uint64_t value) {
         engine_->submit_default_color(value, cmd);
+        particleSysBuffer->setUploadCompleteTimeline(value);
+        particleSysBuffer->singleTimeUpload(cmd);
       },
       frame->parent_->transferSignalValue_);
 
@@ -470,6 +467,19 @@ void ScenesManager::render(VkCommandBuffer cmd,
 
 void ScenesManager::compute(VkCommandBuffer cmd,
                             std::unique_ptr<CommonFrameContext> &frame) {
+
+          std::call_once(
+                   compute_once_,
+                    [this, cmd, &frame](uint64_t value) {
+                              particleSysBuffer->updateUploadingStatus(value);
+
+                              frame->destroy_by_deferred(
+                                        [this,
+                                        value = frame->parent_->graphicsWaitValue_]() {
+                                                  particleSysBuffer->purgeReleaseStaging(value);
+                                        });
+                    },
+                    frame->parent_->computeWaitValue_);
 
   // auto color_blending_background = [&]() {
   //   auto drawExtent = frame.getExtent2D();
