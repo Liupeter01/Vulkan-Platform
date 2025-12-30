@@ -142,7 +142,9 @@ void ScenesManager::init_particle_sys() {
   particleSysBuffer =
       std::make_unique<ParticleSysDataBuffer<particle::GPUParticle>>(
           engine_->device_, engine_->allocator_);
-  particleSysBuffer->configure(8192 * 2, ParticleSysDataBuffer<particle::GPUParticle>::ParticleDimension::Particle2D);
+  particleSysBuffer->configure(
+      8192 * 2, ParticleSysDataBuffer<
+                    particle::GPUParticle>::ParticleDimension::Particle2D);
   particleSysBuffer->perpareTransferData();
 
   particleSysCompute.reset();
@@ -468,18 +470,17 @@ void ScenesManager::render(VkCommandBuffer cmd,
 void ScenesManager::compute(VkCommandBuffer cmd,
                             std::unique_ptr<CommonFrameContext> &frame) {
 
-          std::call_once(
-                   compute_once_,
-                    [this, cmd, &frame](uint64_t value) {
-                              particleSysBuffer->updateUploadingStatus(value);
+  std::call_once(
+      compute_once_,
+      [this, cmd, &frame](uint64_t value) {
+        particleSysBuffer->updateUploadingStatus(value);
 
-                              frame->destroy_by_deferred(
-                                        [this,
-                                        value = frame->parent_->graphicsWaitValue_]() {
-                                                  particleSysBuffer->purgeReleaseStaging(value);
-                                        });
-                    },
-                    frame->parent_->computeWaitValue_);
+        frame->destroy_by_deferred(
+            [this, value = frame->parent_->graphicsWaitValue_]() {
+              particleSysBuffer->purgeReleaseStaging(value);
+            });
+      },
+      frame->parent_->computeWaitValue_);
 
   // auto color_blending_background = [&]() {
   //   auto drawExtent = frame.getExtent2D();
