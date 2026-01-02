@@ -1,4 +1,4 @@
-#include <builder/MultiQueueDeviceBuilder.hpp>
+ï»¿#include <builder/MultiQueueDeviceBuilder.hpp>
 #include <spdlog/spdlog.h>
 
 namespace engine {
@@ -160,7 +160,7 @@ void MultiQueueDeviceBuilder::consume(VkQueueFlagBits requiredFlags,
     PQNode node = pq.top();
     pq.pop();
 
-    QueueBlock &block = *node.block; // list iterator ¡ú actual block
+    QueueBlock &block = *node.block; // list iterator â†’ actual block
 
     if (!block.count)
       continue;
