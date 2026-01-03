@@ -1,5 +1,6 @@
 #include <QueueScheduler.hpp>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace engine {
 
@@ -17,6 +18,10 @@ std::size_t QueueDispatcher::dispatch() {
 
   normalIndex = (++normalIndex) % normalCounter;
   return normalIndex;
+}
+
+std::size_t QueueDispatcher::get_queue_size() const {
+  return normalPools_.size();
 }
 
 Pack QueueDispatcher::get_queue() { return normalPools_[dispatch()]; }
@@ -52,7 +57,7 @@ void QueueScheduler::finalizeByCategory(VkQueueFlagBits flag) {
         "[QueueScheduler] No queues available for graphics family!");
   }
 
-  uint32_t available = dispatcher->normalPools_.size();
+  uint32_t available = static_cast<uint32_t>(dispatcher->normalPools_.size());
 
   // special requirement amount
   uint32_t req_present = requestPlan.presentQueueStatus ? 1 : 0;
@@ -151,7 +156,17 @@ Pack QueueScheduler::imgui_queue() {
 
 Pack QueueScheduler::present_queue() {
   if (!reservePresent || !presentQueue_.queue) {
+
+#ifdef __APPLE__
+#if ENABLE_VALIDATION_LAYERS
+    spdlog::warn(
+        "[QueueScheduler Warn]: Present Queue Not Reserved, Using Graphics "
+        "Queue Instead!");
+#endif
+    return queueDispatcher_[VK_QUEUE_GRAPHICS_BIT]->normalPools_.at(0);
+#else
     throw std::runtime_error("Present Queue Not Enabled!");
+#endif
   }
   return presentQueue_;
 }

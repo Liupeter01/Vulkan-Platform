@@ -20,19 +20,19 @@ struct NodeManager : public node::IRenderable {
 
   // CRUD
   bool attachChildren(const std::string &parentName,
-                      std::shared_ptr<MeshAsset> asset);
+                      std::shared_ptr<mesh::v2::MeshAsset2> asset);
   bool attachChildren(const std::string &parentName,
                       std::shared_ptr<node::BaseNode> child);
   bool attachChildrens(
       const std::string &parentName,
       const std::vector<std::shared_ptr<node::BaseNode>> &childrens);
-  bool
-  attachChildrens(const std::string &parentName,
-                  const std::vector<std::shared_ptr<MeshAsset>> &childrens);
+  bool attachChildrens(
+      const std::string &parentName,
+      const std::vector<std::shared_ptr<mesh::v2::MeshAsset2>> &childrens);
 
   [[nodiscard]] std::optional<std::shared_ptr<node::BaseNode>>
   findNode(const std::string &name) const;
-  [[nodiscard]] std::optional<std::shared_ptr<MeshAsset>>
+  [[nodiscard]] std::optional<std::shared_ptr<mesh::v2::MeshAsset2>>
   findMesh(const std::string &name) const;
 
 protected:
@@ -50,7 +50,8 @@ protected:
 
 protected:
   std::shared_ptr<node::BaseNode> sceneRoot_ = nullptr;
-  std::unordered_map<std::string, std::shared_ptr<MeshAsset>> meshes_;
+  std::unordered_map<std::string, std::shared_ptr<mesh::v2::MeshAsset2>>
+      meshes_;
   std::unordered_map<std::string, std::shared_ptr<node::BaseNode>> nodes_;
 
 private:

@@ -1,6 +1,10 @@
 #pragma once
+#include "particle/ParticleLayoutPolicy.hpp"
+#include "particle/PointSpriteParticleSystemBase.hpp"
 #ifndef _SCENES_NODES_MANAGER_HPP_
 #define _SCENES_NODES_MANAGER_HPP_
+#include <AllocatedBuffer.hpp>
+#include <atomic>
 #include <compute/Compute_ImageAttachment.hpp>
 #include <material/GLTFMetallic_Roughness.hpp>
 #include <memory>
@@ -27,15 +31,20 @@ public:
   void update_scene();
   void Draw(const glm::mat4 &parentMatrix, DrawContext &ctx);
 
+  void transfer(VkCommandBuffer cmd,
+                std::unique_ptr<CommonFrameContext> &frame);
   void render(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext> &frame);
-  void compute(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext> &frame);
+
+  void pre_compute(VkCommandBuffer cmd,
+                   std::unique_ptr<CommonFrameContext> &frame);
+  void post_compute(VkCommandBuffer cmd,
+                    std::unique_ptr<CommonFrameContext> &frame);
 
   bool addScene(std::shared_ptr<NodeManager> scene);
 
-  ComputeShaderPushConstants &getComputeData();
-  auto &getParticleData() { return particleSysCompute->getPushConstantData(); }
-
-  void submit();
+  auto &getParticleData() {
+    return particleSysComputeSOA->getCompPushConstantData();
+  }
 
   void on_gui();
 
@@ -61,9 +70,6 @@ protected:
   void destroy_scene_set();
 
 protected:
-  void submitMesh(VkCommandBuffer cmd);
-  void flushUpload(VkFence fence);
-
   void update_scene_set();
   VkDescriptorSet get_scene_set();
 
@@ -79,20 +85,23 @@ protected:
 private:
   bool isinit = false;
   VulkanEngine *engine_{};
+  std::once_flag transfer_once_;
+  std::once_flag graphic_once_;
+  std::once_flag compute_once_;
 
   DrawContext ctx{}; // Export ALL subsurfaces
 
   struct SceneControl {
     /*  Graphic Scene Control System (set = 0, binding = 0 ) */
-    GPUSceneData globalSceneData{}; // Scene Data For this scene only
+    mesh::GPUSceneData globalSceneData{}; // Scene Data For this scene only
     VkDescriptorSetLayout sceneDescriptorSetLayout_{};
-    std::shared_ptr<AllocatedBuffer> sceneDataBuffer;
+    std::shared_ptr<::engine::v1::AllocatedBuffer> sceneDataBuffer;
     VkDescriptorSet sceneDescriptorSet;
   } myScene{};
 
   struct DefaultMaterial {
     MaterialInstance defaultMateral{};
-    std::shared_ptr<AllocatedBuffer> materialBuffer{};
+    std::shared_ptr<::engine::v1::AllocatedBuffer> materialBuffer{};
   } defaultMaterial{};
 
   // Node System(MeshNode, ...) or Scene Mgr
@@ -102,13 +111,15 @@ private:
       loadedScenes_;
 
   std::unique_ptr<GLTFMetallic_Roughness> metalRoughMaterial{}; // Graphic
-  std::unique_ptr<Compute_ImageAttachment<>>
-      imageAttachmentCompute{}; // Compute
+  // std::unique_ptr<Compute_ImageAttachment<>>
+  //     imageAttachmentCompute{}; // Compute
 
-  std::unique_ptr<ParticleSysDataBuffer<particle::GPUParticle>>
-      particleSysBuffer{};
-  std::shared_ptr<particle::PointSpriteParticleSystemBase<>>
-      particleSysCompute{};
+  std::unique_ptr<::engine::v2::ParticleSysDataBuffer2<
+      particle::GPUParticle, ::engine::particle::policy::SOALayout>>
+      particleSysBufferSOA{};
+
+  std::shared_ptr<particle::PointSpriteParticleSystemBaseSOA<>>
+      particleSysComputeSOA{};
 
   DescriptorPoolAllocator scenePool_;
 };

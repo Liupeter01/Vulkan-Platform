@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _VULKAN_ENGINE_HPP_
 #define _VULKAN_ENGINE_HPP_
+#include <AllocatedTexture.hpp>
 #include <GlobalDef.hpp>
 #include <VkBootstrap.h>
 #include <Window.hpp>
@@ -13,6 +14,7 @@
 #include <nodes/camera/CameraNode.hpp>
 #include <scene/ScenesManager.hpp>
 #include <string>
+#include <task/AsyncSubmitHandler.hpp>
 #include <tuple>
 #include <vector>
 
@@ -32,6 +34,7 @@ struct SceneNodeBuilder;
 struct NodeManagerBuilder;
 class ScenesNodesManager;
 struct SwapChainImageData;
+class ScenesManager;
 
 namespace node {
 class SceneNode;
@@ -108,8 +111,8 @@ private:
   void destroy_swapchain();
   void destroy_vulkan();
 
-  void submit_default_color(VkCommandBuffer cmd);
-  void flush_default_color(VkFence fence);
+  void submit_default_color(uint64_t timeline, VkCommandBuffer cmd);
+  void purge_remove_color_staging(uint64_t observed);
 
 private:
   [[nodiscard]] VkDescriptorSetLayout create_ubo_layout();
@@ -121,10 +124,11 @@ private:
 
   bool isDeviceSuitable(const vkb::PhysicalDevice &device);
 
-  void pre_compute(FrameData &currentFrame);
-  void graphic(FrameData &currentFrame, Pack &queue,
+  void transfer(FrameData &currentFrame, Pack queue);
+  void pre_compute(FrameData &currentFrame, Pack queue);
+  void graphic(FrameData &currentFrame, Pack queue,
                uint32_t swapchainImageIndex);
-  void post_compute(FrameData &currentFrame, Pack &queue,
+  void post_compute(FrameData &currentFrame, Pack queue,
                     uint32_t swapchainImageIndex);
   void presentKHR(FrameData &currentFrame, uint32_t swapchainImageIndex);
 
@@ -132,6 +136,8 @@ private:
   void switch_to_next_frame();
 
   SwapChainImageData &get_image_by_index(uint32_t index);
+
+  void registerSubmitter();
 
 private:
   bool isInit = false;
@@ -218,14 +224,17 @@ private:
   VkDescriptorSetLayout sceneDescriptorSetLayout_{};
 
   // Default Color => Default Materal
-  std::shared_ptr<AllocatedTexture> white_{};
-  std::shared_ptr<AllocatedTexture> grey_{};
-  std::shared_ptr<AllocatedTexture> black_{};
-  std::shared_ptr<AllocatedTexture> magenta_{};
-  std::shared_ptr<AllocatedTexture> loaderrorImage_{};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> white_{};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> grey_{};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> black_{};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> magenta_{};
+  std::shared_ptr<::engine::v2::AllocatedTexture2> loaderrorImage_{};
 
   VkSampler defaultSamplerLinear_;
   VkSampler defaultSamplerNearest_;
+
+  std::unordered_map<VkQueueFlagBits, std::unique_ptr<AsyncSubmitHandler>>
+      asyncSubmitter_;
 };
 } // namespace engine
 #endif //_VULKAN_ENGINE_HPP_

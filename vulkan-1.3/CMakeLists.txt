@@ -56,11 +56,5 @@ target_link_libraries(
          fastgltf
          spdlog::spdlog)
 
-target_compile_definitions(${PROJECT_NAME}
-                           PUBLIC CONFIG_HOME="${CMAKE_SOURCE_DIR}/")
-
-target_compile_definitions(${PROJECT_NAME}
-                           PUBLIC GLSL_SHADER_PATH="${GLSL_SHADER_PATH}/")
-
-target_compile_definitions(${PROJECT_NAME}
-                           PUBLIC SLANG_SHADER_PATH="${SLANG_SHADER_PATH}/")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
+               ${CMAKE_CURRENT_SOURCE_DIR}/include/config.h)

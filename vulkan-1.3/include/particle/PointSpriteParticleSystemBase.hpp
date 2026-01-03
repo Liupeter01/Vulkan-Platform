@@ -4,7 +4,7 @@
 #include <array>
 #include <builder/BarrierBuilder.hpp>
 #include <compute/Compute_EffectBase.hpp>
-#include <material/MaterialPipeline.hpp>
+#include <material/Graphic_EffectBase.hpp>
 #include <particle/ParticleDataBuffer.hpp>
 
 // IMGUI Support
@@ -27,22 +27,70 @@ struct GPUParticle {
   glm::vec4 color{1.f};
 };
 
-struct ParticleResources {
+struct ParticleComputeResourcesAOS {
   // Ping Pong Swapping structure
   VkBuffer particlesIn;
   VkBuffer particlesOut;
   std::size_t bufferSize{};
 };
 
-template <typename PushConstantType = ParticlePushConstant,
-          typename ResourcesType = ParticleResources>
+struct ParticleGraphicResourcesAOS {
+  // Ping Pong Swapping structure
+  VkBuffer particlesIn;
+  std::size_t bufferSize{};
+};
+
+struct ParticleCompResourcesSOA {
+  // Ping Pong Swapping structure
+  VkBuffer positionIn;
+  VkBuffer positionOut;
+  std::size_t positionBufferSize{};
+  VkBuffer velocityIn;
+  VkBuffer velocityOut;
+  std::size_t velocityBufferSize{};
+  VkBuffer colorIn;
+  VkBuffer colorOut;
+  std::size_t colorBufferSize{};
+};
+
+struct ParticleGraphicResourcesSOA {
+  // Ping Pong Swapping structure
+  VkBuffer positionIn;
+  std::size_t positionBufferSize{};
+  VkBuffer colorIn;
+  std::size_t colorBufferSize{};
+};
+
+struct alignas(16) ParticleDrawPushConstant {
+  glm::vec4 size{2.0f, 0.f, 0.f, 0.f}; //
+};
+
+namespace details {
+
+template <typename ComputePushConstantType, typename ComputeResourcesType,
+          typename GraphicPushConstantType, typename GraphicResourcesType>
 class PointSpriteParticleSystemBase
-    : public Compute_EffectBase<PushConstantType, ResourcesType> {
+    : public Compute_EffectBase<ComputePushConstantType, ComputeResourcesType>,
+      public Graphic_EffectBase<GraphicPushConstantType, GraphicResourcesType> {
 
 public:
   PointSpriteParticleSystemBase(VkDevice device)
-      : Compute_EffectBase<PushConstantType, ResourcesType>(device),
-        pointOpaquePipeline_(device), device_(device) {}
+      : Compute_EffectBase<ComputePushConstantType, ComputeResourcesType>(
+            device),
+        Graphic_EffectBase<GraphicPushConstantType, GraphicResourcesType>(
+            device),
+        device_(device) {}
+
+public:
+  virtual void init() {
+    if (this->isInit_)
+      return;
+
+    this->ensure_compute_initialized();
+    this->ensure_graphic_initialized();
+
+    this->isInit_ = true;
+  }
 
   void setGlobalLayout(VkDescriptorSetLayout globalSceneLayout,
                        VkDescriptorSet globalSceneSet) {
@@ -60,56 +108,20 @@ public:
     stages[1].entry = entry;
   }
 
-  void init() override {
-    if (this->isinit_)
-      return;
-
-    if (!globalSceneLayout_ || !globalSceneSet_) {
-      throw std::runtime_error(
-          "Invalid Global Scene Layout! You must setGlobalLayout At First");
-    }
-
-    DescriptorLayoutBuilder builder{this->device_};
-    this->computeLayout_ =
-        builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-            .add_binding(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-            .build(VK_SHADER_STAGE_COMPUTE_BIT |
-                   VK_SHADER_STAGE_VERTEX_BIT); // add bindings
-
-    this->defaultComputePipeline_.set_compute_shader(
-        SLANG_SHADER_PATH "SpriteParticleCompute.slang.spv", "compMain");
-    this->defaultComputePipeline_.template create<PushConstantType>(
-        ComputePass::DEFAULT, {this->computeLayout_});
-
-    this->specialConstantPipeline_.set_compute_shader(
-        SLANG_SHADER_PATH "SpriteParticleCompute.slang.spv", "compMain");
-    this->specialConstantPipeline_.template create<PushConstantType>(
-        ComputePass::SPECIALCONSTANT, {this->computeLayout_});
-
-    /*Graphic Pipeline*/
-    auto layout = {globalSceneLayout_, this->computeLayout_};
-
-    pointOpaquePipeline_.set_vertex_shader(stages[0].path, stages[0].entry);
-    pointOpaquePipeline_.set_fragment_shader(stages[1].path, stages[1].entry);
-    pointOpaquePipeline_.template create<>(MaterialPass::OPAQUE_POINT, layout);
-
-    this->isinit_ = true;
-  }
-
   virtual void on_gui() {
 
-    if (ImGui::CollapsingHeader("Compute_ParticleSys3D",
+    if (ImGui::CollapsingHeader("Compute_ParticleSys",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       ImGui::Text("Speed Multiplier (0.1x ~ 5x)");
 
-      ImGui::SliderFloat("Speed X", &this->pushConstantData_.speedup.x, 0.1f,
-                         5.0f, "%.2fx");
-      ImGui::SliderFloat("Speed Y", &this->pushConstantData_.speedup.y, 0.1f,
-                         5.0f, "%.2fx");
-      ImGui::SliderFloat("Speed Z", &this->pushConstantData_.speedup.z, 0.1f,
-                         5.0f, "%.2fx");
-      ImGui::SliderFloat("Speed W", &this->pushConstantData_.speedup.w, 0.1f,
-                         5.0f, "%.2fx");
+      ImGui::SliderFloat("Speed X", &this->getCompPushConstantData().speedup.x,
+                         0.1f, 5.0f, "%.2fx");
+      ImGui::SliderFloat("Speed Y", &this->getCompPushConstantData().speedup.y,
+                         0.1f, 5.0f, "%.2fx");
+      ImGui::SliderFloat("Speed Z", &this->getCompPushConstantData().speedup.z,
+                         0.1f, 5.0f, "%.2fx");
+      ImGui::SliderFloat("Speed W", &this->getCompPushConstantData().speedup.w,
+                         0.1f, 5.0f, "%.2fx");
 
       ImGui::Separator();
     }
@@ -118,18 +130,21 @@ public:
   bool has_graphic() const override { return true; }
   bool has_compute() const override { return true; }
 
-  void render(VkCommandBuffer cmd, const ComputeInstance &ins) override {
-
+  void render(VkCommandBuffer cmd, const MaterialInstance &ins) override {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      pointOpaquePipeline_.getPipeline());
+                      ins.pipeline->getPipeline());
+
+    vkCmdPushConstants(
+        cmd, ins.pipeline->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
+        sizeof(GraphicPushConstantType), &this->getGraphicPushConstantData());
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pointOpaquePipeline_.getPipelineLayout(), 0, 1,
+                            ins.pipeline->getPipelineLayout(), 0, 1,
                             &globalSceneSet_, 0, nullptr);
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pointOpaquePipeline_.getPipelineLayout(), 1, 1,
-                            &ins.computeSet, 0, nullptr);
+                            ins.pipeline->getPipelineLayout(), 1, 1,
+                            &ins.materialSet, 0, nullptr);
 
     vkCmdDraw(cmd, this->dispatchGroups_.x * 256, 1, 0, 0);
   }
@@ -139,9 +154,9 @@ public:
     vkCmdBindPipeline(cmd, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
                       ins.pipeline->getPipeline());
 
-    vkCmdPushConstants(cmd, ins.pipeline->getPipelineLayout(),
-                       VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantType),
-                       &this->pushConstantData_);
+    vkCmdPushConstants(
+        cmd, ins.pipeline->getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0,
+        sizeof(ComputePushConstantType), &this->getCompPushConstantData());
 
     // bind the descriptor set containing the draw image for the compute
     // pipeline
@@ -156,29 +171,9 @@ public:
                   this->dispatchGroups_.z);
   }
 
-  ComputeInstance generate_instance(
-      ResourcesType &resources,
-      DescriptorPoolAllocator &globalDescriptorAllocator) override {
-
-    this->writer_.clear();
-
-    ComputeInstance ins{};
-    ins.pipeline = &this->defaultComputePipeline_;
-    ins.computeSet = globalDescriptorAllocator.allocate(this->computeLayout_);
-
-    this->writer_.write_buffer(0, resources.particlesIn, resources.bufferSize,
-                               0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-
-    this->writer_.write_buffer(1, resources.particlesOut, resources.bufferSize,
-                               0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-
-    this->writer_.update_set(ins.computeSet);
-    return ins;
-  }
-
-private:
+protected:
+  bool isInit_ = false;
   VkDevice device_;
-  MaterialPipeline pointOpaquePipeline_;
   VkDescriptorSet globalSceneSet_{};
   VkDescriptorSetLayout globalSceneLayout_{};
 
@@ -190,6 +185,287 @@ private:
           SLANG_SHADER_PATH "SpriteParticleDraw3D.slang.spv", "fragMain",
           VK_SHADER_STAGE_FRAGMENT_BIT}};
 };
+
+} // namespace details
+
+template <typename ComputePushConstantType = ParticlePushConstant,
+          typename ComputeResourcesType = ParticleComputeResourcesAOS,
+          typename GraphicPushConstantType = ParticleDrawPushConstant,
+          typename GraphicResourcesType = ParticleGraphicResourcesAOS>
+
+class PointSpriteParticleSystemBaseAOS
+    : public details::PointSpriteParticleSystemBase<
+          ComputePushConstantType, ComputeResourcesType,
+          GraphicPushConstantType, GraphicResourcesType> {
+
+  using BaseClass = details::PointSpriteParticleSystemBase<
+      ComputePushConstantType, ComputeResourcesType, GraphicPushConstantType,
+      GraphicResourcesType>;
+
+public:
+  PointSpriteParticleSystemBaseAOS(VkDevice device) : BaseClass(device) {}
+
+  ComputeInstance generate_comp_instance(
+      ComputeResourcesType &resources,
+      DescriptorPoolAllocator &globalDescriptorAllocator) override {
+
+    this->computeWriter_.clear();
+
+    ComputeInstance ins{};
+    ins.pipeline = &this->defaultComputePipeline_;
+    ins.computeSet = globalDescriptorAllocator.allocate(this->computeLayout_);
+
+    this->computeWriter_.write_buffer(0, resources.particlesIn,
+                                      resources.bufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->computeWriter_.write_buffer(1, resources.particlesOut,
+                                      resources.bufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->computeWriter_.update_set(ins.computeSet);
+    return ins;
+  }
+
+  MaterialInstance generate_graphic_instance(
+      GraphicResourcesType &resources,
+      DescriptorPoolAllocator &globalDescriptorAllocator) override {
+
+    this->graphicWriter_.clear();
+
+    MaterialInstance ins{};
+    ins.pipeline = &this->defaultOpaquePointPipeline_;
+    ins.materialSet = globalDescriptorAllocator.allocate(this->graphicLayout_);
+
+    this->graphicWriter_.write_buffer(0, resources.particlesIn,
+                                      resources.bufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->graphicWriter_.update_set(ins.materialSet);
+    return ins;
+  }
+
+protected:
+  void init_compute() override {
+
+    if (this->isComputeInit_)
+      return;
+
+    DescriptorLayoutBuilder builder{this->device_};
+    this->computeLayout_ =
+        builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .add_binding(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .build(VK_SHADER_STAGE_COMPUTE_BIT |
+                   VK_SHADER_STAGE_VERTEX_BIT); // add bindings
+
+    this->defaultComputePipeline_.set_compute_shader(
+        SLANG_SHADER_PATH "SpriteParticleComputeAOS.slang.spv", "compMain");
+    this->defaultComputePipeline_.template create<ComputePushConstantType>(
+        ComputePass::DEFAULT, {this->computeLayout_});
+
+    this->specialConstantPipeline_.set_compute_shader(
+        SLANG_SHADER_PATH "SpriteParticleComputeAOS.slang.spv", "compMain");
+    this->specialConstantPipeline_.template create<ComputePushConstantType>(
+        ComputePass::SPECIALCONSTANT, {this->computeLayout_});
+
+    this->isComputeInit_ = true;
+  }
+
+  void init_graphic() override {
+
+    if (!this->globalSceneLayout_ || !this->globalSceneSet_) {
+      throw std::runtime_error(
+          "Invalid Global Scene Layout! You must setGlobalLayout At First");
+    }
+
+    if (this->isGraphicInit_)
+      return;
+
+    DescriptorLayoutBuilder builder{this->device_};
+    this->graphicLayout_ =
+        builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .build(VK_SHADER_STAGE_COMPUTE_BIT |
+                   VK_SHADER_STAGE_VERTEX_BIT); // add bindings
+
+    /*Graphic Pipeline*/
+    auto layout = {this->globalSceneLayout_, this->graphicLayout_};
+
+    this->defaultOpaquePipeline_.set_vertex_shader(this->stages[0].path,
+                                                   this->stages[0].entry);
+    this->defaultOpaquePipeline_.set_fragment_shader(this->stages[1].path,
+                                                     this->stages[1].entry);
+    this->defaultOpaquePipeline_.template create<GraphicPushConstantType>(
+        MaterialPass::OPAQUE, layout);
+
+    this->transparentPipeline_.set_vertex_shader(this->stages[0].path,
+                                                 this->stages[0].entry);
+    this->transparentPipeline_.set_fragment_shader(this->stages[1].path,
+                                                   this->stages[1].entry);
+    this->transparentPipeline_.template create<GraphicPushConstantType>(
+        MaterialPass::TRANSPARENT, layout);
+
+    this->defaultOpaquePointPipeline_.set_vertex_shader(this->stages[0].path,
+                                                        this->stages[0].entry);
+    this->defaultOpaquePointPipeline_.set_fragment_shader(
+        this->stages[1].path, this->stages[1].entry);
+    this->defaultOpaquePointPipeline_.template create<GraphicPushConstantType>(
+        MaterialPass::OPAQUE_POINT, layout);
+
+    this->isGraphicInit_ = true;
+  }
+};
+
+template <typename ComputePushConstantType = ParticlePushConstant,
+          typename ComputeResourcesType = ParticleCompResourcesSOA,
+          typename GraphicPushConstantType = ParticleDrawPushConstant,
+          typename GraphicResourcesType = ParticleGraphicResourcesSOA>
+class PointSpriteParticleSystemBaseSOA
+    : public details::PointSpriteParticleSystemBase<
+          ComputePushConstantType, ComputeResourcesType,
+          GraphicPushConstantType, GraphicResourcesType> {
+
+  using BaseClass = details::PointSpriteParticleSystemBase<
+      ComputePushConstantType, ComputeResourcesType, GraphicPushConstantType,
+      GraphicResourcesType>;
+
+public:
+  PointSpriteParticleSystemBaseSOA(VkDevice device) : BaseClass(device) {}
+
+  ComputeInstance generate_comp_instance(
+      ComputeResourcesType &resources,
+      DescriptorPoolAllocator &globalDescriptorAllocator) override {
+
+    this->computeWriter_.clear();
+
+    ComputeInstance ins{};
+    ins.pipeline = &this->defaultComputePipeline_;
+    ins.computeSet = globalDescriptorAllocator.allocate(this->computeLayout_);
+
+    this->computeWriter_.write_buffer(0, resources.positionIn,
+                                      resources.positionBufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->computeWriter_.write_buffer(1, resources.positionOut,
+                                      resources.positionBufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->computeWriter_.write_buffer(2, resources.velocityIn,
+                                      resources.velocityBufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->computeWriter_.write_buffer(3, resources.velocityOut,
+                                      resources.velocityBufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->computeWriter_.write_buffer(4, resources.colorIn,
+                                      resources.colorBufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->computeWriter_.write_buffer(5, resources.colorOut,
+                                      resources.colorBufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->computeWriter_.update_set(ins.computeSet);
+    return ins;
+  }
+
+  MaterialInstance generate_graphic_instance(
+      GraphicResourcesType &resources,
+      DescriptorPoolAllocator &globalDescriptorAllocator) override {
+
+    this->graphicWriter_.clear();
+
+    MaterialInstance ins{};
+    ins.pipeline = &this->defaultOpaquePointPipeline_;
+    ins.materialSet = globalDescriptorAllocator.allocate(this->graphicLayout_);
+
+    this->graphicWriter_.write_buffer(0, resources.positionIn,
+                                      resources.positionBufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->graphicWriter_.write_buffer(1, resources.colorIn,
+                                      resources.colorBufferSize, 0,
+                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+    this->graphicWriter_.update_set(ins.materialSet);
+    return ins;
+  }
+
+protected:
+  void init_compute() override {
+
+    if (this->isComputeInit_)
+      return;
+
+    DescriptorLayoutBuilder builder{this->device_};
+    this->computeLayout_ =
+        builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .add_binding(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .add_binding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .add_binding(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .add_binding(4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .add_binding(5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .build(VK_SHADER_STAGE_COMPUTE_BIT |
+                   VK_SHADER_STAGE_VERTEX_BIT); // add bindings
+
+    this->defaultComputePipeline_.set_compute_shader(
+        SLANG_SHADER_PATH "SpriteParticleComputeSOA.slang.spv", "compMain");
+    this->defaultComputePipeline_.template create<ComputePushConstantType>(
+        ComputePass::DEFAULT, {this->computeLayout_});
+
+    this->specialConstantPipeline_.set_compute_shader(
+        SLANG_SHADER_PATH "SpriteParticleComputeSOA.slang.spv", "compMain");
+    this->specialConstantPipeline_.template create<ComputePushConstantType>(
+        ComputePass::SPECIALCONSTANT, {this->computeLayout_});
+
+    this->isComputeInit_ = true;
+  }
+
+  void init_graphic() override {
+
+    if (!this->globalSceneLayout_ || !this->globalSceneSet_) {
+      throw std::runtime_error(
+          "Invalid Global Scene Layout! You must setGlobalLayout At First");
+    }
+
+    if (this->isGraphicInit_)
+      return;
+
+    DescriptorLayoutBuilder builder{this->device_};
+    this->graphicLayout_ =
+        builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .add_binding(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .build(VK_SHADER_STAGE_COMPUTE_BIT |
+                   VK_SHADER_STAGE_VERTEX_BIT); // add bindings
+
+    /*Graphic Pipeline*/
+    auto layout = {this->globalSceneLayout_, this->graphicLayout_};
+
+    this->defaultOpaquePipeline_.set_vertex_shader(this->stages[0].path,
+                                                   this->stages[0].entry);
+    this->defaultOpaquePipeline_.set_fragment_shader(this->stages[1].path,
+                                                     this->stages[1].entry);
+    this->defaultOpaquePipeline_.template create<GraphicPushConstantType>(
+        MaterialPass::OPAQUE, layout);
+
+    this->transparentPipeline_.set_vertex_shader(this->stages[0].path,
+                                                 this->stages[0].entry);
+    this->transparentPipeline_.set_fragment_shader(this->stages[1].path,
+                                                   this->stages[1].entry);
+    this->transparentPipeline_.template create<GraphicPushConstantType>(
+        MaterialPass::TRANSPARENT, layout);
+
+    this->defaultOpaquePointPipeline_.set_vertex_shader(this->stages[0].path,
+                                                        this->stages[0].entry);
+    this->defaultOpaquePointPipeline_.set_fragment_shader(
+        this->stages[1].path, this->stages[1].entry);
+    this->defaultOpaquePointPipeline_.template create<GraphicPushConstantType>(
+        MaterialPass::OPAQUE_POINT, layout);
+
+    this->isGraphicInit_ = true;
+  }
+};
+
 } // namespace particle
 } // namespace engine
 

@@ -1,9 +1,9 @@
-#include <builder/MultiQueueDeviceBuilder.hpp>
+ï»¿#include <builder/MultiQueueDeviceBuilder.hpp>
 #include <spdlog/spdlog.h>
 
 namespace engine {
 
-MultiQueueDeviceBuilder::QueueBlock::QueueBlock(std::size_t index,
+MultiQueueDeviceBuilder::QueueBlock::QueueBlock(uint32_t index,
                                                 VkQueueFamilyProperties prot)
     : familyIndex(index), count(prot.queueCount), original(prot.queueCount),
       flags(prot.queueFlags), startPos(0) {}
@@ -145,6 +145,11 @@ void MultiQueueDeviceBuilder::consume(VkQueueFlagBits requiredFlags,
 
   uint32_t requested = req.requested; // +(req.reserveImgui ? 1u : 0u) +
                                       // (req.presentQueueStatus ? 1u : 0u);
+
+  spdlog::info(
+      "[MultiQueueDeviceBuilder Info]: Now start to allocate {} queue.",
+      static_cast<uint32_t>(requiredFlags));
+
   req.queueType = requiredFlags;
 
   while (requested > 0) {
@@ -155,7 +160,7 @@ void MultiQueueDeviceBuilder::consume(VkQueueFlagBits requiredFlags,
     PQNode node = pq.top();
     pq.pop();
 
-    QueueBlock &block = *node.block; // list iterator ¡ú actual block
+    QueueBlock &block = *node.block; // list iterator â†’ actual block
 
     if (!block.count)
       continue;
@@ -180,10 +185,11 @@ void MultiQueueDeviceBuilder::consume(VkQueueFlagBits requiredFlags,
   }
 
   if (!req.allocated) {
-            auto str = fmt::format("[MultiQueueDeviceBuilder Warn]: Nothing Allocated for this {} queue", 
-                      static_cast<uint32_t>(requiredFlags));
-            spdlog::warn(str);
-            throw std::runtime_error(str);
+    auto str = fmt::format(
+        "[MultiQueueDeviceBuilder Warn]: Nothing Allocated for this {} queue",
+        static_cast<uint32_t>(requiredFlags));
+    spdlog::warn(str);
+    throw std::runtime_error(str);
   }
 }
 

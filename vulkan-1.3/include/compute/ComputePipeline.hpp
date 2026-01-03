@@ -4,6 +4,7 @@
 #include <Util.hpp>
 #include <builder/ComputePipelineBuilder.hpp>
 #include <compute/Compute_Material.hpp>
+#include <config.h>
 #include <spdlog/spdlog.h>
 #include <vector>
 

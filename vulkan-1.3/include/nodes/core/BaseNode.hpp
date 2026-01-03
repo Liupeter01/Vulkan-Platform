@@ -31,9 +31,8 @@ struct RenderObject {
   std::string mesh_name;
 
   glm::mat4 transform;
-  VkDeviceAddress vertexBufferAddress;
 
-  mesh::MeshAsset *parent{};
+  std::weak_ptr<mesh::v2::MeshAsset2> parent;
   Bounds3 bounds{};
 
   bool isVisible(const glm::mat4 &ProjView);
