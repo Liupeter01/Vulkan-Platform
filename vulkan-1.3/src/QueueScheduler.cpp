@@ -57,7 +57,7 @@ void QueueScheduler::finalizeByCategory(VkQueueFlagBits flag) {
         "[QueueScheduler] No queues available for graphics family!");
   }
 
-  uint32_t available = dispatcher->normalPools_.size();
+  uint32_t available = static_cast<uint32_t >(dispatcher->normalPools_.size());
 
   // special requirement amount
   uint32_t req_present = requestPlan.presentQueueStatus ? 1 : 0;

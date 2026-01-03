@@ -14,7 +14,7 @@ struct MultiQueueDeviceBuilder {
   friend struct QueueSchedulerBuilder;
 
   struct QueueBlock {
-    QueueBlock(std::size_t index, VkQueueFamilyProperties prot);
+    QueueBlock(uint32_t  index, VkQueueFamilyProperties prot);
     uint32_t familyIndex; // Vulkan QueueFamily Index
     uint32_t
         startPos{}; //  position index in current queue family, usually be zero!

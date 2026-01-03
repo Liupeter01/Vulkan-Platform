@@ -3,7 +3,7 @@
 
 namespace engine {
 
-MultiQueueDeviceBuilder::QueueBlock::QueueBlock(std::size_t index,
+MultiQueueDeviceBuilder::QueueBlock::QueueBlock(uint32_t index,
                                                 VkQueueFamilyProperties prot)
     : familyIndex(index), count(prot.queueCount), original(prot.queueCount),
       flags(prot.queueFlags), startPos(0) {}
