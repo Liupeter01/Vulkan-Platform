@@ -23,37 +23,44 @@ template <typename ResourcesType>
 class Compute_EffectBase<void, ResourcesType> : public std::true_type {
 public:
   Compute_EffectBase(VkDevice device)
-      : device_(device), defaultComputePipeline_(device),
-        specialConstantPipeline_(device), writer_(device) {}
-  virtual ~Compute_EffectBase() { destory(); }
+      : device_(device), defaultComputePipeline_(device), computeWriter_(device),
+        specialConstantPipeline_(device){}
 
-  void destory() {
-    if (isinit_) {
-      vkDestroyDescriptorSetLayout(device_, computeLayout_, nullptr);
-      defaultComputePipeline_.destroy();
-      isinit_ = false;
-    }
+  virtual ~Compute_EffectBase() {
+            if (isComputeInit_) {
+                      vkDestroyDescriptorSetLayout(device_, computeLayout_, nullptr);
+                      defaultComputePipeline_.destroy();
+                      isComputeInit_ = false;
+            }
+  }
+
+  void ensure_compute_initialized() {
+            if (isComputeInit_) return;
+            init_compute();
+            isComputeInit_ = true;
   }
 
   void set_dispatch_size(uint32_t x, uint32_t y, uint32_t z) {
     dispatchGroups_ = {x, y, z};
   }
 
-  virtual void init() = 0;
   virtual ComputeInstance
-  generate_instance(ResourcesType &resources,
+  generate_comp_instance(ResourcesType &resources,
                     DescriptorPoolAllocator &globalDescriptorAllocator) = 0;
 
-  virtual bool has_graphic() const = 0;
   virtual bool has_compute() const = 0;
-  virtual void render(VkCommandBuffer cmd, const ComputeInstance &ins) = 0;
   virtual void dispatch(VkCommandBuffer cmd, const ComputeInstance &ins) = 0;
 
 protected:
-  bool isinit_ = false;
-  DescriptorWriter writer_;
+          virtual void init_compute() = 0;
+
+
+protected:
+  bool isComputeInit_ = false;
   VkDevice device_ = VK_NULL_HANDLE;
   VkDescriptorSetLayout computeLayout_ = VK_NULL_HANDLE;
+
+  DescriptorWriter computeWriter_;
 
   glm::uvec3 dispatchGroups_{16, 16, 1};
 
@@ -73,18 +80,15 @@ class Compute_EffectBase<PushConstantType, ResourcesType,
 
 public:
   Compute_EffectBase(VkDevice device) : BaseType(device) {
-    pushConstantData_ = {};
+            compPushConstantData_ = {};
   }
   virtual ~Compute_EffectBase() = default;
 
-public:
-  PushConstantType &getPushConstantData() { return pushConstantData_; }
-  const PushConstantType &getPushConstantData() const {
-    return pushConstantData_;
-  }
+  PushConstantType& getCompPushConstantData() { return compPushConstantData_; }
 
 protected:
-  PushConstantType pushConstantData_{};
+
+  PushConstantType compPushConstantData_{};
 };
 
 } // namespace compute
