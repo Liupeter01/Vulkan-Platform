@@ -1,5 +1,5 @@
 struct SSBO {
-    float4 items;
+  float4 items;
 };
 
 struct SlangArgs {
@@ -36,10 +36,7 @@ SlangArgs vertMain(uint vertexId: SV_VertexID) {
   o.color = particlesColor[vertexId].items;
   o.PSIZE = 2;
 
-  o.position =
-      mul(myScene.proj,
-          mul(myScene.view,
-              float4(o.position.xyz, 1)));
+  o.position = mul(myScene.proj, mul(myScene.view, float4(o.position.xyz, 1)));
 
   o.PSIZE = 2;
   return o;
@@ -50,5 +47,5 @@ float4 fragMain(in SlangArgs args) : SV_Target { return args.color; }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void compMain(void) {  }
+void compMain(void) {}
 

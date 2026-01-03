@@ -1,25 +1,25 @@
 struct Particle {
-    float4 position;
-    float4 velocity;
-    float4 color;
+  float4 position;
+  float4 velocity;
+  float4 color;
 };
 
 struct ParticleSSBO {
-    Particle particles;
+  Particle particles;
 };
 
 struct SlangArgs {
-    float4 position : SV_Position;
-    float PSIZE : SV_PointSize;
-    float4 color;
+  float4 position : SV_Position;
+  float PSIZE : SV_PointSize;
+  float4 color;
 }
 
 struct SceneData {
-    float4x4 view;
-    float4x4 proj;
-    float4 ambientColor;
-    float4 sunlightDirection; // w for sun power
-    float4 sunlightColor;
+  float4x4 view;
+  float4x4 proj;
+  float4 ambientColor;
+  float4 sunlightDirection; // w for sun power
+  float4 sunlightColor;
 };
 
 // layout(set = 0, binding = 0)
@@ -35,23 +35,18 @@ StructuredBuffer<ParticleSSBO> particlesIn;
 RWStructuredBuffer<ParticleSSBO> particlesOut;
 
 [shader("vertex")]
-SlangArgs vertMain(uint vertexId: SV_VertexID){
-    SlangArgs o;
+SlangArgs vertMain(uint vertexId: SV_VertexID) {
+  SlangArgs o;
 
-    o.position =  particlesIn[vertexId].particles.position;
-    o.color = particlesIn[vertexId].particles.color;
-    o.PSIZE = 2;
-    return o;
+  o.position = particlesIn[vertexId].particles.position;
+  o.color = particlesIn[vertexId].particles.color;
+  o.PSIZE = 2;
+  return o;
 }
 
 [shader("fragment")]
-float4 fragMain(in SlangArgs args) : SV_Target {
-        return args.color;
-}
+float4 fragMain(in SlangArgs args) : SV_Target { return args.color; }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void compMain(uint3 threadId: SV_DispatchThreadID) {
-
-    uint index = threadId.x;
-}
+void compMain(uint3 threadId: SV_DispatchThreadID) { uint index = threadId.x; }
