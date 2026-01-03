@@ -108,8 +108,6 @@ void VulkanEngine::imm_command_submit(
 
 void VulkanEngine::run() {
 
-  auto &data = sceneMgr->getComputeData();
-
   KeyBoardController keyboard_controller;
   auto frameTimeStart = std::chrono::high_resolution_clock::now();
   auto frameTimeDuration =
@@ -469,7 +467,7 @@ void VulkanEngine::pre_compute(FrameData &currentFrame, Pack queue) {
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-  sceneMgr->compute(cmd, frame_cache->ctx[FrameData::ContextPass::COMPUTE]);
+  sceneMgr->pre_compute(cmd, frame_cache->ctx[FrameData::ContextPass::COMPUTE]);
 
   vkEndCommandBuffer(cmd);
 
