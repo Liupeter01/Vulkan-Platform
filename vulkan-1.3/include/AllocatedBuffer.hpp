@@ -65,6 +65,8 @@ public:
   void updateUploadingStatus(uint64_t observedValue);
   void purgeReleaseStaging(uint64_t observedValue);
 
+  void forceCreate();
+
   VkBuffer buffer();
 
   VkDeviceAddress getBufferDeviceAddress();

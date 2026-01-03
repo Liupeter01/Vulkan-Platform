@@ -130,6 +130,10 @@ void AllocatedBuffer2::updateCpuStaging() {
 VkBuffer AllocatedBuffer2::buffer() { return buffer_; }
 
 void AllocatedBuffer2::__createGpuBuffer() {
+
+          if (!configured_)
+                    throw std::runtime_error("You Must Configure parameters first!");
+
   if (gpuAllocated_)
     return;
   VkBufferCreateInfo bufferInfo{};
@@ -232,6 +236,13 @@ void AllocatedBuffer2::purgeReleaseStaging(uint64_t observedValue) {
     staging_.destroy();
     cpuReady_ = false;
   }
+}
+
+void AllocatedBuffer2::forceCreate() {
+          if (!configured_)
+                    throw std::runtime_error("You Must Configure parameters first!");
+
+          __createGpuBuffer();
 }
 
 bool AllocatedBuffer2::tryUninstall(uint64_t observedValue) {
