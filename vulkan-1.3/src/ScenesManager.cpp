@@ -123,50 +123,47 @@ void ScenesManager::destroy_default_material() {
 
 // Compute
 void ScenesManager::init_default_compute() {
-  imageAttachmentCompute.reset();
-  imageAttachmentCompute =
-      std::make_unique<Compute_ImageAttachment<>>(engine_->device_);
+  //imageAttachmentCompute.reset();
+  //imageAttachmentCompute =
+  //    std::make_unique<Compute_ImageAttachment<>>(engine_->device_);
 
-  if (!imageAttachmentCompute) {
-    spdlog::error("[ScenesManager Error]: Create Image Attachment Compute "
-                  "Material Failed!");
-    throw std::runtime_error("Alloc Image Attachment Compute Material Failed!");
-  }
+  //if (!imageAttachmentCompute) {
+  //  spdlog::error("[ScenesManager Error]: Create Image Attachment Compute "
+  //                "Material Failed!");
+  //  throw std::runtime_error("Alloc Image Attachment Compute Material Failed!");
+  //}
 
-  imageAttachmentCompute->init();
+  //imageAttachmentCompute->init();
 }
 
 void ScenesManager::init_particle_sys() {
+  particleSysBufferSOA.reset();
+  particleSysBufferSOA = std::make_unique<::engine::v2::ParticleSysDataBuffer2<particle::GPUParticle>>(
+            engine_->device_, engine_->allocator_, std::string("SceneManager"));
+  particleSysBufferSOA->configure(8192 * 2, ParticleDimension::Particle2D);
+  particleSysBufferSOA->prepareTransferData();
 
-  particleSysBuffer.reset();
-  particleSysBuffer =
-      std::make_unique<ParticleSysDataBuffer<particle::GPUParticle>>(
-          engine_->device_, engine_->allocator_);
-  particleSysBuffer->configure(
-      8192 * 2, ParticleSysDataBuffer<
-                    particle::GPUParticle>::ParticleDimension::Particle2D);
-  particleSysBuffer->perpareTransferData();
-
-  particleSysCompute.reset();
-  particleSysCompute =
-      std::make_shared<particle2d::PointSpriteParticleSystem2D<>>(
-          engine_->device_);
-  if (!particleSysCompute) {
-    spdlog::error("[ScenesManager Error]: Create Particle System Compute "
-                  "Material Failed!");
-    throw std::runtime_error("Alloc Particle System Compute Material Failed!");
+  particleSysComputeSOA.reset();
+  particleSysComputeSOA =
+            std::make_shared<particle2d::PointSpriteParticleSystemSOA2D<>>(
+                      engine_->device_);
+  if (!particleSysComputeSOA) {
+            spdlog::error("[ScenesManager Error]: Create Particle System Compute SOA "
+                      "Material Failed!");
+            throw std::runtime_error("Alloc Particle System Compute Material Failed!");
   }
-  particleSysCompute->setGlobalLayout(myScene.sceneDescriptorSetLayout_,
-                                      myScene.sceneDescriptorSet);
-  particleSysCompute->init();
+  particleSysComputeSOA->setGlobalLayout(myScene.sceneDescriptorSetLayout_,
+            myScene.sceneDescriptorSet);
+  particleSysComputeSOA->init();
+
 }
 
 void ScenesManager::on_gui() {
-  if (imageAttachmentCompute)
-    imageAttachmentCompute->on_gui();
+  //if (imageAttachmentCompute)
+  //  imageAttachmentCompute->on_gui();
 
-  if (particleSysCompute)
-    particleSysCompute->on_gui();
+  if(particleSysComputeSOA)
+            particleSysComputeSOA->on_gui();
 }
 
 // Pool
@@ -176,13 +173,17 @@ void ScenesManager::destroy_pool() { scenePool_.destroy_pools(); }
 
 void ScenesManager::destroy_particle_sys() {
 
-  particleSysCompute->destory();
-  particleSysCompute.reset();
+  //particleSysCompute->destory();
+  particleSysComputeSOA.reset();
+
+  particleSysBufferSOA->destroy();
+  particleSysBufferSOA.reset();
+
 }
 
 void ScenesManager::destroy_default_compute() {
-  imageAttachmentCompute->destory();
-  imageAttachmentCompute.reset();
+  //imageAttachmentCompute->destory();
+  //imageAttachmentCompute.reset();
 }
 
 void ScenesManager::destroy_scene() {
@@ -253,8 +254,9 @@ void ScenesManager::transfer(VkCommandBuffer cmd,
       transfer_once_,
       [this, cmd](uint64_t value) {
         engine_->submit_default_color(value, cmd);
-        particleSysBuffer->setUploadCompleteTimeline(value);
-        particleSysBuffer->singleTimeUpload(cmd);
+
+        particleSysBufferSOA->setUploadCompleteTimeline(value);
+        particleSysBufferSOA->singleTimeUpload(cmd);
       },
       frame->parent_->transferSignalValue_);
 
@@ -337,23 +339,27 @@ void ScenesManager::render(VkCommandBuffer cmd,
   vkCmdSetScissor(cmd, 0, 1, &scissor);
 
   /*deal with other systems*/
-  if (particleSysCompute->has_graphic()) {
+  if (particleSysComputeSOA->has_graphic()) {
     const std::size_t dispatchGroupsX =
-        particleSysBuffer->getParticleCount() >> 8;
+        particleSysBufferSOA->getParticleCount() >> 8;
     if (!dispatchGroupsX) {
       spdlog::info("[ParticleMovement] Dispatching {} groups for {} particles",
-                   dispatchGroupsX, particleSysBuffer->getParticleCount());
+                   dispatchGroupsX, particleSysBufferSOA->getParticleCount());
     }
 
-    particle::ParticleResources res;
-    res.bufferSize = particleSysBuffer->getBufferSize();
-    res.particlesIn = particleSysBuffer->get_in_buffer();
-    res.particlesOut = particleSysBuffer->get_out_buffer();
+    auto in_view = particleSysBufferSOA->in();
+    particle::ParticleGraphicResourcesSOA res;
+
+    res.positionBufferSize = in_view.positionBufferSize;
+    res.positionIn =  in_view.position;
+
+    res.colorBufferSize = in_view.colorBufferSize;
+    res.colorIn = in_view.color;
 
     auto ins =
-        particleSysCompute->generate_instance(res, frame->_frameDescriptor);
-    particleSysCompute->set_dispatch_size(dispatchGroupsX, 1, 1);
-    particleSysCompute->render(cmd, ins);
+        particleSysComputeSOA->generate_graphic_instance(res, frame->_frameDescriptor);
+    particleSysComputeSOA->set_dispatch_size(static_cast<uint32_t>(dispatchGroupsX), 1, 1);
+    particleSysComputeSOA->render(cmd, ins);
   }
 
   std::call_once(
@@ -467,62 +473,58 @@ void ScenesManager::render(VkCommandBuffer cmd,
   vkCmdEndRendering(cmd);
 }
 
-void ScenesManager::compute(VkCommandBuffer cmd,
-                            std::unique_ptr<CommonFrameContext> &frame) {
+void ScenesManager::pre_compute(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext>& frame) {
+          std::call_once(
+                    compute_once_,
+                    [this, cmd, &frame](uint64_t value) {
+                              particleSysBufferSOA->updateUploadingStatus(value);
 
-  std::call_once(
-      compute_once_,
-      [this, cmd, &frame](uint64_t value) {
-        particleSysBuffer->updateUploadingStatus(value);
+                              frame->destroy_by_deferred(
+                                        [this, value = frame->parent_->graphicsWaitValue_]() {
+                                                  particleSysBufferSOA->purgeReleaseStaging(value);
+                                        });
+                    },
+                    frame->parent_->computeWaitValue_);
 
-        frame->destroy_by_deferred(
-            [this, value = frame->parent_->graphicsWaitValue_]() {
-              particleSysBuffer->purgeReleaseStaging(value);
-            });
-      },
-      frame->parent_->computeWaitValue_);
+          auto particle_movement = [&]() {
+                    if (particleSysComputeSOA->has_compute()) {
+                              const uint32_t  dispatchGroupsX = static_cast<uint32_t>(
+                                        particleSysBufferSOA->getParticleCount() >> 8);
+                              if (!dispatchGroupsX) {
+                                        spdlog::info(
+                                                  "[ParticleMovement] Dispatching {} groups for {} particles",
+                                                  dispatchGroupsX, particleSysBufferSOA->getParticleCount());
+                              }
 
-  // auto color_blending_background = [&]() {
-  //   auto drawExtent = frame.getExtent2D();
-  //   ImageAttachmentResources res{frame.drawImage_->imageView};
+                              auto in_view = particleSysBufferSOA->in();
+                              auto out_view = particleSysBufferSOA->out();
 
-  //  auto ins =
-  //      imageAttachmentCompute->generate_instance(res,
-  //      frame._frameDescriptor);
-  //  imageAttachmentCompute->set_dispatch_size((drawExtent.width + 15) >> 4,
-  //                                            (drawExtent.height + 15) >> 4,
-  //                                            1);
+                              particle::ParticleCompResourcesSOA res;
+                              res.colorBufferSize = in_view.colorBufferSize = out_view.colorBufferSize;
+                              res.colorIn = in_view.color;
+                              res.colorOut = out_view.color;
 
-  //  imageAttachmentCompute->dispatch(cmd, ins);
-  //};
+                              res.positionBufferSize = in_view.positionBufferSize = out_view.positionBufferSize;
+                              res.positionIn = in_view.position;
+                              res.positionOut = out_view.position;
 
-  auto particle_movement = [&]() {
-    if (particleSysCompute->has_compute()) {
-      const std::size_t dispatchGroupsX =
-          particleSysBuffer->getParticleCount() >> 8;
-      if (!dispatchGroupsX) {
-        spdlog::info(
-            "[ParticleMovement] Dispatching {} groups for {} particles",
-            dispatchGroupsX, particleSysBuffer->getParticleCount());
-      }
+                              res.velocityBufferSize = in_view.velocityBufferSize = out_view.velocityBufferSize;
+                              res.velocityIn = in_view.velocity;
+                              res.velocityOut = out_view.velocity;
 
-      particle::ParticleResources res;
-      res.bufferSize = particleSysBuffer->getBufferSize();
-      res.particlesIn = particleSysBuffer->get_in_buffer();
-      res.particlesOut = particleSysBuffer->get_out_buffer();
-      // res.colorImage = frame.drawImage_->imageView;
+                              auto ins =
+                                        particleSysComputeSOA->generate_comp_instance(res, frame->_frameDescriptor);
+                              particleSysComputeSOA->set_dispatch_size(dispatchGroupsX, 1, 1);
+                              particleSysComputeSOA->dispatch(cmd, ins);
 
-      auto ins =
-          particleSysCompute->generate_instance(res, frame->_frameDescriptor);
-      particleSysCompute->set_dispatch_size(dispatchGroupsX, 1, 1);
-      particleSysCompute->dispatch(cmd, ins);
+                              particleSysBufferSOA->swap();
+                    }
+                    };
 
-      particleSysBuffer->swap();
-    }
-  };
+          particle_movement();
+}
 
-  // color_blending_background();
-  particle_movement();
+void ScenesManager::post_compute(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext>& frame){
 }
 
 bool ScenesManager::addScene(std::shared_ptr<NodeManager> scene) {
@@ -536,10 +538,6 @@ bool ScenesManager::addScene(std::shared_ptr<NodeManager> scene) {
                  "Already Existed!");
   }
   return status;
-}
-
-ComputeShaderPushConstants &ScenesManager::getComputeData() {
-  return imageAttachmentCompute->getPushConstantData();
 }
 
 void ScenesManager::Draw(const glm::mat4 &parentMatrix, DrawContext &ctx) {

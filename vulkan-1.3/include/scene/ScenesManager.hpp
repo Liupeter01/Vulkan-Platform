@@ -32,12 +32,13 @@ public:
   void transfer(VkCommandBuffer cmd,
                 std::unique_ptr<CommonFrameContext> &frame);
   void render(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext> &frame);
-  void compute(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext> &frame);
+
+  void pre_compute(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext>& frame);
+  void post_compute(VkCommandBuffer cmd, std::unique_ptr<CommonFrameContext>&frame);
 
   bool addScene(std::shared_ptr<NodeManager> scene);
 
-  ComputeShaderPushConstants &getComputeData();
-  auto &getParticleData() { return particleSysCompute->getPushConstantData(); }
+  auto &getParticleData() { return particleSysComputeSOA->getCompPushConstantData(); }
 
   void on_gui();
 
@@ -104,13 +105,14 @@ private:
       loadedScenes_;
 
   std::unique_ptr<GLTFMetallic_Roughness> metalRoughMaterial{}; // Graphic
-  std::unique_ptr<Compute_ImageAttachment<>>
-      imageAttachmentCompute{}; // Compute
+  //std::unique_ptr<Compute_ImageAttachment<>>
+  //    imageAttachmentCompute{}; // Compute
 
-  std::unique_ptr<ParticleSysDataBuffer<particle::GPUParticle>>
-      particleSysBuffer{};
-  std::shared_ptr<particle::PointSpriteParticleSystemBase<>>
-      particleSysCompute{};
+  std::unique_ptr<::engine::v2::ParticleSysDataBuffer2<particle::GPUParticle>>
+            particleSysBufferSOA{};
+
+  std::shared_ptr<particle::PointSpriteParticleSystemBaseSOA<>>
+            particleSysComputeSOA{};
 
   DescriptorPoolAllocator scenePool_;
 };
