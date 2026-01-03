@@ -9,21 +9,23 @@ class VulkanEngine;
 
 namespace particle2d {
 
-          template <typename ComputePushConstantType = particle::ParticlePushConstant,
-                    typename ComputeResourcesType = particle::ParticleComputeResourcesAOS,
-                    typename GraphicPushConstantType = particle::ParticleDrawPushConstant,
-                    typename GraphicResourcesType = particle::ParticleGraphicResourcesAOS>
+template <typename ComputePushConstantType = particle::ParticlePushConstant,
+          typename ComputeResourcesType = particle::ParticleComputeResourcesAOS,
+          typename GraphicPushConstantType = particle::ParticleDrawPushConstant,
+          typename GraphicResourcesType = particle::ParticleGraphicResourcesAOS>
 class PointSpriteParticleSystemAOS2D
-    : public particle::PointSpriteParticleSystemBaseAOS<ComputePushConstantType, ComputeResourcesType,
+    : public particle::PointSpriteParticleSystemBaseAOS<
+          ComputePushConstantType, ComputeResourcesType,
           GraphicPushConstantType, GraphicResourcesType> {
 
 public:
   PointSpriteParticleSystemAOS2D(VkDevice device)
-      : particle::PointSpriteParticleSystemBaseAOS<ComputePushConstantType, ComputeResourcesType,
+      : particle::PointSpriteParticleSystemBaseAOS<
+            ComputePushConstantType, ComputeResourcesType,
             GraphicPushConstantType, GraphicResourcesType>(device) {
 
-    this->set_vertex_shader(SLANG_SHADER_PATH "SpriteParticleDrawAOS2D.slang.spv",
-                            "vertMain");
+    this->set_vertex_shader(
+        SLANG_SHADER_PATH "SpriteParticleDrawAOS2D.slang.spv", "vertMain");
     this->set_fragment_shader(
         SLANG_SHADER_PATH "SpriteParticleDrawAOS2D.slang.spv", "fragMain");
   }
@@ -34,21 +36,22 @@ template <typename ComputePushConstantType = particle::ParticlePushConstant,
           typename GraphicPushConstantType = particle::ParticleDrawPushConstant,
           typename GraphicResourcesType = particle::ParticleGraphicResourcesSOA>
 class PointSpriteParticleSystemSOA2D
-          : public particle::PointSpriteParticleSystemBaseSOA<ComputePushConstantType, ComputeResourcesType,
+    : public particle::PointSpriteParticleSystemBaseSOA<
+          ComputePushConstantType, ComputeResourcesType,
           GraphicPushConstantType, GraphicResourcesType> {
 
-          using BaseType = particle::PointSpriteParticleSystemBaseSOA<ComputePushConstantType, ComputeResourcesType,
-                    GraphicPushConstantType, GraphicResourcesType>;
+  using BaseType = particle::PointSpriteParticleSystemBaseSOA<
+      ComputePushConstantType, ComputeResourcesType, GraphicPushConstantType,
+      GraphicResourcesType>;
 
 public:
-          PointSpriteParticleSystemSOA2D(VkDevice device)
-                    : BaseType(device) {
+  PointSpriteParticleSystemSOA2D(VkDevice device) : BaseType(device) {
 
-                    this->set_vertex_shader(SLANG_SHADER_PATH "SpriteParticleDrawSOA2D.slang.spv",
-                              "vertMain");
-                    this->set_fragment_shader(
-                              SLANG_SHADER_PATH "SpriteParticleDrawSOA2D.slang.spv", "fragMain");
-          }
+    this->set_vertex_shader(
+        SLANG_SHADER_PATH "SpriteParticleDrawSOA2D.slang.spv", "vertMain");
+    this->set_fragment_shader(
+        SLANG_SHADER_PATH "SpriteParticleDrawSOA2D.slang.spv", "fragMain");
+  }
 };
 } // namespace particle2d
 } // namespace engine

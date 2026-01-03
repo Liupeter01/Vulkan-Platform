@@ -34,6 +34,7 @@ struct SceneNodeBuilder;
 struct NodeManagerBuilder;
 class ScenesNodesManager;
 struct SwapChainImageData;
+class ScenesManager;
 
 namespace node {
 class SceneNode;

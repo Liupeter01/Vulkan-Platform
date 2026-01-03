@@ -23,37 +23,37 @@ template <typename ResourcesType>
 class Compute_EffectBase<void, ResourcesType> : public std::true_type {
 public:
   Compute_EffectBase(VkDevice device)
-      : device_(device), defaultComputePipeline_(device), computeWriter_(device),
-        specialConstantPipeline_(device){}
+      : device_(device), defaultComputePipeline_(device),
+        computeWriter_(device), specialConstantPipeline_(device) {}
 
   virtual ~Compute_EffectBase() {
-            if (isComputeInit_) {
-                      vkDestroyDescriptorSetLayout(device_, computeLayout_, nullptr);
-                      defaultComputePipeline_.destroy();
-                      isComputeInit_ = false;
-            }
+    if (isComputeInit_) {
+      vkDestroyDescriptorSetLayout(device_, computeLayout_, nullptr);
+      defaultComputePipeline_.destroy();
+      isComputeInit_ = false;
+    }
   }
 
   void ensure_compute_initialized() {
-            if (isComputeInit_) return;
-            init_compute();
-            isComputeInit_ = true;
+    if (isComputeInit_)
+      return;
+    init_compute();
+    isComputeInit_ = true;
   }
 
   void set_dispatch_size(uint32_t x, uint32_t y, uint32_t z) {
     dispatchGroups_ = {x, y, z};
   }
 
-  virtual ComputeInstance
-  generate_comp_instance(ResourcesType &resources,
-                    DescriptorPoolAllocator &globalDescriptorAllocator) = 0;
+  virtual ComputeInstance generate_comp_instance(
+      ResourcesType &resources,
+      DescriptorPoolAllocator &globalDescriptorAllocator) = 0;
 
   virtual bool has_compute() const = 0;
   virtual void dispatch(VkCommandBuffer cmd, const ComputeInstance &ins) = 0;
 
 protected:
-          virtual void init_compute() = 0;
-
+  virtual void init_compute() = 0;
 
 protected:
   bool isComputeInit_ = false;
@@ -80,14 +80,13 @@ class Compute_EffectBase<PushConstantType, ResourcesType,
 
 public:
   Compute_EffectBase(VkDevice device) : BaseType(device) {
-            compPushConstantData_ = {};
+    compPushConstantData_ = {};
   }
   virtual ~Compute_EffectBase() = default;
 
-  PushConstantType& getCompPushConstantData() { return compPushConstantData_; }
+  PushConstantType &getCompPushConstantData() { return compPushConstantData_; }
 
 protected:
-
   PushConstantType compPushConstantData_{};
 };
 
