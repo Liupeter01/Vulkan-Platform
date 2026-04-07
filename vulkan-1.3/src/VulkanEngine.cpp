@@ -471,7 +471,7 @@ void VulkanEngine::pre_compute(FrameData &currentFrame, Pack queue) {
 
   vkEndCommandBuffer(cmd);
 
-  asyncSubmitter_[VK_QUEUE_TRANSFER_BIT]->commit(
+  asyncSubmitter_[VK_QUEUE_COMPUTE_BIT]->commit(
       [cmd, device = device_, queuePointer = queueScheduler_.get(),
        cur_frame = &get_current_frame(), queue = queue.queue,
        queueFamily = queue.family]() {
