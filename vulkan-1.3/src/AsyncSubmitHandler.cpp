@@ -6,7 +6,20 @@ namespace engine {
 
 AsyncSubmitHandler::AsyncSubmitHandler(VkQueueFlagBits type,
                                        std::size_t queueCount)
-    : currentIndex{0}, queueCounter_(queueCount), type_(type) {}
+    : currentIndex{0}
+       , queueCounter_(0)
+      , type_(type) 
+{
+          unsigned int hw = std::thread::hardware_concurrency();
+          if (hw == 0) {
+                    hw = 1;
+          }
+          unsigned int maxWorkers = std::max(1u, hw);
+          queueCounter_ = std::min(
+                    static_cast<unsigned int>(queueCount),
+                    maxWorkers
+          );
+}
 
 AsyncSubmitHandler::AsyncSubmitHandler(VkQueueFlagBits whichTypeIWant,
                                        const QueueScheduler &s)
