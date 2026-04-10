@@ -1334,6 +1334,7 @@ void VulkanEngine::destroy_frames() {
       };
       safe_destroy(FrameData::ContextPass::COMPUTE);
       safe_destroy(FrameData::ContextPass::GRAPHIC);
+      safe_destroy(FrameData::ContextPass::TRANSFER);
       frame->destroy();
     }
   }
