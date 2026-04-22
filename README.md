@@ -159,7 +159,53 @@ cmake --build build --config Release
 
 
 
-## 0x03 Roadmap / Ideas
+## 0x03 Benchmarks
+
+All measurements taken with Nsight Graphics on RTX 3080 Ti Mobile (Windows, MSVC Release build, validation layers disabled).
+
+### Resource upload pipeline rework
+
+Reworked the resource upload path from a tutorial-style architecture (per-frame
+full re-uploads + serial blocking `vkQueueSubmit` + fence waits) into an
+asynchronous system with a decoupled transfer queue, dedicated `ResourceManager`,
+and callback-driven scheduling.
+
+| Pipeline           | Worst-case frame time | FPS (approx.) |
+|--------------------|-----------------------|---------------|
+| Tutorial baseline  | 424 ms                | ~2            |
+| Async + decoupled  | 4.66 ms               | ~215          |
+
+~91× reduction on the same scene, validated with Nsight GPU Trace.
+
+### Steady-state rendering performance
+
+Scene: 700K triangles, 1.1–1.2K draw calls, IMMEDIATE_KHR present mode
+(VSync disabled) on a 72 Hz display.
+
+| Metric                         | Value         |
+|--------------------------------|---------------|
+| Frame rate                     | 268 FPS       |
+| Frame time                     | ~3.73 ms      |
+| CPU command recording          | < 0.9 ms      |
+
+Multi-queue overlap verified via Nsight Graphics frame analysis.
+
+### GPU-driven particle system
+
+| Config                           | Value    |
+|----------------------------------|----------|
+| Particles per dispatch           | 16,384   |
+| Compute dispatch time            | < 0.01 ms |
+| Layout                           | SoA (coalesced access) |
+| Buffer strategy                  | Double-buffered SSBO, ping-pong |
+
+### Next-step optimization targets (observed, not yet fixed)
+
+Nsight Compute attribution on the steady-state pipeline shows ~15% L1TEX Long
+Scoreboard stalls in the graphics path, suggesting further pipeline scheduling
+improvements are possible.
+
+## 0x04 Roadmap / Ideas
 
 Planned or potential future work:
 
