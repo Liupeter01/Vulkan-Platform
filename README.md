@@ -185,7 +185,7 @@ Scene: 700K triangles, 1.1–1.2K draw calls, IMMEDIATE_KHR present mode (VSync 
 |--------------------------------|---------------|
 | Frame rate                     | 268 FPS       |
 | Frame time                     | ~3.73 ms      |
-| CPU command recording          | < 0.9 ms      |
+| CPU command submitting         | 0.02 ~ 0.1 ms |
 
 Multi-queue overlap verified via Nsight Graphics frame analysis.
 
