@@ -14,6 +14,12 @@ struct SlangArgs {
   float4 color;
 }
 
+// SV_PointSize is vertex-stage output only, so the fragment
+// stage needs its own input struct without it.
+struct FragmentInput {
+  float4 color;
+}
+
 struct SceneData {
   float4x4 view;
   float4x4 proj;
@@ -48,7 +54,7 @@ SlangArgs vertMain(uint vertexId: SV_VertexID) {
 }
 
 [shader("fragment")]
-float4 fragMain(in SlangArgs args) : SV_Target { return args.color; }
+float4 fragMain(in FragmentInput args) : SV_Target { return args.color; }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
