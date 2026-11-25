@@ -44,11 +44,9 @@ void fragMain(void) {}
 [numthreads(256, 1, 1)]
 void compMain(uint3 threadId: SV_DispatchThreadID) {
   uint index = threadId.x;
-  uint width, height;
 
   float3 pos = particlesPositionIn[index].items.xyz;
   float3 vel = particlesVelocityIn[index].items.xyz;
-  // float4 color = particlesColorIn[index].items;
 
   const float boundary = 0.97;
 
@@ -69,7 +67,8 @@ void compMain(uint3 threadId: SV_DispatchThreadID) {
 
   pos += vel * pc.deltaTime * pc.speedup.xyz;
 
-  particlesPositionOut[index].items.xyz = pos;
-  particlesVelocityOut[index].items.xyz = vel;
+  particlesPositionOut[index].items = float4(pos, 1.0);
+  particlesVelocityOut[index].items = float4(vel, 0.0);
+  particlesColorOut[index].items = particlesColorIn[index].items;
 }
 
