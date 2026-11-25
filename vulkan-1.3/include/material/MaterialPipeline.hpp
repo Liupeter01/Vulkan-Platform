@@ -57,7 +57,7 @@ struct MaterialPipeline {
         .set_polygon_mode(VK_POLYGON_MODE_FILL)
         .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
         .set_multisampling()
-        .set_depthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL)
+        .set_depthtest(VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL)
         .set_depth_format(VK_FORMAT_D32_SFLOAT)
         .set_color_attachment_format(VK_FORMAT_R16G16B16A16_SFLOAT);
 
