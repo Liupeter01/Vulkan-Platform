@@ -1,6 +1,5 @@
-#include <Tools.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <nodes/mesh/MeshNode.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
 
@@ -8,18 +7,33 @@ namespace engine {
 
 bool RenderObject::isVisible(const glm::mat4 &ProjView) {
 
-  bool status = false;
-  const auto PVM = ProjView * this->transform;
+  const auto clipFromLocal = ProjView * transform;
+  bool outsideLeft = true;
+  bool outsideRight = true;
+  bool outsideBottom = true;
+  bool outsideTop = true;
+  bool outsideNear = true;
+  bool outsideFar = true;
 
+  // Cull only when every corner is outside the same clip plane.
   for (std::size_t i = 0; i < 8; ++i) {
-    glm::vec3 res = tools::perspective_divded(
-        PVM *
-        glm::vec4(bounds.getCorner(static_cast<Bounds3::CornerType>(i)), 1.f));
+    const glm::vec4 clip =
+        clipFromLocal *
+        glm::vec4(bounds.getCorner(static_cast<Bounds3::CornerType>(i)), 1.f);
 
-    status |= tools::is_inside_vulkan_ndc(res);
+    outsideLeft = outsideLeft && (clip.x < -clip.w);
+    outsideRight = outsideRight && (clip.x > clip.w);
+    outsideBottom = outsideBottom && (clip.y < -clip.w);
+    outsideTop = outsideTop && (clip.y > clip.w);
+    outsideNear = outsideNear && (clip.z < 0.f);
+    outsideFar = outsideFar && (clip.z > clip.w);
+
+    if (!(outsideLeft || outsideRight || outsideBottom || outsideTop ||
+          outsideNear || outsideFar))
+      return true;
   }
 
-  return status;
+  return false;
 }
 
 void TransformComponent::setRotation(const glm::vec3 &euler) {
